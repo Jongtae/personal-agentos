@@ -62,10 +62,10 @@ class ModelAdapter:
     def __init__(self, transport=request_json):
         self.transport = transport
 
-    def tool_turn(self, config, key, messages, tools):
+    def tool_turn(self, config, key, messages, tools, tool_choice="auto"):
         cfg=validate_model(config)
         if cfg['provider']!='compatible':raise ValueError('이 연결 방식의 native tool calling은 아직 지원하지 않습니다.')
-        body={'model':cfg['model'],'messages':messages,'tools':tools,'tool_choice':'auto','stream':False}
+        body={'model':cfg['model'],'messages':messages,'tools':tools,'tool_choice':tool_choice,'stream':False}
         if cfg['endpoint']=='https://openrouter.ai/api/v1':body['provider']={'require_parameters':True}
         data=self.transport(cfg['endpoint']+'/chat/completions',body,{'Authorization':'Bearer '+key} if key else {})
         try:
