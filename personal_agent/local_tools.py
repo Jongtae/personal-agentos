@@ -98,10 +98,16 @@ TOOL_DEFINITIONS = [
 ASK_LOCATION={'type':'function','function':{'name':'ask_location','description':'Ask which city and country when the user has not given a location. Never invent location.','parameters':{'type':'object','properties':{'question':{'type':'string'}},'required':['question'],'additionalProperties':False}}}
 
 def weather_context(history):
-    users=[m['content'] for m in history if m['role']=='user']
+    users=[m['content'].strip() for m in history if m['role']=='user']
     if not users:return False
-    if re.search(r'날씨|기온|weather|temperature',users[-1],re.I):return True
-    return len(users)>1 and len(users[-1])<100 and bool(re.search(r'날씨|기온|weather|temperature',users[-2],re.I)) and not needs_lookup(users[-1])
+    latest=users[-1]
+    # Capability questions and topic changes must retain the full tool set.
+    if re.search(r'할 수|기능|어떤.*(?:도구|일)|어떻게.*(?:동작|작동)|can you|capabilit',latest,re.I):return False
+    if re.search(r'날씨|기온|weather|temperature',latest,re.I):return True
+    if len(users)<2 or not re.search(r'날씨|기온|weather|temperature',users[-2],re.I):return False
+    # Only a location-shaped reply inherits weather intent, never any short message.
+    return bool(re.fullmatch(r'(?:(?:대한민국|한국|경기도|서울특별시)\s+)?[가-힣]{2,12}(?:시|군|구)(?:야|요|입니다)?[.!? ]*(?:직접 확인해줘)?[.!? ]*',latest))
+
 
 def weather_answer(result):
     f=result['forecast'];c=f['current'];u=f['current_units'];p=result['location']

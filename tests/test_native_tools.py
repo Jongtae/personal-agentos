@@ -29,6 +29,8 @@ class AcceptanceTests(unittest.TestCase):
   from personal_agent.local_tools import weather_context
   self.assertTrue(weather_context([{'role':'user','content':'날씨 알려줘'},{'role':'assistant','content':'어디인가요?'},{'role':'user','content':'성남시'}]))
   self.assertFalse(weather_context([{'role':'user','content':'날씨 알려줘'},{'role':'user','content':'최신 뉴스 검색'}]))
+  for prompt in ['다른 것도 할 수 있어?','파이썬 설명해줘','안녕','농담해줘','날씨 조회 기능은 어떻게 작동해?']:
+   self.assertFalse(weather_context([{'role':'user','content':'현재 성남시 날씨'},{'role':'user','content':prompt}]),prompt)
  def test_no_call_cannot_pass_weather(self):
   from personal_agent.providers import ProviderError
   def transport(u,b,h):
