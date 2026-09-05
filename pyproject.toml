@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "personal-agentos"
+version = "0.1.0"
+description = "A lightweight self-hosted personal agent with browser setup"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+agentos = "personal_agent.quickstart:main"
+
+[tool.setuptools.packages.find]
+include = ["personal_agent*"]
+
+[tool.setuptools.package-data]
+personal_agent = ["web/*.html", "web/*.css", "web/*.js"]

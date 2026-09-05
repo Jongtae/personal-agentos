@@ -1,5 +1,17 @@
 # Personal AgentOS
 
+최신 실행 경로는 **Homebrew 설치 → 웹 초기 설정 → 모델·Telegram 연결**입니다. [퀵스타트 안내](QUICKSTART.md)를 참고하세요.
+
+```sh
+brew install jongtae/agentos/agentos
+agentos start
+```
+
+배포 저장소: https://github.com/Jongtae/homebrew-agentos
+
+아래는 앞서 검증한 Kubernetes 프로토타입 기록입니다.
+
+
 > 최신 제품 방향은 [AgentOS 제품 컨셉](PRODUCT_VISION.ko.md)을 기준으로 합니다. 설치형 데스크톱 대화 앱과 개인 에이전트 생태계가 목표이며, 아래 Kubernetes 구성은 실행 기반 프로토타입 기록입니다.
 
 사용자마다 독립된 에이전트 환경을 Kubernetes 위에 제공하는 개발 MVP입니다.
