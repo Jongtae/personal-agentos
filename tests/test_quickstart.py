@@ -144,6 +144,18 @@ class QuickstartTests(unittest.TestCase):
         self.assertIsNone(self.store.config('telegram')['user_id'])
         self.assertEqual(self.store.jobs(),[])
 
+    def test_easy_model_connections(self):
+        from unittest.mock import patch
+        with patch('personal_agent.quickstart_service.request_json',return_value={'key':'test-only-key'}) as transport:
+            self.service.connect_openrouter({'code':'test-code','verifier':'a'*64})
+            self.assertEqual(self.store.config('model')['model'],'openrouter/free')
+            self.assertEqual(self.store.secret('model_key'),'test-only-key')
+            self.assertNotIn('test-only-key',str(self.service.settings()))
+            self.assertEqual(transport.call_args.args[1]['code_challenge_method'],'S256')
+        with patch('personal_agent.quickstart_service.request_json',return_value={'models':[{'name':'local-model','size':123},{}]}) as transport:
+            self.assertEqual(self.service.local_models()['models'][0]['name'],'local-model')
+            self.assertIsNone(transport.call_args.args[1])
+
     def test_optional_password_local_http(self):
         self.service.start()
         server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(self.service))

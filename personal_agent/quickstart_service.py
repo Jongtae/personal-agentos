@@ -44,6 +44,20 @@ class AgentService:
             self.store.put('model_test',None)
         return self.settings()
 
+    def connect_openrouter(self, body):
+        code=body.get('code',''); verifier=body.get('verifier','')
+        if not isinstance(code,str) or not isinstance(verifier,str) or not 43<=len(verifier)<=128 or not 1<=len(code)<=2048:
+            raise ValueError('연결을 다시 시작해 주세요.')
+        result=request_json('https://openrouter.ai/api/v1/auth/keys',{'code':code,'code_verifier':verifier,'code_challenge_method':'S256'})
+        if not isinstance(result,dict) or not isinstance(result.get('key'),str):raise ProviderError('계정 연결을 완료하지 못했습니다.')
+        self.save_model({'provider':'compatible','endpoint':'https://openrouter.ai/api/v1','model':'openrouter/free','api_key':result['key']})
+        return {'ok':True}
+
+    def local_models(self):
+        data=request_json('http://127.0.0.1:11434/api/tags',None,timeout=3)
+        if not isinstance(data,dict) or not isinstance(data.get('models'),list):raise ProviderError('모델 목록을 읽을 수 없습니다.')
+        return {'models':[{'name':m['name'],'size':m.get('size',0)} for m in data['models'] if isinstance(m,dict) and isinstance(m.get('name'),str)]}
+
     def test_model(self):
         with self.lock:
             config=self.store.config('model',{})

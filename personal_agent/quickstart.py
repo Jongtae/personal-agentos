@@ -117,6 +117,8 @@ def make_handler(service):
                 if path=='/api/logout':
                     store.logout(self.token())
                     return self.reply(200,{'ok':True},cookie='agentos_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0')
+                if path=='/api/openrouter/connect':return self.reply(200,service.connect_openrouter(body))
+                if path=='/api/ollama/models':return self.reply(200,service.local_models())
                 if path=='/api/model':return self.reply(200,service.save_model(body))
                 if path=='/api/model/test':return self.reply(200,service.test_model())
                 if path=='/api/telegram':return self.reply(200,service.connect_telegram(body))

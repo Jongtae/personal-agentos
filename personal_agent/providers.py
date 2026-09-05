@@ -20,7 +20,7 @@ class NoRedirect(HTTPRedirectHandler):
 
 
 def request_json(url, body, headers=None, timeout=60):
-    req = Request(url, data=json.dumps(body).encode(), headers={'Content-Type': 'application/json', **(headers or {})})
+    req = Request(url, data=None if body is None else json.dumps(body).encode(), headers={'Content-Type': 'application/json', **(headers or {})})
     try:
         with build_opener(NoRedirect()).open(req, timeout=timeout) as response:
             raw = response.read(2_000_001)

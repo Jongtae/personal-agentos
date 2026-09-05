@@ -12,7 +12,9 @@ async function api(path,body){
 function error(id,e){$(id).textContent=e.message||String(e);}
 async function busy(button,fn){const text=button.textContent;button.disabled=true;button.textContent='처리 중…';try{await fn();}finally{button.disabled=false;button.textContent=text;}}
 async function status(){
- const s=await api('/api/status');claimed=s.claimed;authenticated=s.authenticated;
+ let s=await api('/api/status');
+ if(!s.claimed){await api('/api/claim',{code:bootstrap});s=await api('/api/status');}
+ claimed=s.claimed;authenticated=s.authenticated;
  if(!authenticated&&s.local_access){await api('/api/local-login',{});authenticated=true;}
  $('welcome').hidden=authenticated;$('workspace').hidden=!authenticated;$('logout').hidden=!authenticated||s.local_access;
  $('auth-title').textContent=claimed?'다시 만나서 반갑습니다.':'나만의 에이전트를 시작하세요.';
@@ -21,11 +23,11 @@ async function status(){
  $('auth-submit').textContent=claimed?'로그인':'바로 시작하기';
  $('password').required=claimed;$('password-option').open=claimed;$('password').minLength=claimed?1:12;$('password').autocomplete=claimed?'current-password':'new-password';
  $('password-label').textContent=claimed?'비밀번호':'사용할 비밀번호';
- if(authenticated)await refresh();
+ if(authenticated){await refresh();await finishOpenRouter();}
 }
 $('auth-form').addEventListener('submit',async e=>{e.preventDefault();$('auth-error').textContent='';await busy($('auth-submit'),async()=>{try{await api(claimed?'/api/login':'/api/claim',{password:$('password').value,code:bootstrap});bootstrap='';$('password').value='';await status();}catch(e){error('auth-error',e);}});});
 $('logout').onclick=async()=>{try{await api('/api/logout',{});modelLoaded=false;stateFingerprint='';await status();}catch(e){error('global-error',e);}};
-const providers={ollama:{endpoint:'http://127.0.0.1:11434',help:'Ollama 서버의 주소입니다. 모델은 Ollama에 미리 설치되어 있어야 합니다.'},compatible:{endpoint:'https://api.openai.com/v1',help:'Chat Completions 호환 기본 URL입니다. 필요한 경우 /v1을 포함하세요.'},anthropic:{endpoint:'https://api.anthropic.com',help:'Anthropic에서 사용 가능한 모델 ID와 API 키를 입력하세요.'}};
+const providers={ollama:{endpoint:'http://127.0.0.1:11434',help:'Ollama 서버의 주소입니다. 모델은 Ollama에 미리 설치되어 있어야 합니다.'},compatible:{endpoint:'https://openrouter.ai/api/v1',help:'Chat Completions 호환 기본 URL입니다. 필요한 경우 /v1을 포함하세요.'},anthropic:{endpoint:'https://api.anthropic.com',help:'Anthropic에서 사용 가능한 모델 ID와 API 키를 입력하세요.'}};
 $('provider').onchange=()=>{const p=providers[$('provider').value];$('endpoint').value=p.endpoint;$('endpoint-help').textContent=p.help;$('api-key').value='';$('model-feedback').textContent='연결 대상이 바뀌면 기존 키를 자동으로 전달하지 않습니다. 필요한 키를 다시 입력하세요.';};
 $('model-form').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{await api('/api/model',{provider:$('provider').value,endpoint:$('endpoint').value,model:$('model-name').value,api_key:$('api-key').value});$('api-key').value='';$('model-feedback').textContent='저장했습니다. 연결 확인을 누르면 실제 응답을 확인합니다.';await refresh();}catch(e){error('model-feedback',e);}});};
 $('test-model').onclick=async()=>busy($('test-model'),async()=>{try{const data=await api('/api/model/test',{});$('model-feedback').textContent='실제 모델 응답: '+data.response;await refresh();}catch(e){error('model-feedback',e);}});
@@ -33,14 +35,17 @@ function showPair(data){$('pair-link').href=data.url;$('telegram-pair').hidden=f
 $('telegram-form').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{showPair(await api('/api/telegram',{token:$('telegram-token').value}));await refresh();}catch(e){error('telegram-status',e);}});};
 $('new-pair').onclick=async()=>{try{showPair(await api('/api/telegram/pair',{}));}catch(e){error('telegram-status',e);}};
 $('disconnect').onclick=async()=>{try{await api('/api/telegram/disconnect',{});$('telegram-pair').hidden=true;await refresh();}catch(e){error('telegram-status',e);}};
-$('toggle-settings').onclick=()=>{$('settings-panel').scrollIntoView({behavior:'smooth',block:'start'});$('provider').focus({preventScroll:true});};
-$('chat-form').onsubmit=async e=>{e.preventDefault();const message=$('message').value.trim();if(!message)return;await busy(e.submitter,async()=>{try{await api('/api/chat',{message,request_key:crypto.randomUUID()});$('message').value='';$('global-error').textContent='';await refresh();}catch(e){error('global-error',e);}});};
+function openConnections(){ $('connections').hidden=false;$('settings-panel').scrollIntoView({behavior:'smooth',block:'start'});}
+$('toggle-settings').onclick=openConnections;
+$('try-ai').onclick=openConnections;
+$('try-note').onclick=()=>{$('message').value='메모: ';$('message').focus();};
+$('chat-form').onsubmit=async e=>{e.preventDefault();const message=$('message').value.trim();if(!message)return;if(!hasModel&&!/^(메모:|기록:|\/note(?:s)?(?:\s|$)|\/help$)/.test(message)){openConnections();$('easy-feedback').textContent='AI를 연결하면 작성한 메시지를 보낼 수 있어요. 입력한 내용은 그대로 남겨 두었습니다.';return;}await busy(e.submitter,async()=>{try{await api('/api/chat',{message,request_key:crypto.randomUUID()});$('message').value='';$('global-error').textContent='';await refresh();}catch(e){error('global-error',e);}});};
 document.querySelectorAll('[data-message]').forEach(button=>button.onclick=()=>{$('message').value=button.dataset.message;$('message').focus();});
 function element(tag,text,className){const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(className)el.className=className;return el;}
 async function refresh(){
  if(!authenticated||refreshing)return;refreshing=true;
  try{
- const state=await api('/api/state');const settings=state.settings;const model=settings.model;const tg=settings.telegram;
+ const state=await api('/api/state');const settings=state.settings;const model=settings.model;const tg=settings.telegram;hasModel=!!model.model;
  $('runtime-badge').textContent=state.healthy?'● 개인 환경 실행 중':'실행 상태 확인 필요';
  if(!modelLoaded){if(model.provider){$('provider').value=model.provider;$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;modelLoaded=true;}
  $('model-label').textContent=model.model?model.model+' · '+(settings.model_test?.ok?'연결 확인됨':'저장됨 · 확인 전'):'메모 기능 준비됨';
@@ -61,3 +66,36 @@ async function refresh(){
  }catch(e){error('global-error',e);}finally{refreshing=false;}
 }
 status().catch(e=>error('global-error',e));setInterval(()=>{if(authenticated)refresh();},2000);
+
+let hasModel=false;
+$('connect-openrouter').onclick=async()=>{
+ try {
+ const bytes=crypto.getRandomValues(new Uint8Array(48));
+ const verifier=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+ const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier));
+ const challenge=btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+ sessionStorage.setItem('agentos-draft',$('message').value);
+ const state=crypto.randomUUID();sessionStorage.setItem('openrouter-flow',JSON.stringify({verifier,state,expires:Date.now()+600000}));
+ const callback=location.origin+'/?state='+encodeURIComponent(state);
+ location.href='https://openrouter.ai/auth?'+new URLSearchParams({callback_url:callback,code_challenge:challenge,code_challenge_method:'S256'});
+ }catch(e){error('easy-feedback',e);}
+};
+async function finishOpenRouter(){
+ const params=new URLSearchParams(location.search);if(!params.has('code'))return;
+ const code=params.get('code'),returnedState=params.get('state');history.replaceState(null,'',location.pathname);
+ openConnections();$('message').value=sessionStorage.getItem('agentos-draft')||'';sessionStorage.removeItem('agentos-draft');
+ try{
+ const flow=JSON.parse(sessionStorage.getItem('openrouter-flow')||'null');sessionStorage.removeItem('openrouter-flow');
+ if(!flow||flow.state!==returnedState||Date.now()>flow.expires)throw new Error('연결 시간이 지났습니다. 계정 연결을 다시 눌러 주세요.');
+ await api('/api/openrouter/connect',{code,verifier:flow.verifier});modelLoaded=false;await refresh();
+ $('easy-feedback').textContent='무료 AI가 연결됐습니다. 대화창에서 메시지를 보내 보세요.';$('message').focus();
+ }catch(e){error('easy-feedback',e);}
+}
+$('find-local').onclick=()=>busy($('find-local'),async()=>{
+ $('local-models').replaceChildren();
+ try{
+ const data=await api('/api/ollama/models',{});
+ $('local-help').textContent=data.models.length?'사용할 모델을 선택하세요.':'Ollama는 실행 중이지만 모델이 없습니다. Ollama에서 모델을 먼저 다운로드해 주세요.';
+ for(const m of data.models){const button=element('button',m.name);button.type='button';button.onclick=()=>busy(button,async()=>{try{await api('/api/model',{provider:'ollama',endpoint:'http://127.0.0.1:11434',model:m.name});modelLoaded=false;await refresh();$('local-help').textContent='연결했습니다. 대화창에서 메시지를 보내세요.';}catch(e){error('local-help',e);}});$('local-models').append(button);}
+ }catch(e){$('local-help').textContent='실행 중인 Ollama를 찾지 못했습니다. 아래 설치 안내에서 설치하고 실행한 뒤 다시 찾아 주세요.';}
+});
