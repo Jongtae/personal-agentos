@@ -48,6 +48,7 @@ async function refresh(){
  const state=await api('/api/state');const settings=state.settings;const model=settings.model;const tg=settings.telegram;hasModel=!!model.model;
  const latest=state.jobs.find(j=>j.status==='succeeded'&&j.model)||state.jobs.find(j=>j.model);
  $('actual-model').textContent=latest?'최근 응답 모델: '+latest.model:(model.model==='openrouter/free'?'무료 모델 자동 선택 · 첫 응답 후 실제 모델이 표시됩니다.':'');
+ $('tool-status').textContent=settings.tool_run?({running:'조회 중',succeeded:'조회 완료',failed:'조회 실패'}[settings.tool_run.status]+' · '+settings.tool_run.tool+' · 내 AgentOS에서 실행'):'';
  $('runtime-badge').textContent=state.healthy?'● 개인 환경 실행 중':'실행 상태 확인 필요';
  if(!modelLoaded){if(model.provider){$('provider').value=model.provider;$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;modelLoaded=true;}
  $('model-label').textContent=model.model?model.model+' · '+(settings.model_test?.ok?'연결 확인됨':'저장됨 · 확인 전'):'메모 기능 준비됨';
@@ -60,8 +61,8 @@ async function refresh(){
  const fingerprint=JSON.stringify([state.messages,state.jobs,state.notes]);
  if(fingerprint!==stateFingerprint){stateFingerprint=fingerprint;
  const container=$('messages');const nearBottom=container.scrollHeight-container.scrollTop-container.clientHeight<90;
- if(state.messages.length){container.replaceChildren();for(const m of state.messages){const item=element('article',undefined,'message '+m.role);item.append(element('div',(m.role==='user'?'나':'AgentOS')+' · '+(m.channel.startsWith('telegram:')?'Telegram':'웹'),'message-meta'));item.append(element('div',m.content,'bubble'));container.append(item);}if(nearBottom||container.scrollTop===0)container.scrollTop=container.scrollHeight;}
- const pending=state.jobs.filter(j=>j.status==='queued'||j.status==='running');const failed=state.jobs.find(j=>j.status==='failed'||j.status==='interrupted'||j.delivery==='unknown');
+ if(state.messages.length){container.replaceChildren();for(const m of state.messages){const item=element('article',undefined,'message '+m.role);item.append(element('div',(m.role==='user'?'나':'AgentOS')+' · '+(m.channel.startsWith('telegram:')?'Telegram':'웹'),'message-meta'));const bubble=element('div',undefined,'bubble');for(const part of m.content.split(/(https?:\/\/[^\s<>]+)/g)){if(/^https?:\/\//.test(part)){const a=element('a',part);a.href=part;a.target='_blank';a.rel='noreferrer noopener';bubble.append(a);}else bubble.append(document.createTextNode(part));}item.append(bubble);container.append(item);}if(nearBottom||container.scrollTop===0)container.scrollTop=container.scrollHeight;}
+ const pending=state.jobs.filter(j=>j.status==='queued'||j.status==='running');const failed=state.jobs.slice(0,1).find(j=>j.status==='failed'||j.status==='interrupted'||j.delivery==='unknown');
  $('job-status').textContent=pending.length?`${pending.length}개 작업 처리 중…`:failed?(failed.delivery==='unknown'?'Telegram 전송 결과가 불확실합니다. 자동 재전송하지 않으며 결과는 웹 기록에서 확인할 수 있습니다.':failed.error):'';
  $('note-count').textContent=String(state.notes.length);$('notes-list').replaceChildren();for(const n of state.notes)$('notes-list').append(element('article',n.content));if(!state.notes.length)$('notes-list').append(element('p','메모가 없습니다.'));
  }
