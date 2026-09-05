@@ -1,5 +1,7 @@
 # Personal AgentOS 실행 계획
 
+> 최신 제품 방향은 [AgentOS 제품 컨셉](PRODUCT_VISION.ko.md)을 기준으로 합니다. 설치형 데스크톱 대화 앱과 개인 에이전트 생태계가 목표이며, 아래 Kubernetes 구성은 실행 기반 프로토타입 기록입니다.
+
 제품 단위: 개인별 에이전트 환경. 원본 agentos는 변경하지 않는 참고 checkout.
 
 1. 개인 환경 기반: Namespace, 개인 PVC/Secret/ServiceAccount, 제한된 runtime, 관리자 CLI.

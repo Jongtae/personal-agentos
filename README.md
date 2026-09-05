@@ -1,5 +1,7 @@
 # Personal AgentOS
 
+> 최신 제품 방향은 [AgentOS 제품 컨셉](PRODUCT_VISION.ko.md)을 기준으로 합니다. 설치형 데스크톱 대화 앱과 개인 에이전트 생태계가 목표이며, 아래 Kubernetes 구성은 실행 기반 프로토타입 기록입니다.
+
 사용자마다 독립된 에이전트 환경을 Kubernetes 위에 제공하는 개발 MVP입니다.
 개인 Namespace, 인증 Secret, ServiceAccount, PVC, 런타임 Deployment를 생성합니다.
 원본 `Jongtae/agentos`의 ISO/OS 기능은 이 프로젝트의 구현 대상이 아닙니다.
