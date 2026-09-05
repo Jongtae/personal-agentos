@@ -1,0 +1,6 @@
+*
+!personal_agent/
+!personal_agent/**
+!Dockerfile
+**/__pycache__/
+**/*.pyc

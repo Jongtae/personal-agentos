@@ -1,0 +1,5 @@
+agentos/
+.tools/
+__pycache__/
+*.pyc
+.runtime/

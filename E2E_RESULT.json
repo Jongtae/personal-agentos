@@ -1,0 +1,20 @@
+{
+  "result": "passed",
+  "owners": [
+    "alice-49bc76",
+    "bob-49bc76"
+  ],
+  "checks": [
+    "identity",
+    "wrong-token-rejected",
+    "separate-memory",
+    "idempotent-request",
+    "disconnected-schedule",
+    "pause-resume-overdue-task",
+    "memory-survives-pod",
+    "files-survive-pod",
+    "separate-pvcs"
+  ],
+  "network_policy_enforcement": "not_verified",
+  "llm": "not_connected"
+}
