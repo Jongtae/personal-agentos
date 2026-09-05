@@ -1,0 +1,84 @@
+{
+  "tested_at": 1788605922.929659,
+  "installed": true,
+  "results": [
+    {
+      "case": "explicit",
+      "passed": true,
+      "job_status": "succeeded",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "events": [
+        {
+          "id": 1,
+          "job_id": "38b25447-a20c-4bd6-a8d3-20ebdb535f63",
+          "tool": "weather",
+          "status": "running",
+          "detail": "{\"call_id\": \"call_031cd7a1604d4823affbb391\", \"arguments\": {\"city\": \"Seongnam\", \"country\": \"KR\"}}",
+          "created": 1788605904.7173
+        },
+        {
+          "id": 2,
+          "job_id": "38b25447-a20c-4bd6-a8d3-20ebdb535f63",
+          "tool": "weather",
+          "status": "succeeded",
+          "detail": "{\"call_id\": \"call_031cd7a1604d4823affbb391\", \"result\": {\"tool\": \"weather\", \"location\": {\"name\": \"Seongnam-si\", \"country\": \"South Korea\", \"admin1\": \"Gyeonggi-do\", \"latitude\": 37.43861, \"longitude\": 127.13778}, \"retrieved_at\": 1788605907.114225, \"forecast\": {\"latitude\": 37.45, \"longitude\": 127.125, \"generationtime_ms\": 0.17940998077392578, \"utc_offset_seconds\": 32400, \"timezone\": \"Asia/Seoul\", \"timezone_abbreviation\": \"GMT+9\", \"elevation\": 72.0, \"current_units\": {\"time\": \"iso8601\", \"interval\": \"seconds\", \"temperature_2m\": \"°C\", \"apparent_temperature\": \"°C\", \"precipitation\": \"mm\", \"weather_code\": \"wmo code\", \"wind_speed_10m\": \"km/h\"}, \"current\": {\"time\": \"2026-09-05T19:45\", \"interval\": 900, \"temperature_2m\": 22.0, \"apparent_temperature\": 22.4, \"precipitation\": 0.0, \"weather_code\": 0, \"wind_speed_10m\": 13.1}, \"daily_units\": {\"time\": \"iso8601\", \"temperature_2m_max\": \"°C\", \"temperature_2m_min\": \"°C\", \"precipitation_probability_max\": \"%\"}, \"daily\": {\"time\": [\"2026-09-05\", \"2026-09-06\", \"2026-09-07\"], \"temperature_2m_max\": [27.6, 27.5, 28.1], \"temperature_2m_min\": [15.9, 17.2, 16.5], \"precipitation_probability_max\": [0, 0, 0]}}, \"sources\": [\"https://api.open-meteo.com/v1/forecast?latitude=37.43861&longitude=127.13778&current=temperature_2m%2Capparent_temperature%2Cprecipitation%2Cweather_code%2Cwind_speed_10m&daily=temperature_2m_max%2Ctemperature_2m_min%2Cprecipitation_probability_max&forecast_days=3&timezone=auto\", \"https://open-meteo.com/\"], \"scope\": \"Open-Meteo model-derived current weather and three-day forecast; report units and timestamps.\"}}",
+          "created": 1788605907.1144588
+        }
+      ],
+      "response": "Seongnam-si, Gyeonggi-do, South Korea 날씨\n기준 시각: 2026-09-05T19:45 (Asia/Seoul)\n기온: 22.0 °C\n체감 온도: 22.4 °C\n강수량: 0.0 mm\n풍속: 13.1 km/h\nOpen-Meteo 기상 모델 기반 현재 날씨입니다.\n\n조회 출처:\nhttps://api.open-meteo.com/v1/forecast?latitude=37.43861&longitude=127.13778&current=temperature_2m%2Capparent_temperature%2Cprecipitation%2Cweather_code%2Cwind_speed_10m&daily=temperature_2m_max%2Ctemperature_2m_min%2Cprecipitation_probability_max&forecast_days=3&timezone=auto\nhttps://open-meteo.com/",
+      "error": null
+    },
+    {
+      "case": "followup",
+      "passed": true,
+      "job_status": "succeeded",
+      "model": "inclusionai/ling-3.0-flash-fin:free",
+      "events": [
+        {
+          "id": 1,
+          "job_id": "f4c92b0b-1327-4e16-b04f-96190a144f1c",
+          "tool": "weather",
+          "status": "running",
+          "detail": "{\"call_id\": \"chatcmpl-tool-9593b67084dae74e\", \"arguments\": {\"city\": \"성남\"}}",
+          "created": 1788605916.106515
+        },
+        {
+          "id": 2,
+          "job_id": "f4c92b0b-1327-4e16-b04f-96190a144f1c",
+          "tool": "weather",
+          "status": "succeeded",
+          "detail": "{\"call_id\": \"chatcmpl-tool-9593b67084dae74e\", \"result\": {\"tool\": \"weather\", \"location\": {\"name\": \"Seongnam\", \"country\": \"South Korea\", \"admin1\": \"Jeollabuk-do\", \"latitude\": 35.54127, \"longitude\": 127.39683}, \"retrieved_at\": 1788605918.746603, \"forecast\": {\"latitude\": 35.55, \"longitude\": 127.375, \"generationtime_ms\": 0.13148784637451172, \"utc_offset_seconds\": 32400, \"timezone\": \"Asia/Seoul\", \"timezone_abbreviation\": \"GMT+9\", \"elevation\": 189.0, \"current_units\": {\"time\": \"iso8601\", \"interval\": \"seconds\", \"temperature_2m\": \"°C\", \"apparent_temperature\": \"°C\", \"precipitation\": \"mm\", \"weather_code\": \"wmo code\", \"wind_speed_10m\": \"km/h\"}, \"current\": {\"time\": \"2026-09-05T19:45\", \"interval\": 900, \"temperature_2m\": 22.3, \"apparent_temperature\": 24.2, \"precipitation\": 0.0, \"weather_code\": 0, \"wind_speed_10m\": 8.0}, \"daily_units\": {\"time\": \"iso8601\", \"temperature_2m_max\": \"°C\", \"temperature_2m_min\": \"°C\", \"precipitation_probability_max\": \"%\"}, \"daily\": {\"time\": [\"2026-09-05\", \"2026-09-06\", \"2026-09-07\"], \"temperature_2m_max\": [27.5, 27.2, 29.0], \"temperature_2m_min\": [19.4, 17.7, 19.4], \"precipitation_probability_max\": [0, 2, 2]}}, \"sources\": [\"https://api.open-meteo.com/v1/forecast?latitude=35.54127&longitude=127.39683&current=temperature_2m%2Capparent_temperature%2Cprecipitation%2Cweather_code%2Cwind_speed_10m&daily=temperature_2m_max%2Ctemperature_2m_min%2Cprecipitation_probability_max&forecast_days=3&timezone=auto\", \"https://open-meteo.com/\"], \"scope\": \"Open-Meteo model-derived current weather and three-day forecast; report units and timestamps.\"}}",
+          "created": 1788605918.747168
+        }
+      ],
+      "response": "Seongnam, Jeollabuk-do, South Korea 날씨\n기준 시각: 2026-09-05T19:45 (Asia/Seoul)\n기온: 22.3 °C\n체감 온도: 24.2 °C\n강수량: 0.0 mm\n풍속: 8.0 km/h\nOpen-Meteo 기상 모델 기반 현재 날씨입니다.\n\n조회 출처:\nhttps://api.open-meteo.com/v1/forecast?latitude=35.54127&longitude=127.39683&current=temperature_2m%2Capparent_temperature%2Cprecipitation%2Cweather_code%2Cwind_speed_10m&daily=temperature_2m_max%2Ctemperature_2m_min%2Cprecipitation_probability_max&forecast_days=3&timezone=auto\nhttps://open-meteo.com/",
+      "error": null
+    },
+    {
+      "case": "missing_location",
+      "passed": true,
+      "job_status": "succeeded",
+      "model": "nvidia/nemotron-3.5-lightning:free",
+      "events": [
+        {
+          "id": 1,
+          "job_id": "2b0a62f3-8d30-4d25-87a2-1776c1b2e3b2",
+          "tool": "ask_location",
+          "status": "running",
+          "detail": "{\"call_id\": \"call-3484eea2-5404-46a5-aa08-bf7276d5fc3f\", \"arguments\": {\"question\": \"어느 도시의 날씨를 알려드릴까요?\"}}",
+          "created": 1788605922.921895
+        },
+        {
+          "id": 2,
+          "job_id": "2b0a62f3-8d30-4d25-87a2-1776c1b2e3b2",
+          "tool": "ask_location",
+          "status": "succeeded",
+          "detail": "{\"call_id\": \"call-3484eea2-5404-46a5-aa08-bf7276d5fc3f\", \"question\": \"어느 도시의 날씨를 알려드릴까요?\"}",
+          "created": 1788605922.925375
+        }
+      ],
+      "response": "어느 도시의 날씨를 알려드릴까요?",
+      "error": null
+    }
+  ]
+}

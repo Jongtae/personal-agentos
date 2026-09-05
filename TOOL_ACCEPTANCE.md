@@ -11,3 +11,7 @@ Required checks:
 6. Automated protocol, policy, failure, persistence checks pass; live OpenRouter + Open-Meteo explicit and follow-up checks pass in the installed build.
 
 Limits: model forecasts are not sensor observations; free provider availability is external. No claim of universal web-search quality, arbitrary browsing, or all-model reliability.
+
+## Verification result
+
+Homebrew 0.1.7: all 3 live cases passed against real OpenRouter and Open-Meteo. See WEATHER_ACCEPTANCE_RESULT.json for call IDs, native arguments, returned API values and final responses. Automated tests: 32 passed, including tool protocol, missing location, no-call rejection and failed-job trace persistence. Installed HTTP setup, note persistence and restart checks also passed. This is a bounded acceptance run, not a guarantee of external provider uptime.
