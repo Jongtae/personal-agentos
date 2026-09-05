@@ -62,6 +62,21 @@ class ModelAdapter:
     def __init__(self, transport=request_json):
         self.transport = transport
 
+    def tool_turn(self, config, key, messages, tools):
+        cfg=validate_model(config)
+        if cfg['provider']!='compatible':raise ValueError('이 연결 방식의 native tool calling은 아직 지원하지 않습니다.')
+        body={'model':cfg['model'],'messages':messages,'tools':tools,'tool_choice':'auto','stream':False}
+        if cfg['endpoint']=='https://openrouter.ai/api/v1':body['provider']={'require_parameters':True}
+        data=self.transport(cfg['endpoint']+'/chat/completions',body,{'Authorization':'Bearer '+key} if key else {})
+        try:
+            message=data['choices'][0]['message']
+            if not isinstance(message,dict) or message.get('role','assistant')!='assistant':raise TypeError()
+            message={k:v for k,v in message.items() if k in ('role','content','tool_calls','reasoning_details')}
+            message['role']='assistant'
+            actual=data.get('model') or cfg['model']
+            return message,actual if isinstance(actual,str) else cfg['model']
+        except (KeyError,IndexError,TypeError,AttributeError):raise ProviderError('도구 응답 형식이 올바르지 않습니다. 도구 호출 지원 모델을 선택하세요.') from None
+
     def invoke(self, config, key, messages):
         cfg = validate_model(config)
         provider, endpoint, model = cfg['provider'], cfg['endpoint'], cfg['model']
