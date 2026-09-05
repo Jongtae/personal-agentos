@@ -63,9 +63,9 @@ class QuickStore:
         with self.db() as db:
             return db.execute('SELECT 1 FROM auth').fetchone() is not None
 
-    def claim(self, code, password):
+    def claim(self, code, password, local_access=False):
         if not isinstance(password, str) or not 12 <= len(password) <= 256:
-            raise ValueError('관리자 비밀번호는 12~256자로 입력하세요.')
+            raise ValueError('사용할 비밀번호를 12~256자로 입력하세요.')
         with self.db() as db:
             db.execute('BEGIN IMMEDIATE')
             if db.execute('SELECT 1 FROM auth').fetchone():
@@ -75,6 +75,7 @@ class QuickStore:
             salt = secrets.token_hex(16)
             digest = hashlib.scrypt(password.encode(),salt=bytes.fromhex(salt),n=16384,r=8,p=1).hex()
             db.execute('INSERT INTO auth VALUES (1,?,?)',(salt,digest))
+            db.execute('INSERT INTO config VALUES (?,?)',('local_access',json.dumps(local_access)))
         self.bootstrap.unlink(missing_ok=True)
 
     def login(self, password):
@@ -88,6 +89,13 @@ class QuickStore:
             db.execute('DELETE FROM sessions WHERE expires<?',(time.time(),))
             db.execute('INSERT INTO sessions VALUES (?,?)',(hashlib.sha256(token.encode()).hexdigest(),time.time()+86400))
             return token
+
+    def local_session(self):
+        token=secrets.token_urlsafe(32)
+        with self.db() as db:
+            db.execute('DELETE FROM sessions WHERE expires<?',(time.time(),))
+            db.execute('INSERT INTO sessions VALUES (?,?)',(hashlib.sha256(token.encode()).hexdigest(),time.time()+86400))
+        return token
 
     def session(self, token):
         with self.db() as db:

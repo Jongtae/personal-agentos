@@ -11,7 +11,8 @@ brew install jongtae/agentos/agentos
 agentos start
 ```
 
-The browser opens a private first-time setup link at `http://127.0.0.1:8787`. Set an administrator password (12+ characters), choose a model provider, enter its endpoint and model name, and press Save then Test connection. API keys stay on this computer in a private file; they are not sent to GitHub. Cloud model requests send conversation content to your selected provider.
+The browser opens at `http://127.0.0.1:8787`. Click **바로 시작하기** (Start now). There is no setup code to enter. A login password is optional for local use; expand **비밀번호 설정 · 선택** to set one (12+ characters). Without a password, anyone using this computer can access the agent through its local address. Then choose a model provider, endpoint and model name, and use Save and Test connection. API keys stay in a private local file. Cloud requests send conversation content to your selected provider.
+
 
 Supported connections: Ollama (an already running local model server), OpenAI-compatible Chat Completions endpoints, and Anthropic Messages. Bring your own model access; no paid model subscription is included.
 
@@ -37,7 +38,7 @@ agentos start
 
 Data persists in `~/.local/share/agentos`; uninstalling the formula does not delete it. Back up the entire data directory while AgentOS is stopped. This directory contains your private conversations and credentials; credentials have filesystem permissions, not application-level encryption.
 
-If the browser does not open, use the link in `~/.local/share/agentos/private/setup-link.txt` locally. Do not share that file before setup. After setup, open `http://127.0.0.1:8787` and log in. An occupied port can be changed using `agentos start --port 8788`.
+If the browser does not open, use the link in `~/.local/share/agentos/private/setup-link.txt` locally. Do not share that file before setup. After setup, open `http://127.0.0.1:8787`; log in only if you chose a password. An occupied port can be changed using `agentos start --port 8788`.
 
 ## Remote host / source installation
 

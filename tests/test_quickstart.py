@@ -144,6 +144,26 @@ class QuickstartTests(unittest.TestCase):
         self.assertIsNone(self.store.config('telegram')['user_id'])
         self.assertEqual(self.store.jobs(),[])
 
+    def test_optional_password_local_http(self):
+        self.service.start()
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(self.service))
+        thread=threading.Thread(target=server.serve_forever);thread.start()
+        url='http://127.0.0.1:'+str(server.server_port)
+        def post(path,body,headers=None):
+            req=Request(url+path,data=json.dumps(body).encode(),headers={'Content-Type':'application/json',**(headers or {})})
+            return build_opener().open(req,timeout=3)
+        try:
+            with self.assertRaises(HTTPError) as error:post('/api/claim',{}, {'Host':'evil.test'})
+            self.assertEqual(error.exception.code,403)
+            with post('/api/claim',{}) as r:self.assertEqual(r.status,200)
+            self.assertTrue(self.store.config('local_access'))
+            with self.assertRaises(HTTPError) as error:post('/api/local-login',{}, {'Origin':'https://evil.test'})
+            self.assertEqual(error.exception.code,403)
+            with post('/api/local-login',{}) as r:self.assertIn('HttpOnly',r.headers['Set-Cookie'])
+        finally:
+            self.service.stop.set();server.shutdown();thread.join();server.server_close()
+            for worker in self.service.threads:worker.join(timeout=2)
+
     def test_http_setup_chat_csrf_and_logout(self):
         self.service.start()
         server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(self.service))
@@ -159,7 +179,7 @@ class QuickstartTests(unittest.TestCase):
             self.assertEqual(error.exception.code,401)
             with self.assertRaises(HTTPError) as error:request('/api/claim',{'password':'long-password-test','code':self.store.bootstrap.read_text()},{'Origin':'https://evil.test'})
             self.assertEqual(error.exception.code,403)
-            request('/api/claim',{'password':'long-password-test','code':self.store.bootstrap.read_text()})
+            request('/api/claim',{'password':'long-password-test'})
             self.assertTrue(request('/api/status')['authenticated'])
             request('/api/chat',{'message':'/note HTTP proof','request_key':'http'})
             for _ in range(30):

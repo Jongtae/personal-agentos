@@ -13,16 +13,17 @@ function error(id,e){$(id).textContent=e.message||String(e);}
 async function busy(button,fn){const text=button.textContent;button.disabled=true;button.textContent='처리 중…';try{await fn();}finally{button.disabled=false;button.textContent=text;}}
 async function status(){
  const s=await api('/api/status');claimed=s.claimed;authenticated=s.authenticated;
- $('welcome').hidden=authenticated;$('workspace').hidden=!authenticated;$('logout').hidden=!authenticated;
+ if(!authenticated&&s.local_access){await api('/api/local-login',{});authenticated=true;}
+ $('welcome').hidden=authenticated;$('workspace').hidden=!authenticated;$('logout').hidden=!authenticated||s.local_access;
  $('auth-title').textContent=claimed?'다시 만나서 반갑습니다.':'나만의 에이전트를 시작하세요.';
- $('auth-step').textContent=claimed?'개인 환경 로그인':'01 / 관리자 설정';
- $('auth-help').textContent=claimed?'관리자 비밀번호로 로그인하세요.':'이 환경을 관리할 비밀번호를 정하세요. 기록과 연결 설정을 보호합니다.';
- $('auth-submit').textContent=claimed?'로그인':'개인 환경 만들기';
- $('password').minLength=claimed?1:12;$('password').autocomplete=claimed?'current-password':'new-password';
- $('code-label').hidden=claimed||!!bootstrap;
+ $('auth-step').textContent=claimed?'개인 환경 로그인':'처음 시작하기';
+ $('auth-help').textContent=claimed?'설정한 비밀번호로 로그인하세요.':'설정 없이 바로 시작할 수 있습니다. 이 PC를 함께 쓰는 사람이 있다면 비밀번호를 설정하세요.';
+ $('auth-submit').textContent=claimed?'로그인':'바로 시작하기';
+ $('password').required=claimed;$('password-option').open=claimed;$('password').minLength=claimed?1:12;$('password').autocomplete=claimed?'current-password':'new-password';
+ $('password-label').textContent=claimed?'비밀번호':'사용할 비밀번호';
  if(authenticated)await refresh();
 }
-$('auth-form').addEventListener('submit',async e=>{e.preventDefault();$('auth-error').textContent='';await busy($('auth-submit'),async()=>{try{await api(claimed?'/api/login':'/api/claim',{password:$('password').value,code:bootstrap||$('setup-code').value});bootstrap='';$('password').value='';await status();}catch(e){error('auth-error',e);}});});
+$('auth-form').addEventListener('submit',async e=>{e.preventDefault();$('auth-error').textContent='';await busy($('auth-submit'),async()=>{try{await api(claimed?'/api/login':'/api/claim',{password:$('password').value,code:bootstrap});bootstrap='';$('password').value='';await status();}catch(e){error('auth-error',e);}});});
 $('logout').onclick=async()=>{try{await api('/api/logout',{});modelLoaded=false;stateFingerprint='';await status();}catch(e){error('global-error',e);}};
 const providers={ollama:{endpoint:'http://127.0.0.1:11434',help:'Ollama 서버의 주소입니다. 모델은 Ollama에 미리 설치되어 있어야 합니다.'},compatible:{endpoint:'https://api.openai.com/v1',help:'Chat Completions 호환 기본 URL입니다. 필요한 경우 /v1을 포함하세요.'},anthropic:{endpoint:'https://api.anthropic.com',help:'Anthropic에서 사용 가능한 모델 ID와 API 키를 입력하세요.'}};
 $('provider').onchange=()=>{const p=providers[$('provider').value];$('endpoint').value=p.endpoint;$('endpoint-help').textContent=p.help;$('api-key').value='';$('model-feedback').textContent='연결 대상이 바뀌면 기존 키를 자동으로 전달하지 않습니다. 필요한 키를 다시 입력하세요.';};

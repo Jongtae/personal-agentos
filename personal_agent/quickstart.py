@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import secrets
 import threading
 import time
 import webbrowser
@@ -53,7 +54,18 @@ def make_handler(service):
             self.reply(401,{'error':'로그인이 필요합니다.'})
             return False
 
+        def local_setup(self):
+            return self.server.server_address[0] in ('127.0.0.1', '::1') and self.client_address[0] in ('127.0.0.1', '::1')
+
+        def valid_host(self):
+            if self.server.server_address[0] not in ('127.0.0.1', '::1'):return True
+            allowed={f'127.0.0.1:{self.server.server_port}',f'localhost:{self.server.server_port}',f'[::1]:{self.server.server_port}'}
+            if self.headers.get('Host') in allowed:return True
+            self.reply(403,{'error':'로컬 주소로 AgentOS를 열어 주세요.'})
+            return False
+
         def do_GET(self):
+            if not self.valid_host():return
             path=urlsplit(self.path).path
             if path=='/healthz':return self.reply(200 if service.healthy() else 503,{'ok':service.healthy()})
             if path in ('/','/app.js','/style.css'):
@@ -61,12 +73,13 @@ def make_handler(service):
                 mime={'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8'}[path]
                 return self.reply(200,(WEB/filename).read_bytes(),mime)
             if path=='/api/status':
-                return self.reply(200,{'claimed':store.claimed(),'authenticated':store.session(self.token())})
+                return self.reply(200,{'claimed':store.claimed(),'authenticated':store.session(self.token()),'local_access':self.local_setup() and store.config('local_access',False)})
             if not self.auth():return
             if path=='/api/state':return self.reply(200,{'settings':service.settings(),'messages':store.history(),'jobs':store.jobs(),'notes':store.notes(),'healthy':service.healthy()})
             self.reply(404,{'error':'경로를 찾을 수 없습니다.'})
 
         def do_POST(self):
+            if not self.valid_host():return
             origin=self.headers.get('Origin')
             if origin and (urlsplit(origin).netloc!=self.headers.get('Host') or urlsplit(origin).scheme not in ('http','https')):
                 return self.reply(403,{'error':'다른 사이트에서의 요청은 허용하지 않습니다.'})
@@ -78,12 +91,24 @@ def make_handler(service):
                 body=json.loads(self.rfile.read(length))
                 if not isinstance(body,dict):raise ValueError('JSON 객체가 필요합니다.')
                 path=urlsplit(self.path).path
+                if path=='/api/local-login':
+                    if not self.local_setup() or not store.config('local_access',False):
+                        return self.reply(403,{'error':'이 환경에서는 로그인이 필요합니다.'})
+                    token=store.local_session()
+                    return self.reply(200,{'ok':True},cookie=f'agentos_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400')
                 if path in ('/api/claim','/api/login'):
                     with attempts_lock:
                         attempts[:]=[t for t in attempts if t>time.time()-60]
                         if len(attempts)>=10:return self.reply(429,{'error':'로그인 시도가 많습니다. 1분 뒤 다시 시도하세요.'})
                         attempts.append(time.time())
-                    if path=='/api/claim':store.claim(body.get('code',''),body.get('password',''))
+                    if path=='/api/claim':
+                        code=body.get('code','')
+                        if self.local_setup() and store.bootstrap.exists():code=store.bootstrap.read_text()
+                        password=body.get('password','')
+                        local_access=not password and self.local_setup()
+                        if local_access:password=secrets.token_urlsafe(32)
+                        store.claim(code,password,local_access=local_access)
+                        body['password']=password
                     token=store.login(body.get('password',''))
                     if not token:return self.reply(401,{'error':'비밀번호가 올바르지 않습니다.'})
                     secure='; Secure' if os.environ.get('AGENTOS_SECURE_COOKIE')=='1' else ''
