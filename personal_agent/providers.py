@@ -82,6 +82,7 @@ class ModelAdapter:
                 content = '\n'.join(c['text'] for c in data['content'] if c.get('type') == 'text')
             if not isinstance(content, str) or not content.strip():
                 raise ProviderError('모델의 텍스트 응답이 없습니다. 이 모델의 API 호환성을 확인하세요.')
-            return ModelResult(content[:24000], provider, model)
+            actual=data.get('model') if isinstance(data,dict) else None
+            return ModelResult(content[:24000], provider, actual[:200] if isinstance(actual,str) and actual else model)
         except (KeyError, IndexError, TypeError, AttributeError):
             raise ProviderError('예상한 모델 응답 형식과 다릅니다. API 호환성을 확인하세요.') from None

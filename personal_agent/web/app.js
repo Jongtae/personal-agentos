@@ -46,6 +46,8 @@ async function refresh(){
  if(!authenticated||refreshing)return;refreshing=true;
  try{
  const state=await api('/api/state');const settings=state.settings;const model=settings.model;const tg=settings.telegram;hasModel=!!model.model;
+ const latest=state.jobs.find(j=>j.status==='succeeded'&&j.model)||state.jobs.find(j=>j.model);
+ $('actual-model').textContent=latest?'최근 응답 모델: '+latest.model:(model.model==='openrouter/free'?'무료 모델 자동 선택 · 첫 응답 후 실제 모델이 표시됩니다.':'');
  $('runtime-badge').textContent=state.healthy?'● 개인 환경 실행 중':'실행 상태 확인 필요';
  if(!modelLoaded){if(model.provider){$('provider').value=model.provider;$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;modelLoaded=true;}
  $('model-label').textContent=model.model?model.model+' · '+(settings.model_test?.ok?'연결 확인됨':'저장됨 · 확인 전'):'메모 기능 준비됨';
@@ -69,15 +71,19 @@ status().catch(e=>error('global-error',e));setInterval(()=>{if(authenticated)ref
 
 let hasModel=false;
 $('connect-openrouter').onclick=async()=>{
+ const popup=window.open('about:blank','agentos-openrouter');
  try {
  const bytes=crypto.getRandomValues(new Uint8Array(48));
  const verifier=btoa(String.fromCharCode(...bytes)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
  const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(verifier));
  const challenge=btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
  sessionStorage.setItem('agentos-draft',$('message').value);
- const state=crypto.randomUUID();sessionStorage.setItem('openrouter-flow',JSON.stringify({verifier,state,expires:Date.now()+600000}));
+ const state=crypto.randomUUID();localStorage.setItem('openrouter-flow',JSON.stringify({verifier,state,expires:Date.now()+600000}));
  const callback=location.origin+'/?state='+encodeURIComponent(state);
- location.href='https://openrouter.ai/auth?'+new URLSearchParams({callback_url:callback,code_challenge:challenge,code_challenge_method:'S256'});
+ const url='https://openrouter.ai/auth?'+new URLSearchParams({callback_url:callback,code_challenge:challenge,code_challenge_method:'S256'});
+ const flow=JSON.parse(localStorage.getItem('openrouter-flow'));flow.url=url;localStorage.setItem('openrouter-flow',JSON.stringify(flow));
+ $('resume-openrouter').hidden=false;$('easy-feedback').textContent='새 창에서 가입 또는 로그인하고 연결을 승인해 주세요. 이 대화는 그대로 유지됩니다. 가입 후 승인 화면이 나오지 않으면 연결 이어가기를 눌러 주세요.';
+ if(popup)popup.location.href=url;else $('easy-feedback').textContent='새 창이 차단됐습니다. 연결 이어가기를 눌러 새 창을 열어 주세요.';
  }catch(e){error('easy-feedback',e);}
 };
 async function finishOpenRouter(){
@@ -85,11 +91,11 @@ async function finishOpenRouter(){
  const code=params.get('code'),returnedState=params.get('state');history.replaceState(null,'',location.pathname);
  openConnections();$('message').value=sessionStorage.getItem('agentos-draft')||'';sessionStorage.removeItem('agentos-draft');
  try{
- const flow=JSON.parse(sessionStorage.getItem('openrouter-flow')||'null');sessionStorage.removeItem('openrouter-flow');
+ const flow=JSON.parse(localStorage.getItem('openrouter-flow')||'null');
  if(!flow||flow.state!==returnedState||Date.now()>flow.expires)throw new Error('연결 시간이 지났습니다. 계정 연결을 다시 눌러 주세요.');
- await api('/api/openrouter/connect',{code,verifier:flow.verifier});modelLoaded=false;await refresh();
- $('easy-feedback').textContent='무료 AI가 연결됐습니다. 대화창에서 메시지를 보내 보세요.';$('message').focus();
- }catch(e){error('easy-feedback',e);}
+ await api('/api/openrouter/connect',{code,verifier:flow.verifier});localStorage.removeItem('openrouter-flow');localStorage.setItem('openrouter-connected',String(Date.now()));modelLoaded=false;await refresh();
+ $('easy-feedback').textContent='무료 AI가 연결됐습니다. 대화창에서 메시지를 보내 보세요.';$('message').focus();if(window.opener)window.close();
+ }catch(e){error('easy-feedback',e);$('resume-openrouter').hidden=false;}
 }
 $('find-local').onclick=()=>busy($('find-local'),async()=>{
  $('local-models').replaceChildren();
@@ -98,4 +104,18 @@ $('find-local').onclick=()=>busy($('find-local'),async()=>{
  $('local-help').textContent=data.models.length?'사용할 모델을 선택하세요.':'Ollama는 실행 중이지만 모델이 없습니다. Ollama에서 모델을 먼저 다운로드해 주세요.';
  for(const m of data.models){const button=element('button',m.name);button.type='button';button.onclick=()=>busy(button,async()=>{try{await api('/api/model',{provider:'ollama',endpoint:'http://127.0.0.1:11434',model:m.name});modelLoaded=false;await refresh();$('local-help').textContent='연결했습니다. 대화창에서 메시지를 보내세요.';}catch(e){error('local-help',e);}});$('local-models').append(button);}
  }catch(e){$('local-help').textContent='실행 중인 Ollama를 찾지 못했습니다. 아래 설치 안내에서 설치하고 실행한 뒤 다시 찾아 주세요.';}
+});
+
+$('resume-openrouter').onclick=()=>{
+ const flow=JSON.parse(localStorage.getItem('openrouter-flow')||'null');
+ if(flow&&flow.expires>Date.now()&&flow.url){window.open(flow.url,'agentos-openrouter');}
+ else $('connect-openrouter').click();
+};
+if(localStorage.getItem('openrouter-flow')){$('resume-openrouter').hidden=false;}
+window.addEventListener('storage',async e=>{if(e.key==='openrouter-connected'){modelLoaded=false;await refresh();$('resume-openrouter').hidden=true;$('easy-feedback').textContent='무료 AI 연결이 완료됐습니다. 작성하던 대화를 이어가세요.';$('message').focus();}});
+$('load-free-models').onclick=()=>busy($('load-free-models'),async()=>{
+ try{const data=await api('/api/openrouter/models',{});$('free-model-list').replaceChildren();
+ for(const m of data.models){const row=element('p',m.name+' · '+m.id);$('free-model-list').append(row);}
+ if(!data.models.length)$('free-model-list').append(element('p','현재 확인된 무료 모델이 없습니다. 잠시 후 다시 확인하세요.'));
+ }catch(e){$('free-model-list').replaceChildren(element('p','목록을 가져오지 못했습니다. 잠시 후 다시 시도하세요.'));}
 });

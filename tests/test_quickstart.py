@@ -144,6 +144,18 @@ class QuickstartTests(unittest.TestCase):
         self.assertIsNone(self.store.config('telegram')['user_id'])
         self.assertEqual(self.store.jobs(),[])
 
+    def test_actual_router_model_and_free_catalog(self):
+        from unittest.mock import patch
+        from personal_agent.providers import ModelAdapter
+        adapter=ModelAdapter(lambda *a,**kw:{'model':'test/actual:free','choices':[{'message':{'content':'hello'}}]})
+        result=adapter.invoke({'provider':'compatible','endpoint':'https://openrouter.ai/api/v1','model':'openrouter/free'},'test',[])
+        self.assertEqual(result.model,'test/actual:free')
+        with patch('personal_agent.quickstart_service.request_json',return_value={'data':[
+            {'id':'good:free','pricing':{'prompt':'0','completion':'0'}},
+            {'id':'paid:free','pricing':{'prompt':'1','completion':'0'}},
+            {'id':'missing:free'}]}):
+            self.assertEqual([m['id'] for m in self.service.free_models()['models']],['good:free'])
+
     def test_easy_model_connections(self):
         from unittest.mock import patch
         with patch('personal_agent.quickstart_service.request_json',return_value={'key':'test-only-key'}) as transport:

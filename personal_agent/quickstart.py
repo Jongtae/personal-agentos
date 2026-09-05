@@ -118,6 +118,7 @@ def make_handler(service):
                     store.logout(self.token())
                     return self.reply(200,{'ok':True},cookie='agentos_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0')
                 if path=='/api/openrouter/connect':return self.reply(200,service.connect_openrouter(body))
+                if path=='/api/openrouter/models':return self.reply(200,service.free_models())
                 if path=='/api/ollama/models':return self.reply(200,service.local_models())
                 if path=='/api/model':return self.reply(200,service.save_model(body))
                 if path=='/api/model/test':return self.reply(200,service.test_model())

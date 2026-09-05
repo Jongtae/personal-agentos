@@ -53,6 +53,19 @@ class AgentService:
         self.save_model({'provider':'compatible','endpoint':'https://openrouter.ai/api/v1','model':'openrouter/free','api_key':result['key']})
         return {'ok':True}
 
+    def free_models(self):
+        data=request_json('https://openrouter.ai/api/v1/models',None,timeout=10)
+        if not isinstance(data,dict) or not isinstance(data.get('data'),list):raise ProviderError('무료 모델 목록을 가져오지 못했습니다.')
+        models=[]
+        for m in data['data']:
+            if not isinstance(m,dict) or not isinstance(m.get('id'),str) or not m['id'].endswith(':free'):continue
+            pricing=m.get('pricing',{})
+            if not isinstance(pricing,dict):continue
+            try:free=all(float(pricing.get(k,-1))==0 for k in ('prompt','completion'))
+            except (ValueError,TypeError):continue
+            if free:models.append({'id':m['id'],'name':str(m.get('name',m['id'])),'context_length':m.get('context_length')})
+        return {'models':models,'checked_at':time.time()}
+
     def local_models(self):
         data=request_json('http://127.0.0.1:11434/api/tags',None,timeout=3)
         if not isinstance(data,dict) or not isinstance(data.get('models'),list):raise ProviderError('모델 목록을 읽을 수 없습니다.')
