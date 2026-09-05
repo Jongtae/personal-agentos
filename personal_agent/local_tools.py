@@ -22,9 +22,9 @@ def needs_lookup(prompt):
 class LocalTools:
     def search(self, query):
         if not isinstance(query,str) or not 1<=len(query.strip())<=500:raise ValueError('검색어는 1~500자로 입력하세요.')
-        url='https://www.bing.com/search?'+urlencode({'format':'rss','q':query.strip()})
+        url='https://www.bing.com/search?'+urlencode({'format':'rss','q':query.strip(),'mkt':'ko-KR' if re.search('[가-힣]',query) else 'en-US','setlang':'ko' if re.search('[가-힣]',query) else 'en'})
         try:
-            req=Request(url,headers={'User-Agent':'AgentOS/0.1 personal search'})
+            req=Request(url,headers={'User-Agent':'Mozilla/5.0 (compatible; AgentOS/0.1 personal search)'})
             with build_opener(NoRedirect()).open(req,timeout=15) as response:
                 raw=response.read(1_000_001)
             if len(raw)>1_000_000:raise ValueError()
@@ -34,6 +34,8 @@ class LocalTools:
                 link=item.findtext('link','')
                 if urlsplit(link).scheme not in ('https','http'):continue
                 results.append({'title':item.findtext('title','')[:300],'url':link,'snippet':item.findtext('description','')[:1800]})
+            terms=[t.casefold() for t in re.findall(r'[\w-]+',query) if len(t)>2 and t.casefold() not in {'search','please','official','documentation','weather','api','the','검색','알려줘'}]
+            if terms:results=[r for r in results if any(t in (r['title']+' '+r['snippet']+' '+r['url']).casefold() for t in terms)]
             if not results:raise ValueError()
             return {'tool':'web_search','query':query,'retrieved_at':time.time(),'results':results,'sources':[r['url'] for r in results], 'scope':'Search snippets only; full pages have not been read.'}
         except (OSError,ValueError,ET.ParseError):
