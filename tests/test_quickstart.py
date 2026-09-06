@@ -21,9 +21,16 @@ class QuickstartTests(unittest.TestCase):
         self.calls=[]
         def transport(url,body,headers=None,timeout=60):
             self.calls.append((url,body,headers))
-            if url.endswith('/api/chat'):return {'message':{'content':'Ollama response'}}
-            if url.endswith('/chat/completions'):return {'choices':[{'message':{'content':'Compatible response'}}]}
-            if url.endswith('/v1/messages'):return {'content':[{'type':'text','text':'Anthropic response'}]}
+            probing=any((tool.get('function',{}).get('name') or tool.get('name'))=='agentos_connection_probe' for tool in body.get('tools',[]))
+            if url.endswith('/api/chat'):
+                if probing:return {'message':{'content':'','tool_calls':[{'function':{'name':'agentos_connection_probe','arguments':{}}}]}}
+                return {'message':{'content':'Ollama response'}}
+            if url.endswith('/chat/completions'):
+                if probing:return {'model':'verified/model:free','choices':[{'message':{'tool_calls':[{'id':'probe','function':{'name':'agentos_connection_probe','arguments':'{}'}}]}}]}
+                return {'choices':[{'message':{'content':'Compatible response'}}]}
+            if url.endswith('/v1/messages'):
+                if probing:return {'content':[{'type':'tool_use','id':'probe','name':'agentos_connection_probe','input':{}}]}
+                return {'content':[{'type':'text','text':'Anthropic response'}]}
             if url.endswith('/getMe'):return {'ok':True,'result':{'username':'test_bot'}}
             if url.endswith('/getWebhookInfo'):return {'ok':True,'result':{'url':''}}
             if url.endswith('/getUpdates'):return {'ok':True,'result':[]}
@@ -56,15 +63,17 @@ class QuickstartTests(unittest.TestCase):
 
     def test_model_switch_preserves_history_but_not_keys_to_new_hosts(self):
         self.model(key='private-key')
+        self.assertTrue(self.service.test_model()['ok'])
         self.store.enqueue('hello','first')
         self.service.run_one()
         self.model('compatible','https://example.test/v1')
         self.assertEqual(self.store.secret('model_key'),'')
+        self.assertTrue(self.service.test_model()['ok'])
         self.store.enqueue('continue','second')
         self.service.run_one()
         self.assertEqual(len(self.store.history()),4)
         sent=self.calls[-1][1]['messages']
-        self.assertIn('Ollama response',[m['content'] for m in sent])
+        self.assertIn('Ollama response',[m.get('content','') for m in sent])
         self.assertEqual(self.store.jobs()[0]['provider'],'compatible')
 
     def test_all_model_protocols(self):
@@ -73,6 +82,33 @@ class QuickstartTests(unittest.TestCase):
             self.assertTrue(self.service.test_model()['ok'])
             self.assertTrue(self.service.settings()['model_test']['ok'])
         self.assertEqual(self.calls[-1][2]['anthropic-version'],'2023-06-01')
+        self.assertEqual(self.calls[-1][1]['tool_choice'],{'type':'any'})
+
+    def test_text_only_connection_is_not_marked_tool_ready(self):
+        def text_only(url,body,headers=None,timeout=60):
+            if body.get('tools'):return {'choices':[{'message':{'content':'I cannot use tools'}}]}
+            return {'choices':[{'message':{'content':'hello'}}]}
+        service=AgentService(self.store,ModelAdapter(text_only),text_only)
+        service.save_model({'provider':'compatible','endpoint':'https://example.test/v1','model':'text-only'})
+        result=service.test_model()
+        self.assertFalse(result['ok'])
+        self.assertTrue(result['text_ok'])
+        self.assertFalse(result['tools_ok'])
+        self.assertFalse(service.settings()['model_ready'])
+
+    def test_stale_or_unverified_model_does_not_run_agent(self):
+        self.model()
+        self.store.enqueue('웹에서 찾아줘','unverified')
+        self.service.run_one()
+        self.assertEqual(self.store.jobs()[0]['status'],'failed')
+        self.assertIn('도구 호출 연결',self.store.jobs()[0]['error'])
+        self.assertEqual(self.calls,[])
+        self.assertTrue(self.service.test_model()['ok'])
+        checked=self.store.config('model_test');checked['time']=time.time()-90000;self.store.put('model_test',checked)
+        self.store.enqueue('다시 찾아줘','stale')
+        self.service.run_one()
+        self.assertEqual(self.store.jobs()[0]['status'],'failed')
+        self.assertEqual(len(self.calls),2)
 
     def test_notes_work_without_model_and_summarize_with_model(self):
         self.store.enqueue('/note 회의: 금요일 출시 검토','note')
@@ -81,6 +117,7 @@ class QuickstartTests(unittest.TestCase):
         self.service.run_one()
         self.assertIn('금요일',self.store.jobs()[0]['response'])
         self.model()
+        self.assertTrue(self.service.test_model()['ok'])
         self.store.enqueue('/summarize','summary')
         self.service.run_one()
         self.assertTrue(any('금요일' in m.get('content','') for m in self.calls[-1][1]['messages'] if m['role']=='user'))
@@ -151,8 +188,9 @@ class QuickstartTests(unittest.TestCase):
         result=adapter.invoke({'provider':'compatible','endpoint':'https://openrouter.ai/api/v1','model':'openrouter/free'},'test',[])
         self.assertEqual(result.model,'test/actual:free')
         with patch('personal_agent.quickstart_service.request_json',return_value={'data':[
-            {'id':'good:free','pricing':{'prompt':'0','completion':'0'}},
-            {'id':'paid:free','pricing':{'prompt':'1','completion':'0'}},
+            {'id':'good:free','pricing':{'prompt':'0','completion':'0'},'supported_parameters':['tools','tool_choice']},
+            {'id':'paid:free','pricing':{'prompt':'1','completion':'0'},'supported_parameters':['tools','tool_choice']},
+            {'id':'text-only:free','pricing':{'prompt':'0','completion':'0'},'supported_parameters':['tools']},
             {'id':'missing:free'}]}):
             self.assertEqual([m['id'] for m in self.service.free_models()['models']],['good:free'])
 

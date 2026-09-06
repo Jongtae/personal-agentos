@@ -30,7 +30,7 @@ $('logout').onclick=async()=>{try{await api('/api/logout',{});modelLoaded=false;
 const providers={ollama:{endpoint:'http://127.0.0.1:11434',help:'Ollama 서버의 주소입니다. 모델은 Ollama에 미리 설치되어 있어야 합니다.'},compatible:{endpoint:'https://openrouter.ai/api/v1',help:'Chat Completions 호환 기본 URL입니다. 필요한 경우 /v1을 포함하세요.'},anthropic:{endpoint:'https://api.anthropic.com',help:'Anthropic에서 사용 가능한 모델 ID와 API 키를 입력하세요.'}};
 $('provider').onchange=()=>{const p=providers[$('provider').value];$('endpoint').value=p.endpoint;$('endpoint-help').textContent=p.help;$('api-key').value='';$('model-feedback').textContent='연결 대상이 바뀌면 기존 키를 자동으로 전달하지 않습니다. 필요한 키를 다시 입력하세요.';};
 $('model-form').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{await api('/api/model',{provider:$('provider').value,endpoint:$('endpoint').value,model:$('model-name').value,api_key:$('api-key').value});$('api-key').value='';$('model-feedback').textContent='저장했습니다. 연결 확인을 누르면 실제 응답을 확인합니다.';await refresh();}catch(e){error('model-feedback',e);}});};
-$('test-model').onclick=async()=>busy($('test-model'),async()=>{try{const data=await api('/api/model/test',{});$('model-feedback').textContent='실제 모델 응답: '+data.response;await refresh();}catch(e){error('model-feedback',e);}});
+$('test-model').onclick=async()=>busy($('test-model'),async()=>{try{const data=await api('/api/model/test',{});$('model-feedback').textContent=data.ok?'텍스트와 네이티브 도구 호출을 확인했습니다. 실제 모델 응답: '+data.response:(data.error||'도구 호출을 확인하지 못했습니다. 도구 지원 모델을 선택해 주세요.');await refresh();}catch(e){error('model-feedback',e);}});
 function showPair(data){$('pair-link').href=data.url;$('telegram-pair').hidden=false;$('telegram-token').value='';}
 $('telegram-form').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{showPair(await api('/api/telegram',{token:$('telegram-token').value}));await refresh();}catch(e){error('telegram-status',e);}});};
 $('new-pair').onclick=async()=>{try{showPair(await api('/api/telegram/pair',{}));}catch(e){error('telegram-status',e);}};
@@ -47,14 +47,15 @@ async function refresh(){
  try{
  const state=await api('/api/state');const settings=state.settings;const model=settings.model;const tg=settings.telegram;hasModel=!!model.model;
  const latest=state.jobs.find(j=>j.status==='succeeded'&&j.model)||state.jobs.find(j=>j.model);
- $('actual-model').textContent=latest?'최근 응답 모델: '+latest.model:(model.model==='openrouter/free'?'무료 모델 자동 선택 · 첫 응답 후 실제 모델이 표시됩니다.':'');
+ $('actual-model').textContent=latest?'최근 응답 모델: '+latest.model:(model.model==='openrouter/free'?'도구 지원 무료 모델을 선택해 연결을 확인해 주세요.':'');
  const currentTool=(state.tool_events||[]).find(e=>e.job_id===state.jobs[0]?.id);
  $('tool-status').textContent=currentTool?({running:'실행 중',succeeded:'실행 완료',failed:'실행 실패'}[currentTool.status]+' · '+currentTool.tool+' · 내 AgentOS에서 실행'):'';
  $('tool-history').replaceChildren();for(const e of state.tool_events||[])$('tool-history').append(element('div',new Date(e.created*1000).toLocaleTimeString()+' · '+e.tool+' · '+({running:'실행 중',succeeded:'완료',failed:'실패'}[e.status]||e.status)));
  $('runtime-badge').textContent=state.healthy?'● 개인 환경 실행 중':'실행 상태 확인 필요';
  if(!modelLoaded){if(model.provider){$('provider').value=model.provider;$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;$('root-paths').value=(settings.file_roots||[]).map(r=>r.path).join('\n');modelLoaded=true;}
- $('model-label').textContent=model.model?model.model+' · '+(settings.model_test?.ok?'연결 확인됨':'저장됨 · 확인 전'):'메모 기능 준비됨';
- $('model-step').textContent=settings.model_test?.ok?'✓ 모델 연결 확인':'② 모델 연결';$('model-step').classList.toggle('done',!!settings.model_test?.ok);
+ const tested=settings.model_test;
+ $('model-label').textContent=model.model?model.model+' · '+(settings.model_ready?'도구 호출 확인됨':tested?.text_ok?'텍스트만 확인됨 · 도구 호출 필요':'저장됨 · 확인 전'):'메모 기능 준비됨';
+ $('model-step').textContent=settings.model_ready?'✓ 모델과 도구 연결 확인':'② 모델과 도구 연결';$('model-step').classList.toggle('done',!!settings.model_ready);
  $('telegram-step').textContent=tg.paired?'✓ Telegram 계정 연결':'③ Telegram 연결 · 선택';$('telegram-step').classList.toggle('done',tg.paired);
  $('key-hint').textContent=settings.has_api_key?'키가 저장되어 있습니다. 빈칸으로 저장하면 같은 연결의 키를 유지합니다.':'키는 대화 기록과 분리된 개인 설정 파일에 저장합니다.';
  $('telegram-status').textContent=settings.telegram_status?.message||'아직 연결되지 않았습니다.';
@@ -97,7 +98,7 @@ async function finishOpenRouter(){
  const flow=JSON.parse(localStorage.getItem('openrouter-flow')||'null');
  if(!flow||flow.state!==returnedState||Date.now()>flow.expires)throw new Error('연결 시간이 지났습니다. 계정 연결을 다시 눌러 주세요.');
  await api('/api/openrouter/connect',{code,verifier:flow.verifier});localStorage.removeItem('openrouter-flow');localStorage.setItem('openrouter-connected',String(Date.now()));modelLoaded=false;await refresh();
- $('easy-feedback').textContent='무료 AI가 연결됐습니다. 대화창에서 메시지를 보내 보세요.';$('message').focus();if(window.opener)window.close();
+ $('easy-feedback').textContent='계정이 연결됐습니다. “도구 지원 무료 모델 보기”에서 모델 하나를 선택해 확인해 주세요.';$('message').focus();if(window.opener)window.close();
  }catch(e){error('easy-feedback',e);$('resume-openrouter').hidden=false;}
 }
 $('find-local').onclick=()=>busy($('find-local'),async()=>{
@@ -115,11 +116,11 @@ $('resume-openrouter').onclick=()=>{
  else $('connect-openrouter').click();
 };
 if(localStorage.getItem('openrouter-flow')){$('resume-openrouter').hidden=false;}
-window.addEventListener('storage',async e=>{if(e.key==='openrouter-connected'){modelLoaded=false;await refresh();$('resume-openrouter').hidden=true;$('easy-feedback').textContent='무료 AI 연결이 완료됐습니다. 작성하던 대화를 이어가세요.';$('message').focus();}});
+window.addEventListener('storage',async e=>{if(e.key==='openrouter-connected'){modelLoaded=false;await refresh();$('resume-openrouter').hidden=true;$('easy-feedback').textContent='계정이 연결됐습니다. 도구 지원 무료 모델을 골라 확인해 주세요.';$('message').focus();}});
 $('load-free-models').onclick=()=>busy($('load-free-models'),async()=>{
  try{const data=await api('/api/openrouter/models',{});$('free-model-list').replaceChildren();
- for(const m of data.models){const row=element('p',m.name+' · '+m.id);$('free-model-list').append(row);}
- if(!data.models.length)$('free-model-list').append(element('p','현재 확인된 무료 모델이 없습니다. 잠시 후 다시 확인하세요.'));
+ for(const m of data.models){const button=element('button',m.name+' · '+m.id);button.type='button';button.onclick=()=>busy(button,async()=>{try{await api('/api/model',{provider:'compatible',endpoint:'https://openrouter.ai/api/v1',model:m.id});const checked=await api('/api/model/test',{});modelLoaded=false;await refresh();$('easy-feedback').textContent=checked.ok?'무료 모델과 도구 호출을 연결했습니다. 이제 메시지를 보내 보세요.':(checked.error||'이 무료 모델의 도구 호출을 확인하지 못했습니다. 다른 모델을 골라 주세요.');}catch(e){error('easy-feedback',e);}});$('free-model-list').append(button);}
+ if(!data.models.length)$('free-model-list').append(element('p','현재 확인된 도구 지원 무료 모델이 없습니다. 잠시 후 다시 확인하세요.'));
  }catch(e){$('free-model-list').replaceChildren(element('p','목록을 가져오지 못했습니다. 잠시 후 다시 시도하세요.'));}
 });
 
