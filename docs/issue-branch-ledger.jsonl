@@ -1,0 +1,1 @@
+{"record_type":"migration","status":"in_progress","source":"Jongtae/homebrew-agentos","target":"Jongtae/personal-agentos","note":"Product source migration preserves the validated 0.2.x Git history; the Homebrew repository becomes Formula-only after release linkage is verified."}
