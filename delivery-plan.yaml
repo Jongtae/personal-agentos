@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "repository": "Jongtae/personal-agentos",
+  "retry": {"seconds": 21600, "daily_limit": 4},
+  "iterations": [
+    {"id": "P1-01", "milestone": "M1", "issue": 7, "kind": "live_validation", "validation": "python3 scripts/verify_general_agent.py --installed", "summary": "Verify a live native tool-call capable model before closing M1 validation."},
+    {"id": "P1-01a", "milestone": "M1", "issue": 10, "repair_of": "P1-01", "kind": "implementation", "tests": ["python3 -m unittest discover -s tests -q"], "summary": "Build the evidence-driven delivery loop while P1-01 is externally blocked."},
+    {"id": "P1-02", "milestone": "M1", "depends_on": ["P1-01", "P1-01a"], "kind": "implementation", "summary": "Verify execution traces, failure recovery, and retry limits for every built-in capability."},
+    {"id": "P1-03", "milestone": "M1", "depends_on": ["P1-02"], "kind": "implementation", "summary": "Verify web and Telegram continuity, restart recovery, and ambiguous delivery behavior."},
+    {"id": "P2-01", "milestone": "M2", "depends_on": ["P1-03"], "kind": "implementation", "summary": "Read txt, md, PDF, DOCX, and XLSX from connected folders with source evidence."},
+    {"id": "P2-02", "milestone": "M2", "depends_on": ["P2-01"], "kind": "implementation", "summary": "Make document-to-model and document-to-web boundaries visible and approval-gated."},
+    {"id": "P3-01", "milestone": "M3", "depends_on": ["P2-02"], "kind": "implementation", "summary": "Deliver Docker Compose installation, persistent data, update, and health checks for a Linux VPS."},
+    {"id": "P3-02", "milestone": "M3", "depends_on": ["P3-01"], "kind": "implementation", "summary": "Deliver launchd continuity, backup/restore, update, and Telegram recovery."},
+    {"id": "P4-01", "milestone": "M4", "depends_on": ["P3-02"], "kind": "implementation", "summary": "Define declaration-only local tool and role manifests with a bounded host API."},
+    {"id": "P4-02", "milestone": "M4", "depends_on": ["P4-01"], "kind": "implementation", "summary": "Migrate built-ins and add plugin install, validate, disable, and remove lifecycle."},
+    {"id": "P5-01", "milestone": "M5", "depends_on": ["P4-02"], "kind": "implementation", "summary": "Run macOS Homebrew and Linux VPS Docker Compose v1 acceptance."},
+    {"id": "P5-02", "milestone": "M5", "depends_on": ["P5-01"], "kind": "release", "summary": "Tag, release, update Homebrew, and re-run installed acceptance before closing v1."}
+  ]
+}

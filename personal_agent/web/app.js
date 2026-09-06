@@ -46,6 +46,7 @@ async function refresh(){
  if(!authenticated||refreshing)return;refreshing=true;
  try{
  const state=await api('/api/state');const settings=state.settings;const model=settings.model;const tg=settings.telegram;hasModel=!!model.model;
+ const delivery=settings.delivery||{};let deliveryView=$('delivery-status');if(!deliveryView){deliveryView=element('p',undefined);deliveryView.id='delivery-status';document.querySelector('.workspace-heading').append(deliveryView);}deliveryView.textContent=delivery.active?`전달 루프 · ${delivery.milestone||''} ${delivery.active} · ${delivery.status||'대기'}${delivery.next_retry_at?' · 다음 재시도 '+new Date(delivery.next_retry_at*1000).toLocaleString():''}`:'전달 루프 · 아직 실행 기록이 없습니다.';
  const latest=state.jobs.find(j=>j.status==='succeeded'&&j.model)||state.jobs.find(j=>j.model);
  $('actual-model').textContent=latest?'최근 응답 모델: '+latest.model:(model.model==='openrouter/free'?'도구 지원 무료 모델을 선택해 연결을 확인해 주세요.':'');
  const currentTool=(state.tool_events||[]).find(e=>e.job_id===state.jobs[0]?.id);

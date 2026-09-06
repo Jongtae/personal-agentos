@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import signal
 import secrets
+import sys
 import threading
 import time
 import webbrowser
@@ -135,6 +136,11 @@ def make_handler(service):
 
 
 def main():
+    # Keep the normal server parser small while exposing delivery as a nested
+    # command: `agentos delivery status`.
+    if len(sys.argv)>1 and sys.argv[1]=='delivery':
+        from .delivery import main as delivery_main
+        return delivery_main(sys.argv[2:])
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action',nargs='?',choices=['start'],default='start')
     parser.add_argument('--host',default='127.0.0.1')

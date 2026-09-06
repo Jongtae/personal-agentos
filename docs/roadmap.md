@@ -17,6 +17,10 @@ write access. It does not block product source, release, or iteration work.
 Make model-driven capability selection, tool execution, traces, recovery, and
 web/Telegram continuity dependable.
 
+Current delivery: P1-01 is waiting for a live free-model tool-call success;
+P1-01a adds the bounded local delivery loop that records and retries that gate
+without advancing to M2.
+
 ## M2 — private documents and safety
 
 Add structured document reading, source evidence, data-boundary visibility,
