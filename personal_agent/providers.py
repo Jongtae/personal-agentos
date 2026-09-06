@@ -102,7 +102,8 @@ class ModelAdapter:
                     else:entry={'role':m['role'],'content':[{'type':'text','text':m.get('content') or ' '}]}
                     if converted and converted[-1]['role']==entry['role']:converted[-1]['content']+=entry['content']
                     else:converted.append(entry)
-                data=self.transport(cfg['endpoint']+'/v1/messages',{'model':cfg['model'],'system':'\n'.join(m['content'] for m in messages if m['role']=='system'),'messages':converted,'tools':[{'name':t['function']['name'],'description':t['function']['description'],'input_schema':t['function']['parameters']} for t in tools],'max_tokens':4096,'tool_choice':{'type':'auto'}},{'x-api-key':key,'anthropic-version':'2023-06-01'})
+                choice={'type':'any'} if tool_choice=='required' else {'type':'auto'}
+                data=self.transport(cfg['endpoint']+'/v1/messages',{'model':cfg['model'],'system':'\n'.join(m['content'] for m in messages if m['role']=='system'),'messages':converted,'tools':[{'name':t['function']['name'],'description':t['function']['description'],'input_schema':t['function']['parameters']} for t in tools],'max_tokens':4096,'tool_choice':choice},{'x-api-key':key,'anthropic-version':'2023-06-01'})
                 message={'role':'assistant','content':'\n'.join(c['text'] for c in data['content'] if c['type']=='text')}
                 calls=[{'id':c['id'],'type':'function','function':{'name':c['name'],'arguments':json.dumps(c['input'])}} for c in data['content'] if c['type']=='tool_use']
                 if calls:message['tool_calls']=calls

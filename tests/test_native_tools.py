@@ -51,9 +51,12 @@ class AcceptanceTests(unittest.TestCase):
    store=QuickStore(root);calls=[]
    def transport(u,b,h):
     calls.append(b)
-    if len(calls)==1:return {'choices':[{'message':{'tool_calls':[{'id':'fail1','function':{'name':'weather','arguments':'{"city":"Seongnam"}'}}]}}]}
+    if len(calls)==1:return {'choices':[{'message':{'content':'connected'}}]}
+    if len(calls)==2:return {'choices':[{'message':{'tool_calls':[{'id':'probe','function':{'name':'agentos_connection_probe','arguments':'{}'}}]}}]}
+    if len(calls)==3:return {'choices':[{'message':{'tool_calls':[{'id':'fail1','function':{'name':'weather','arguments':'{"city":"Seongnam"}'}}]}}]}
     return {'choices':[{'message':{'content':'조회 완료'}}]}
    svc=AgentService(store,ModelAdapter(transport));svc.save_model({'provider':'compatible','endpoint':'https://openrouter.ai/api/v1','model':'openrouter/free'})
+   self.assertTrue(svc.test_model()['ok'])
    class Broken:
     def execute(self,p):raise ProviderError('test offline')
    svc.local_tools=Broken();job=store.enqueue('성남 날씨','failure-test');svc.run_one()
