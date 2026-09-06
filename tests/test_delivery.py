@@ -3,6 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from personal_agent.delivery import DeliveryController, DeliveryPlan, StateStore
 
@@ -63,6 +64,15 @@ class DeliveryTests(unittest.TestCase):
         worktree=self.state.parent/'worktrees'/'p1-01a'
         self.assertEqual(runner.calls[2][1],worktree)  # Codex never receives the caller worktree.
         self.assertIn(['gh','pr','merge','https://github.com/Jongtae/personal-agentos/pull/99','--squash','--delete-branch'],[call[0] for call in runner.calls])
+
+    def test_launchd_schedule_pins_the_repository_root(self):
+        runner=Runner([SimpleNamespace(returncode=0,stdout='',stderr='')]);home=self.root/'home'
+        controller=self.controller(runner)
+        with patch.object(Path,'home',return_value=home):
+            result=controller.install_schedule()
+        content=Path(result['path']).read_text()
+        self.assertIn(f'<string>{controller.root}</string>',content)
+        self.assertIn('<integer>21600</integer>',content)
 
     def test_status_reports_current_iteration(self):
         result=self.controller(Runner()).status()
