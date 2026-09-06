@@ -3,7 +3,7 @@
 | Milestone | Goal | Status |
 | --- | --- | --- |
 | M0 | Product source, GitHub workflow, and release separation | Complete except GitHub Project board permission |
-| M1 | Reliable personal runtime | In progress — P1-01 model tool-call validation |
+| M1 | Reliable personal runtime | In progress — P1-01 blocked by external quota; P1-01a delivery loop active |
 | M2 | Personal data and document capability | Planned |
 | M3 | Persistent runtime and official server install | Planned |
 | M4 | Role and tool extension contract | Planned |

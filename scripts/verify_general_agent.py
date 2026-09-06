@@ -13,6 +13,11 @@ with tempfile.TemporaryDirectory() as root:
  config=dict(source.config('model'))
  if '--model' in sys.argv:config['model']=sys.argv[sys.argv.index('--model')+1]
  svc.save_model({**config,'api_key':source.secret('model_key')})
+ checked=svc.test_model()
+ if not checked['ok']:
+  print('model-tool-validation FAIL',checked.get('error',''),flush=True)
+  Path('GENERAL_AGENT_ACCEPTANCE.json').write_text(json.dumps({'installed':'--installed' in sys.argv,'tested_at':time.time(),'configured_model':config.get('model'),'model_validation':checked,'results':[]},ensure_ascii=False,indent=2))
+  raise SystemExit(1)
  cases=[('search','Kubernetes 공식 문서를 웹에서 검색해서 링크를 알려줘',['web_search'],None),('files','이번에는 내 파일에서 Aurora 출시 날짜를 찾아줘. 파일 내용으로 확인해줘.',['find_files','read_file'],'2031'),('delegate','방금 읽은 Aurora 출시 내용을 검토 에이전트에게 전달해서 검토를 받아줘.',['delegate_agent'],None),('general','이제 다른 주제야. 도구를 쓰지 말고 안녕이라고만 답해줘.',[], '안녕'),('memory','Aurora 출시 검토가 필요하다는 내용을 내 메모에 저장해줘.',['save_note'],None)]
  for label,prompt,expected,substring in cases:
   job=store.enqueue(prompt,'acceptance-'+label);svc.run_one()

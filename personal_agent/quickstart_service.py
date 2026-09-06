@@ -44,9 +44,11 @@ class AgentService:
             model=self.store.config('model',{})
             tg=self.store.config('telegram',{})
             model_test=self.store.config('model_test')
+            from .delivery import StateStore
+            delivery=StateStore().read()
             return {'model':model,'has_api_key':bool(self.store.secret('model_key')),
                     'telegram':{'enabled':tg.get('enabled',False),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
-                    'file_roots':self.store.config('file_roots',[]), 'agents':[{'id':k,'name':v['name']} for k,v in AGENTS.items()], 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status')}
+                    'file_roots':self.store.config('file_roots',[]), 'agents':[{'id':k,'name':v['name']} for k,v in AGENTS.items()], 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery}
 
     @staticmethod
     def model_fingerprint(config):
