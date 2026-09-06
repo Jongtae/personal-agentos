@@ -167,7 +167,11 @@ class DeliveryController:
             if not item:return self.state_store.write({**state,'status':'complete','updated_at':self.now()})
             issue=self._ensure_issue(item,state,dry_run)
             if issue:state['issues']=dict(state.get('issues',{}),**{item['id']:issue})
-            if not dry_run and self._issue_is_closed(item,state):return self._complete(item,state,dry_run=True)
+            # Launchd has no interactive GitHub credential context. A live
+            # validation must record its local evidence before any optional
+            # GitHub status lookup; only repair implementation work needs the
+            # closed-issue shortcut.
+            if not dry_run and item['kind']!='live_validation' and self._issue_is_closed(item,state):return self._complete(item,state,dry_run=True)
             if state.get('status','').startswith('blocked') and not self.due(state):return self.status()
             allowed,_,_=self._attempt_allowed(state)
             if state.get('status','').startswith('blocked') and not allowed:
