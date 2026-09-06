@@ -9,6 +9,6 @@
 | M4 | Role and tool extension contract | Planned |
 | M5 | v1 release acceptance | Planned |
 
-The active iteration is recorded in the GitHub Project and
-`docs/issue-branch-ledger.jsonl`. Do not start a new iteration while the
-active one lacks a clear acceptance result or repair issue.
+The active iteration is [P0-01](https://github.com/Jongtae/personal-agentos/issues/2).
+It is recorded in `docs/issue-branch-ledger.jsonl`. Do not start a new
+iteration while the active one lacks a clear acceptance result or repair issue.
