@@ -5,8 +5,12 @@
 Separate product development from the Homebrew tap, establish issue-first PR
 work, and preserve the validated 0.2.x baseline.
 
-Exit: the product repository has governance files, issue/PR templates, a
-Project and M0 milestone, an active issue, branch, PR, and ledger record.
+Completed: `personal-agentos` preserves the product history; the v0.2.2
+release feeds the Formula-only Homebrew tap; governance documentation, labels,
+v1 milestone, issues, branches, PRs, and ledger records are present.
+
+Remaining administration: the GitHub Project board awaits a token with Project
+write access. It does not block product source, release, or iteration work.
 
 ## M1 — reliable personal runtime
 
