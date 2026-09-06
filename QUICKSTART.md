@@ -54,8 +54,37 @@ On a remote host, keep the default loopback binding and connect through SSH forw
 
 Implemented: single owner, password login, model adapters, persistent chat and notes, queued requests, private Telegram pairing and deduplication. Interrupted model work and uncertain Telegram delivery are shown without automatic replay.
 
-Not yet implemented: arbitrary tool execution, calendar/email integrations, plugin installation, multiple assistants, desktop/mobile applications, unattended service management, or multi-user hosting. This is the first installation-to-task slice, not the complete AgentOS ecosystem.
+Not yet implemented: arbitrary shell execution, calendar/email integrations, plugin installation, external agent-engine connections, desktop/mobile applications, unattended service management, or multi-user hosting. This is the first installation-to-task slice, not the complete AgentOS ecosystem.
 
 Tests use simulated provider and Telegram responses, plus a real local HTTP server for setup/chat/authentication. Live provider and Telegram testing requires your credentials.
 
 Source and Homebrew formula: [Jongtae/homebrew-agentos](https://github.com/Jongtae/homebrew-agentos).
+
+## General tool runtime (0.2.0)
+
+Normal messages use a shared native tool-call loop. The model selects from web search,
+weather, connected-folder search/read, personal notes, and built-in researcher/reviewer
+agents. No keyword rule forces weather or search. OpenRouter's free router chooses a
+model for each request; that model is kept for the remainder of the tool loop.
+Free-provider availability and quotas can still interrupt a request; failures are shown.
+
+Under **연결 설정 → 내 파일 연결**, register specific folders on the AgentOS host.
+Only connected UTF-8 text files up to 1 MB are supported (16,000 characters per read).
+PDF/Office extraction is not implemented. When using a cloud model, requested file
+contents are sent to that model. Mobile clients access the host's connected folders.
+
+Try these in the same conversation:
+- “Kubernetes 공식 문서를 검색해 줘.”
+- “내 파일에서 Aurora 출시 계획을 찾아서 읽어 줘.”
+- “그 내용을 검토 에이전트에게 전달해 줘.”
+- “이제 도구 없이 안녕이라고만 답해 줘.”
+- “출시 검토가 필요하다고 메모해 줘.”
+
+Specialists run separate conversations with the configured model provider and read-only
+tools. They are not external Codex/Claude Code processes. Recursive delegation and
+shell commands are unavailable. **최근 도구 실행 기록** shows actual tool execution.
+
+`python3 -m unittest discover -s tests -q` checks local contracts and errors.
+`scripts/verify_general_agent.py` runs live multi-topic acceptance with the configured
+provider in a temporary store; `--installed` verifies the Homebrew installation.
+It creates a synthetic local document and never changes personal chat or notes.

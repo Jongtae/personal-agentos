@@ -83,7 +83,7 @@ class QuickstartTests(unittest.TestCase):
         self.model()
         self.store.enqueue('/summarize','summary')
         self.service.run_one()
-        self.assertIn('금요일',self.calls[-1][1]['messages'][-1]['content'])
+        self.assertTrue(any('금요일' in m.get('content','') for m in self.calls[-1][1]['messages'] if m['role']=='user'))
         self.assertEqual(len(QuickStore(self.temp.name).notes()),1)
 
     def test_idempotent_requests_and_interrupted_recovery(self):

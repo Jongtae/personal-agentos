@@ -75,7 +75,7 @@ def make_handler(service):
             if path=='/api/status':
                 return self.reply(200,{'claimed':store.claimed(),'authenticated':store.session(self.token()),'local_access':self.local_setup() and store.config('local_access',False)})
             if not self.auth():return
-            if path=='/api/state':return self.reply(200,{'settings':service.settings(),'messages':store.history(),'jobs':store.jobs(),'notes':store.notes(),'healthy':service.healthy()})
+            if path=='/api/state':return self.reply(200,{'settings':service.settings(),'messages':store.history(),'jobs':store.jobs(),'notes':store.notes(),'tool_events':store.recent_tool_events(),'healthy':service.healthy()})
             self.reply(404,{'error':'경로를 찾을 수 없습니다.'})
 
         def do_POST(self):
@@ -120,6 +120,7 @@ def make_handler(service):
                 if path=='/api/openrouter/connect':return self.reply(200,service.connect_openrouter(body))
                 if path=='/api/openrouter/models':return self.reply(200,service.free_models())
                 if path=='/api/ollama/models':return self.reply(200,service.local_models())
+                if path=='/api/files/roots':return self.reply(200,service.save_roots(body))
                 if path=='/api/model':return self.reply(200,service.save_model(body))
                 if path=='/api/model/test':return self.reply(200,service.test_model())
                 if path=='/api/telegram':return self.reply(200,service.connect_telegram(body))

@@ -48,9 +48,11 @@ async function refresh(){
  const state=await api('/api/state');const settings=state.settings;const model=settings.model;const tg=settings.telegram;hasModel=!!model.model;
  const latest=state.jobs.find(j=>j.status==='succeeded'&&j.model)||state.jobs.find(j=>j.model);
  $('actual-model').textContent=latest?'최근 응답 모델: '+latest.model:(model.model==='openrouter/free'?'무료 모델 자동 선택 · 첫 응답 후 실제 모델이 표시됩니다.':'');
- $('tool-status').textContent=settings.tool_run?({running:'조회 중',succeeded:'조회 완료',failed:'조회 실패'}[settings.tool_run.status]+' · '+settings.tool_run.tool+' · 내 AgentOS에서 실행'):'';
+ const currentTool=(state.tool_events||[]).find(e=>e.job_id===state.jobs[0]?.id);
+ $('tool-status').textContent=currentTool?({running:'실행 중',succeeded:'실행 완료',failed:'실행 실패'}[currentTool.status]+' · '+currentTool.tool+' · 내 AgentOS에서 실행'):'';
+ $('tool-history').replaceChildren();for(const e of state.tool_events||[])$('tool-history').append(element('div',new Date(e.created*1000).toLocaleTimeString()+' · '+e.tool+' · '+({running:'실행 중',succeeded:'완료',failed:'실패'}[e.status]||e.status)));
  $('runtime-badge').textContent=state.healthy?'● 개인 환경 실행 중':'실행 상태 확인 필요';
- if(!modelLoaded){if(model.provider){$('provider').value=model.provider;$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;modelLoaded=true;}
+ if(!modelLoaded){if(model.provider){$('provider').value=model.provider;$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;$('root-paths').value=(settings.file_roots||[]).map(r=>r.path).join('\n');modelLoaded=true;}
  $('model-label').textContent=model.model?model.model+' · '+(settings.model_test?.ok?'연결 확인됨':'저장됨 · 확인 전'):'메모 기능 준비됨';
  $('model-step').textContent=settings.model_test?.ok?'✓ 모델 연결 확인':'② 모델 연결';$('model-step').classList.toggle('done',!!settings.model_test?.ok);
  $('telegram-step').textContent=tg.paired?'✓ Telegram 계정 연결':'③ Telegram 연결 · 선택';$('telegram-step').classList.toggle('done',tg.paired);
@@ -62,8 +64,8 @@ async function refresh(){
  if(fingerprint!==stateFingerprint){stateFingerprint=fingerprint;
  const container=$('messages');const nearBottom=container.scrollHeight-container.scrollTop-container.clientHeight<90;
  if(state.messages.length){container.replaceChildren();for(const m of state.messages){const item=element('article',undefined,'message '+m.role);item.append(element('div',(m.role==='user'?'나':'AgentOS')+' · '+(m.channel.startsWith('telegram:')?'Telegram':'웹'),'message-meta'));const bubble=element('div',undefined,'bubble');for(const part of m.content.split(/(https?:\/\/[^\s<>]+)/g)){if(/^https?:\/\//.test(part)){const a=element('a',part);a.href=part;a.target='_blank';a.rel='noreferrer noopener';bubble.append(a);}else bubble.append(document.createTextNode(part));}item.append(bubble);container.append(item);}if(nearBottom||container.scrollTop===0)container.scrollTop=container.scrollHeight;}
- const pending=state.jobs.filter(j=>j.status==='queued'||j.status==='running');const failed=state.jobs.slice(0,1).find(j=>j.status==='failed'||j.status==='interrupted'||j.delivery==='unknown');
- $('job-status').textContent=pending.length?`${pending.length}개 작업 처리 중…`:failed?(failed.delivery==='unknown'?'Telegram 전송 결과가 불확실합니다. 자동 재전송하지 않으며 결과는 웹 기록에서 확인할 수 있습니다.':failed.error):'';
+ const pending=state.jobs.filter(j=>j.status==='queued'||j.status==='running');const failed=state.jobs.slice(0,1).find(j=>j.status==='failed'||j.status==='partial'||j.status==='interrupted'||j.delivery==='unknown');
+ $('job-status').textContent=pending.length?`${pending.length}개 작업 처리 중…`:failed?(failed.delivery==='unknown'?'Telegram 전송 결과가 불확실합니다. 자동 재전송하지 않으며 결과는 웹 기록에서 확인할 수 있습니다.':(failed.error||'일부 도구를 완료하지 못했습니다. 답변과 실행 기록을 확인하세요.')):'';
  $('note-count').textContent=String(state.notes.length);$('notes-list').replaceChildren();for(const n of state.notes)$('notes-list').append(element('article',n.content));if(!state.notes.length)$('notes-list').append(element('p','메모가 없습니다.'));
  }
  }catch(e){error('global-error',e);}finally{refreshing=false;}
@@ -120,3 +122,5 @@ $('load-free-models').onclick=()=>busy($('load-free-models'),async()=>{
  if(!data.models.length)$('free-model-list').append(element('p','현재 확인된 무료 모델이 없습니다. 잠시 후 다시 확인하세요.'));
  }catch(e){$('free-model-list').replaceChildren(element('p','목록을 가져오지 못했습니다. 잠시 후 다시 시도하세요.'));}
 });
+
+$('roots-form').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{await api('/api/files/roots',{paths:$('root-paths').value.split('\n').map(p=>p.trim()).filter(Boolean)});$('roots-feedback').textContent='폴더를 연결했습니다. 대화창에서 파일을 찾아 달라고 요청하세요.';}catch(e){error('roots-feedback',e);}});};

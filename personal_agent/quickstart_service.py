@@ -4,7 +4,8 @@ import json
 import secrets
 import threading
 import time
-from .local_tools import LocalTools, needs_lookup, run_native_tools
+from .local_tools import LocalTools
+from .agent_runtime import Capabilities, run_agent, AGENTS
 from .providers import ModelAdapter, ProviderError, request_json, validate_model
 
 SYSTEM = ('You are the user’s personal AgentOS assistant. Respond in the user’s language. '
@@ -30,7 +31,19 @@ class AgentService:
             tg=self.store.config('telegram',{})
             return {'model':model,'has_api_key':bool(self.store.secret('model_key')),
                     'telegram':{'enabled':tg.get('enabled',False),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
-                    'tool_run':self.store.config('tool_run'), 'model_test':self.store.config('model_test'), 'telegram_status':self.store.config('telegram_status')}
+                    'file_roots':self.store.config('file_roots',[]), 'agents':[{'id':k,'name':v['name']} for k,v in AGENTS.items()], 'tool_run':self.store.config('tool_run'), 'model_test':self.store.config('model_test'), 'telegram_status':self.store.config('telegram_status')}
+
+    def save_roots(self, body):
+        from pathlib import Path
+        paths=body.get('paths')
+        if not isinstance(paths,list) or len(paths)>8 or any(not isinstance(p,str) for p in paths):raise ValueError('폴더는 최대 8개까지 연결할 수 있습니다.')
+        roots=[]
+        for value in paths:
+            p=Path(value).expanduser().resolve()
+            if not p.is_dir() or p==Path('/') or p==Path.home() or p.is_relative_to(self.store.private):raise ValueError('전체 홈이나 시스템 루트 대신 작업용 하위 폴더를 선택하세요.')
+            roots.append({'id':__import__('hashlib').sha256(str(p).encode()).hexdigest()[:12],'path':str(p)})
+        self.store.put('file_roots',roots)
+        return {'roots':roots}
 
     def save_model(self, body):
         config=validate_model(body)
@@ -170,6 +183,7 @@ class AgentService:
             response=''
             provider='builtin'
             model='notes'
+            outcome='succeeded'
             try:
                 prompt=job['message'].strip()
                 if prompt in ('/start','/help'):
@@ -195,19 +209,18 @@ class AgentService:
                     def record(tool,status,detail):
                         with self.store.db() as db:
                             db.execute('INSERT INTO tool_events(job_id,tool,status,detail,created) VALUES (?,?,?,?,?)',(job['id'],tool,status,detail,time.time()))
-                        self.store.put('tool_run',{'job_id':job['id'],'tool':tool,'status':status,'detail':detail,'time':time.time()})
-                    if config['provider']=='compatible':
-                        result=run_native_tools(self.adapter,config,key,history,SYSTEM,self.local_tools,record)
-                    elif needs_lookup(prompt):
-                        result=self.local_tools.answer(self.adapter,config,key,history,SYSTEM,prompt,record)
-                    else:result=self.adapter.invoke(config,key,[{'role':'system','content':SYSTEM},*history])
+                        if tool!='model':self.store.put('tool_run',{'job_id':job['id'],'tool':tool,'status':status,'detail':detail,'time':time.time()})
+                    capabilities=Capabilities(self.store,self.adapter,config,key,job['id'],record,network=self.local_tools)
+                    result=run_agent(self.adapter,config,key,history,'',capabilities,record)
+                    outcome=getattr(result,'outcome','succeeded')
                     response,provider,model=result.content,result.provider,result.model
                 with self.store.db() as db:
                     db.execute('INSERT INTO messages(role,content,channel,created) VALUES (?,?,?,?)',('assistant',response,job['channel'],time.time()))
-                    db.execute("UPDATE jobs SET status='succeeded',response=?,provider=?,model=?,delivery=? WHERE id=?",(response,provider,model,'pending' if job['chat_id'] else 'none',job['id']))
+                    db.execute("UPDATE jobs SET status=?,response=?,provider=?,model=?,delivery=? WHERE id=?",(outcome,response,provider,model,'pending' if job['chat_id'] else 'none',job['id']))
             except (ValueError,ProviderError) as exc:
                 response=str(exc)
                 with self.store.db() as db:
+                    db.execute('INSERT INTO messages(role,content,channel,created) VALUES (?,?,?,?)',('assistant','이 요청은 완료하지 못했습니다: '+response,job['channel'],time.time()))
                     db.execute("UPDATE jobs SET status='failed',error=?,delivery=? WHERE id=?",(response,'pending' if job['chat_id'] else 'none',job['id']))
             return True
 

@@ -12,6 +12,9 @@ from urllib.parse import urlsplit
 
 class ProviderError(Exception):
     """Safe, user-facing error; never include upstream bodies, URLs or keys."""
+    def __init__(self, message, status=None):
+        super().__init__(message)
+        self.status = status
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -28,7 +31,7 @@ def request_json(url, body, headers=None, timeout=60):
                 raise ProviderError('응답이 너무 큽니다. 요청 범위를 줄여 주세요.')
             return json.loads(raw)
     except HTTPError as exc:
-        raise ProviderError(f'연결 대상이 HTTP {exc.code} 오류를 반환했습니다. 주소·모델·인증 설정을 확인하세요.') from None
+        raise ProviderError('무료 모델의 호출 한도에 도달했습니다. 잠시 후 다시 시도하거나 다른 모델을 선택하세요.' if exc.code==429 else f'연결 대상이 HTTP {exc.code} 오류를 반환했습니다. 주소·모델·인증 설정을 확인하세요.', status=exc.code) from None
     except (URLError, TimeoutError, OSError):
         raise ProviderError('연결할 수 없거나 응답 시간이 초과되었습니다. 서버와 네트워크를 확인하세요.') from None
     except (ValueError, TypeError):
@@ -63,16 +66,48 @@ class ModelAdapter:
         self.transport = transport
 
     def tool_turn(self, config, key, messages, tools, tool_choice="auto"):
-        cfg=validate_model(config)
-        if cfg['provider']!='compatible':raise ValueError('이 연결 방식의 native tool calling은 아직 지원하지 않습니다.')
-        body={'model':cfg['model'],'messages':messages,'tools':tools,'tool_choice':tool_choice,'stream':False}
-        if cfg['endpoint']=='https://openrouter.ai/api/v1':body['provider']={'require_parameters':True}
-        data=self.transport(cfg['endpoint']+'/chat/completions',body,{'Authorization':'Bearer '+key} if key else {})
+        import uuid
+        cfg=validate_model(config);provider=cfg['provider']
         try:
-            message=data['choices'][0]['message']
+            if provider=='compatible':
+                body={'model':cfg['model'],'messages':messages,'tools':tools,'tool_choice':tool_choice,'stream':False}
+                if cfg['endpoint']=='https://openrouter.ai/api/v1':body['provider']={'require_parameters':True}
+                data=self.transport(cfg['endpoint']+'/chat/completions',body,{'Authorization':'Bearer '+key} if key else {})
+                message=data['choices'][0]['message']
+            elif provider=='ollama':
+                converted=[];names={}
+                for m in messages:
+                    entry=dict(m)
+                    if m.get('tool_calls'):
+                        entry['tool_calls']=[]
+                        for c in m['tool_calls']:
+                            names[c['id']]=c['function']['name']
+                            entry['tool_calls'].append({'function':{'name':c['function']['name'],'arguments':json.loads(c['function']['arguments'])}})
+                    if m['role']=='tool':entry={'role':'tool','tool_name':names.get(m['tool_call_id'],''),'content':m['content']}
+                    converted.append(entry)
+                data=self.transport(cfg['endpoint']+'/api/chat',{'model':cfg['model'],'messages':converted,'tools':tools,'stream':False},{'Authorization':'Bearer '+key} if key else {})
+                message=data['message']
+                if message.get('tool_calls'):
+                    message['tool_calls']=[{'id':'call_'+uuid.uuid4().hex,'type':'function','function':{'name':c['function']['name'],'arguments':json.dumps(c['function']['arguments'])}} for c in message['tool_calls']]
+            else:
+                if not key:raise ValueError('Anthropic API 키를 입력하세요.')
+                converted=[]
+                for m in messages:
+                    if m['role']=='system':continue
+                    if m['role']=='tool':entry={'role':'user','content':[{'type':'tool_result','tool_use_id':m['tool_call_id'],'content':m['content']}]}
+                    elif m['role']=='assistant' and m.get('tool_calls'):
+                        blocks=[{'type':'text','text':m['content']}] if m.get('content') else []
+                        blocks += [{'type':'tool_use','id':c['id'],'name':c['function']['name'],'input':json.loads(c['function']['arguments'])} for c in m['tool_calls']]
+                        entry={'role':'assistant','content':blocks}
+                    else:entry={'role':m['role'],'content':[{'type':'text','text':m.get('content') or ' '}]}
+                    if converted and converted[-1]['role']==entry['role']:converted[-1]['content']+=entry['content']
+                    else:converted.append(entry)
+                data=self.transport(cfg['endpoint']+'/v1/messages',{'model':cfg['model'],'system':'\n'.join(m['content'] for m in messages if m['role']=='system'),'messages':converted,'tools':[{'name':t['function']['name'],'description':t['function']['description'],'input_schema':t['function']['parameters']} for t in tools],'max_tokens':4096,'tool_choice':{'type':'auto'}},{'x-api-key':key,'anthropic-version':'2023-06-01'})
+                message={'role':'assistant','content':'\n'.join(c['text'] for c in data['content'] if c['type']=='text')}
+                calls=[{'id':c['id'],'type':'function','function':{'name':c['name'],'arguments':json.dumps(c['input'])}} for c in data['content'] if c['type']=='tool_use']
+                if calls:message['tool_calls']=calls
             if not isinstance(message,dict) or message.get('role','assistant')!='assistant':raise TypeError()
-            message={k:v for k,v in message.items() if k in ('role','content','tool_calls','reasoning_details')}
-            message['role']='assistant'
+            message={k:v for k,v in message.items() if k in ('role','content','tool_calls','reasoning_details')};message['role']='assistant'
             actual=data.get('model') or cfg['model']
             return message,actual if isinstance(actual,str) else cfg['model']
         except (KeyError,IndexError,TypeError,AttributeError):raise ProviderError('도구 응답 형식이 올바르지 않습니다. 도구 호출 지원 모델을 선택하세요.') from None

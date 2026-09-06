@@ -159,3 +159,7 @@ class QuickStore:
     def notes(self):
         with self.db() as db:
             return [dict(r) for r in db.execute('SELECT * FROM notes ORDER BY created DESC LIMIT 50')]
+
+    def recent_tool_events(self):
+        with self.db() as db:
+            return [dict(r) for r in db.execute("SELECT id,job_id,tool,status,created FROM tool_events WHERE tool!='model' ORDER BY id DESC LIMIT 30")]

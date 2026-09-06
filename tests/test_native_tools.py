@@ -60,6 +60,6 @@ class AcceptanceTests(unittest.TestCase):
    self.assertEqual(store.jobs()[0]['status'],'failed')
    reopened=QuickStore(root)
    with reopened.db() as db:
-    rows=db.execute('SELECT * FROM tool_events WHERE job_id=?',(job,)).fetchall()
+    rows=db.execute('SELECT * FROM tool_events WHERE job_id=? AND tool!="model"',(job,)).fetchall()
     self.assertEqual([r['status'] for r in rows],['running','failed'])
     self.assertIn('fail1',rows[0]['detail'])
