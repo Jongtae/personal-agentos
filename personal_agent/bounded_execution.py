@@ -74,11 +74,12 @@ class BoundedExecutionAdapter:
     configuration parameters.  Expanding those is a security design change,
     not an engine prompt option.
     """
-    def __init__(self, finder=None, runner=subprocess.run, runtime_root='/data/engine-runs', codex_home=None):
+    def __init__(self, finder=None, runner=subprocess.run, runtime_root=None, codex_home=None):
         from shutil import which
         self.finder = finder or which
         self.runner = runner
-        self.runtime_root = Path(runtime_root)
+        configured_root = runtime_root or os.environ.get('AGENTOS_ENGINE_RUNS')
+        self.runtime_root = Path(configured_root).expanduser() if configured_root else Path.home()/'.local/share/agentos/engine-runs'
         self.codex_home = Path(codex_home).expanduser() if codex_home else None
 
     def environment(self, engine_id, binary, run_dir):
@@ -143,7 +144,8 @@ class BoundedExecutionAdapter:
             raise ExecutionError('연결한 구독 엔진 CLI를 격리된 런타임에서 찾지 못했습니다.')
         # Only declarative tool metadata is written here.  Tool calls must be
         # served by the AgentOS MCP bridge, never by engine-provided commands.
-        self.runtime_root.mkdir(parents=True, exist_ok=True)
+        self.runtime_root.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.runtime_root.chmod(0o700)
         with tempfile.TemporaryDirectory(dir=self.runtime_root, prefix='turn-') as folder:
             run_dir = Path(folder)
             config = run_dir / 'agentos-mcp.json'
