@@ -104,6 +104,7 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 return self.reply(200,{'claimed':store.claimed(),'authenticated':store.session(self.token()),'local_access':self.local_setup() and store.config('local_access',False)})
             if not self.auth():return
             if path=='/api/state':return self.reply(200,{'settings':service.settings(),'messages':store.history(),'jobs':store.jobs(),'notes':store.notes(),'tool_events':store.recent_tool_events(),'healthy':service.healthy()})
+            if path=='/api/onboarding':return self.reply(200,service.onboarding())
             self.reply(404,{'error':'경로를 찾을 수 없습니다.'})
 
         def do_POST(self):
@@ -198,6 +199,12 @@ def main():
         return delivery_main(sys.argv[2:])
     if len(sys.argv)>1 and sys.argv[1]=='plugins':
         return plugins_main(sys.argv[2:])
+    if len(sys.argv)>1 and sys.argv[1]=='guide':
+        guide=argparse.ArgumentParser(description='Show credential-free AgentOS onboarding and recovery guidance.')
+        guide.add_argument('--data',default=os.environ.get('AGENTOS_DATA',str(Path.home()/'.local/share/agentos')))
+        args=guide.parse_args(sys.argv[2:])
+        print(json.dumps(AgentService(QuickStore(args.data)).onboarding(),ensure_ascii=False,indent=2))
+        return
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action',nargs='?',choices=['start'],default='start')
     parser.add_argument('--host',default='127.0.0.1')
