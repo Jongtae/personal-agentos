@@ -34,6 +34,7 @@ TOOL_PROBE = {
 
 
 TELEGRAM_CARD_GRACE_SECONDS = 3
+TELEGRAM_VERIFICATION_QUERY = '/search AgentOS personal assistant verification'
 
 # Subscription CLIs do not receive AgentOS credentials, local paths, or an
 # MCP transport.  AgentOS can still perform a narrowly identified *public*
@@ -133,14 +134,14 @@ class AgentService:
         return task_card_report(self.store)
 
     def attest_telegram_first_work(self, payload):
-        if not isinstance(payload,dict) or payload.get('owner_confirmed') is not True:
-            raise ValueError('실제 Telegram 첫 업무를 확인한 뒤에만 기록할 수 있습니다.')
+        # Compatibility endpoint for earlier web clients.  The paired delivery
+        # itself is the acceptance proof; no additional owner acknowledgement
+        # is collected or persisted.
         from .telegram_first_work_acceptance import report
-        current=report(self.store, False)
-        if not all(value for key,value in current['checks'].items() if key!='owner_observed_live_work'):
-            raise ValueError('관리형 봇의 Codex 첫 업무, 전송, 출처 근거를 먼저 확인하세요.')
-        self.store.put('telegram_first_work_acceptance',{'owner_confirmed':True,'recorded_at':time.time()})
-        return report(self.store)
+        current=report(self.store)
+        if not all(current['checks'].values()):
+            raise ValueError('자동 Telegram 연결 확인이 아직 완료되지 않았습니다.')
+        return current
 
     def runtime_packages(self):
         return PluginRegistry(self.store.root).runtime_packages()
@@ -318,6 +319,19 @@ class AgentService:
             cfg['pair_expires']=time.time()+600
             self.store.put('telegram',cfg)
             return {'url':f"https://t.me/{cfg['username']}?start={code}",'expires_in':600}
+
+    def queue_telegram_connection_verification(self):
+        """Queue one harmless, idempotent proof for a paired owner chat."""
+        with self.lock:
+            cfg=self.store.config('telegram',{})
+            subscription=self.store.config('subscription_engine',{})
+            generation=cfg.get('generation','')
+            if not (cfg.get('enabled') and isinstance(cfg.get('user_id'),int) and generation and subscription.get('id')=='codex'):
+                return {'queued':False,'reason':'paired Codex Telegram connection is required'}
+            request_key=f'telegram-verify:{generation}'
+            job_id=self.store.enqueue(TELEGRAM_VERIFICATION_QUERY,request_key,f'telegram:{generation}',cfg['user_id'])
+            self.store.put('telegram_status',{'state':'verifying','message':'AgentOS가 연결과 공개 검색을 자동으로 확인하고 있습니다.'})
+            return {'queued':True,'job_id':job_id}
 
     def disconnect_telegram(self):
         with self.lock:
@@ -521,7 +535,9 @@ class AgentService:
                     task_id=None
                 cfg['cursor']=update_id+1
                 db.execute('INSERT INTO config VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',('telegram',json.dumps(cfg)))
-            if paired:self.store.put('telegram_status',{'state':'connected','message':'개인 계정이 연결되었습니다. 봇에게 메시지를 보내세요.'})
+            if paired:
+                self.store.put('telegram_status',{'state':'connected','message':'개인 계정이 연결되었습니다. AgentOS가 연결을 자동으로 확인합니다.'})
+                self.queue_telegram_connection_verification()
             if authorized and self.is_natural_language(text) and task_id:
                 self.create_task_card(task_id,text,sender)
 
