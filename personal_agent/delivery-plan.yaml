@@ -231,7 +231,8 @@
       "acceptance": [
         "owner records web and restart observations only after durable card, cancellation, approval, and notification evidence exists",
         "release remains unavailable until the local redacted verifier passes"
-      ]
+      ],
+      "issue": 91
     },
     {
       "id": "P7-04",
