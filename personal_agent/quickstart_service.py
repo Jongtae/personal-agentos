@@ -96,7 +96,10 @@ class AgentService:
         result=request_json('https://openrouter.ai/api/v1/auth/keys',{'code':code,'code_verifier':verifier,'code_challenge_method':'S256'})
         if not isinstance(result,dict) or not isinstance(result.get('key'),str):raise ProviderError('계정 연결을 완료하지 못했습니다.')
         self.save_model({'provider':'compatible','endpoint':'https://openrouter.ai/api/v1','model':'openrouter/free','api_key':result['key']})
-        return {'ok':True}
+        # A connected account alone is insufficient: `openrouter/free` may
+        # route to a model without native tools. Probe it now so a newly paired
+        # Telegram bot never surprises its owner with a later readiness error.
+        return {'ok':True,'model_test':self.test_model()}
 
     def free_models(self):
         # `openrouter/free` can route to text-only models. Ask OpenRouter for

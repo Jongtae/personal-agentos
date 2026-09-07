@@ -197,7 +197,8 @@ class QuickstartTests(unittest.TestCase):
     def test_easy_model_connections(self):
         from unittest.mock import patch
         with patch('personal_agent.quickstart_service.request_json',return_value={'key':'test-only-key'}) as transport:
-            self.service.connect_openrouter({'code':'test-code','verifier':'a'*64})
+            connected=self.service.connect_openrouter({'code':'test-code','verifier':'a'*64})
+            self.assertTrue(connected['model_test']['ok'])
             self.assertEqual(self.store.config('model')['model'],'openrouter/free')
             self.assertEqual(self.store.secret('model_key'),'test-only-key')
             self.assertNotIn('test-only-key',str(self.service.settings()))
