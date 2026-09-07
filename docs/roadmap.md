@@ -12,7 +12,7 @@ AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gate
 
 ## M1.5 — Personal runtime isolation
 
-[#109](https://github.com/Jongtae/personal-agentos/issues/109) creates the user-scoped OCI container or managed lightweight VM, dedicated volume, mediated read-only file boundary, and hosted Kubernetes translation. The consumer never operates Docker or Kubernetes directly.
+[#109](https://github.com/Jongtae/personal-agentos/issues/109) creates the user-scoped OCI container or managed lightweight VM, dedicated volume, mediated read-only file boundary, and hosted Kubernetes translation. The consumer never operates Docker or Kubernetes directly. See [the isolation boundary](runtime-isolation.md).
 
 ## M2 — AgentOS-owned execution boundary
 
