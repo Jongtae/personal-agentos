@@ -2,7 +2,7 @@
 
 ## Status and goal
 
-**Status: development complete.** D-01 through I-06 merged in dependency order, including the automated integrated release fixture. The remaining manual Telegram observations from UX-05 were removed from that release gate by owner decision; that decision does not claim those observations passed. External credentials and real connection activation remain deferred to the owner-controlled operating-mode deployment.
+**Status: implementation incomplete.** D-01 through I-06 merged in dependency order, but review found that their isolated adapters and direct fixture do not prove the policy-owned personal-assistant product flow. [MP1 Remediation](mp1-remediation.en.md) defines the required R-01 through R-05 implementation sequence. The remaining manual Telegram observations from UX-05 were removed from that release gate by owner decision; that decision does not claim those observations passed. External credentials and real connection activation remain deferred to the owner-controlled operating-mode deployment.
 
 The goal is to validate a personal-assistant core in which one owner asks for outcomes from AgentOS Personal Space and AgentOS coordinates only reviewed connections while retaining personal state, approvals, evidence, and recovery.
 
@@ -60,6 +60,6 @@ D-06 decides the ReAct policy and fallback that coordinate Personal Space, Drive
 
 ## Completion evidence
 
-MP1 delivery is complete when its documented contracts and automated fixture/mock acceptance cover Personal Space, Drive sources, explicit A2A delegation, Calendar creation approval, pause/disconnect, and export/restore. The owner then performs a separate operating-mode deployment to configure real OAuth clients, credentials, endpoints, and connections. That deployment records its own evidence and does not retroactively change MP1 delivery completion.
+MP1 is development complete only when the remediation sequence proves the policy-owned flow covers Personal Space, Drive sources, explicit A2A delegation, Calendar creation approval, pause/disconnect invocation gating, and export/restore. The owner then performs a separate operating-mode deployment to configure real OAuth clients, credentials, endpoints, and connections. That deployment records its own evidence and does not retroactively change development completion.
 
 The next selection follows the process in [Master Plan 2](master-plan-02-proposal.en.md).

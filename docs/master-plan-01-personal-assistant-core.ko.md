@@ -2,7 +2,7 @@
 
 ## 상태와 목표
 
-**상태: development complete.** D-01부터 I-06까지 의존 순서대로 병합됐으며 자동 통합 release fixture를 포함한다. UX-05의 남은 수동 Telegram 관찰은 소유자 결정으로 해당 release gate에서 제외됐으며, 이 결정은 해당 관찰이 통과했다는 주장이 아니다. 외부 credential과 실제 connection 활성화는 소유자 제어 운영 모드 배포로 미룬다.
+**상태: implementation incomplete.** D-01부터 I-06까지 의존 순서대로 병합됐지만, 검토 결과 분리된 adapter와 직접 fixture만으로 정책 소유 개인 비서 제품 흐름을 증명하지 못한다. 필요한 R-01부터 R-05 구현 순서는 [MP1 보완 계획](mp1-remediation.ko.md)에 정의한다. UX-05의 남은 수동 Telegram 관찰은 소유자 결정으로 해당 release gate에서 제외됐으며, 이 결정은 해당 관찰이 통과했다는 주장이 아니다. 외부 credential과 실제 connection 활성화는 소유자 제어 운영 모드 배포로 미룬다.
 
 목표는 한 명의 사용자가 AgentOS 개인 공간에서 자연어로 결과를 요청하고, AgentOS가 개인 상태·승인·증거·복구를 소유한 채 검토된 연결만 조율하는 개인 비서 코어를 검증하는 것이다.
 
@@ -60,6 +60,6 @@ D-06은 개인 공간, Drive 근거, 명시 A2A 검토, Calendar 초안을 조�
 
 ## 완료 증거
 
-MP1 개발은 문서화된 contract와 자동 fixture/mock acceptance가 개인 공간, Drive 근거, 명시 A2A 위임, Calendar 생성 승인, pause/disconnect, export/restore를 포괄할 때 완료된다. 이후 소유자는 별도의 운영 모드 배포에서 실제 OAuth client, credential, endpoint, connection을 설정한다. 그 배포는 자체 증거를 남기며 MP1 개발 완료 여부를 소급하여 바꾸지 않는다.
+MP1 개발은 보완 순서가 정책 소유 흐름으로 개인 공간, Drive 근거, 명시 A2A 위임, Calendar 생성 승인, pause/disconnect invocation gate, export/restore를 증명할 때만 완료된다. 이후 소유자는 별도의 운영 모드 배포에서 실제 OAuth client, credential, endpoint, connection을 설정한다. 그 배포는 자체 증거를 남기며 MP1 개발 완료 여부를 소급하여 바꾸지 않는다.
 
 MP1 완료 뒤의 다음 선택은 [Master Plan 2](master-plan-02-proposal.ko.md) 절차를 따른다.

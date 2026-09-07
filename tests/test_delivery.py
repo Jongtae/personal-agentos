@@ -186,7 +186,7 @@ class DeliveryTests(unittest.TestCase):
         completed.append('UX-06')
         self.assertEqual(plan.select({'completed':completed})['id'],'MP1-D-01')
         completed.append('MP1-D-01')
-        expected=('MP1-I-01','MP1-D-02','MP1-I-02','MP1-D-03','MP1-I-03','MP1-D-04','MP1-I-04','MP1-D-05','MP1-I-05','MP1-D-06','MP1-I-06')
+        expected=('MP1-I-01','MP1-D-02','MP1-I-02','MP1-D-03','MP1-I-03','MP1-D-04','MP1-I-04','MP1-D-05','MP1-I-05','MP1-D-06','MP1-I-06','MP1-R-01','MP1-R-02','MP1-R-03','MP1-R-04','MP1-R-05')
         for iteration in expected:
             self.assertEqual(plan.select({'completed':completed})['id'],iteration)
             completed.append(iteration)
