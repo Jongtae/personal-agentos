@@ -17,16 +17,10 @@ write access. It does not block product source, release, or iteration work.
 Make model-driven capability selection, tool execution, traces, recovery, and
 web/Telegram continuity dependable.
 
-Completed: P1-01 through P1-02 established live tool-capable model evidence,
-safe capability traces, and bounded retry behavior. P1-03 verified a paired
-Telegram request after restart against the same persisted conversation used by
-the web client; uncertain deliveries remain explicitly `unknown` rather than
-being silently resent. The next iteration is P2-01.
+Completed: P1-01 through P1-03 established live native-tool validation,
+traceable capability recovery, and web/Telegram continuity evidence.
 
 ## M2 — private documents and safety
-
-Add structured document reading, source evidence, data-boundary visibility,
-and explicit approval semantics.
 
 Completed: connected folders support local TXT, Markdown, PDF, DOCX, and XLSX
 extraction with file and line, page, paragraph, or sheet/cell evidence.
@@ -37,15 +31,24 @@ be used as a public web-search query.
 
 ## M3 — continuity and installation
 
-Provide supported Homebrew and Docker Compose installations, long-running
-services, backup/restore, updates, and Telegram operations.
+Completed: P3-01 and P3-02 delivered Docker Compose, persistent data, health
+checks, backup/restore, and service-operation paths.
 
 ## M4 — extensibility
 
-Define safe tool and role manifests, migrate built-ins, and add local plugin
-lifecycle management.
+P4-01 delivered declarative bounded tool and role manifests
+([#40](https://github.com/Jongtae/personal-agentos/issues/40)); P4-02 delivered
+the local plugin install, disable, validation, and removal lifecycle
+([#43](https://github.com/Jongtae/personal-agentos/issues/43)).
+
+The design draws publicly credited lessons from
+[b3rys/b3rys-team-os](https://github.com/b3rys/b3rys-team-os), without claiming
+an unagreed partnership or importing its code. See the
+[b3os design reference](b3os-design-reference.ko.md) for the adopted boundaries
+and a future interoperability proposal.
 
 ## M5 — v1 release
 
-Run release acceptance for macOS and Linux/VPS, publish a versioned GitHub
-Release, and update the Homebrew tap from the release artifact.
+v1.0.0 and P5-01 installation acceptance are recorded. P5-03 is adding a
+reproducible product-validation gate that distinguishes release evidence from
+future product-vision work.
