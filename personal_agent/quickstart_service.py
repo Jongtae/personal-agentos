@@ -10,6 +10,7 @@ from .local_tools import LocalTools
 from .agent_runtime import Capabilities, run_agent, AGENTS
 from .plugins import PluginRegistry
 from .providers import ModelAdapter, ProviderError, request_json, validate_model
+from .subscription_engines import SubscriptionEngines
 
 SYSTEM = ('You are the user’s personal AgentOS assistant. Respond in the user’s language. '
           'This preview supports conversation, notes, connected local documents, and local read-only web search and weather tools. '
@@ -34,10 +35,11 @@ TELEGRAM_CARD_GRACE_SECONDS = 3
 
 
 class AgentService:
-    def __init__(self, store, adapter=None, telegram_transport=None):
+    def __init__(self, store, adapter=None, telegram_transport=None, subscription_engines=None):
         self.store=store
         self.adapter=adapter or ModelAdapter()
         self.telegram_transport=telegram_transport or request_json
+        self.subscription_engines=subscription_engines or SubscriptionEngines()
         self.lock=threading.RLock()
         self.worker_lock=threading.Lock()
         self.local_tools=LocalTools()
@@ -56,8 +58,24 @@ class AgentService:
             packages=PluginRegistry(self.store.root).declared_packages()
             from .telegram_task_card_acceptance import report as task_card_report
             return {'model':model,'has_api_key':bool(self.store.secret('model_key')),
+                    'subscription_engines':self.subscription_engine_status(),
                     'telegram':{'enabled':tg.get('enabled',False),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
                     'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'agents':[{'id':role['id'],'name':role['name'],'permissions':role['permissions'],'package_id':package['id']} for package in active_packages for role in package['roles']], 'packages':packages, 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery, 'telegram_task_card_acceptance':task_card_report(self.store)}
+
+    def subscription_engine_status(self):
+        connected=self.store.config('subscription_engine',{})
+        engines=[]
+        for engine in self.subscription_engines.available():
+            item=dict(engine);item['connected']=connected.get('id')==engine['id']
+            item['authentication']=connected.get('authentication','') if item['connected'] else ''
+            engines.append(item)
+        return {'engines':engines, 'selected':connected.get('id','')}
+
+    def connect_subscription_engine(self, body):
+        if not isinstance(body,dict):raise ValueError('연결 정보를 확인하세요.')
+        record=self.subscription_engines.connect(body.get('engine',''),body.get('officially_authenticated'))
+        with self.lock:self.store.put('subscription_engine',record)
+        return self.subscription_engine_status()
 
     def attest_telegram_task_card_acceptance(self, payload):
         """Persist only an owner acknowledgement after durable evidence exists."""
