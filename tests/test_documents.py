@@ -8,6 +8,7 @@ from openpyxl import Workbook
 from personal_agent.agent_runtime import Capabilities
 from personal_agent.document_reader import read
 from personal_agent.quickstart_store import QuickStore
+from personal_agent.quickstart_service import AgentService
 
 
 class DocumentTests(unittest.TestCase):
@@ -43,6 +44,21 @@ class DocumentTests(unittest.TestCase):
  def test_rejects_bad_office_document(self):
   (self.root/'bad.docx').write_text('not a zip')
   with self.assertRaises(ValueError):self.caps.read_file('root','bad.docx')
+ def test_external_document_boundary_requires_current_approval(self):
+  service=AgentService(self.store)
+  service.save_model({'provider':'compatible','endpoint':'https://example.test/v1','model':'test','api_key':'test-key'})
+  boundary=service.document_boundary();self.assertTrue(boundary['requires_approval'])
+  blocked=Capabilities(self.store,None,{},'','job',lambda *args:None,document_access=not boundary['requires_approval'])
+  with self.assertRaisesRegex(ValueError,'문서 공유를 승인'):blocked.find_files('Aurora')
+  self.assertTrue(service.set_document_approval({'approved':True})['approved'])
+  allowed=Capabilities(self.store,None,{},'','job',lambda *args:None,document_access=not service.document_boundary()['requires_approval'])
+  self.assertTrue(allowed.find_files('Aurora')['files'])
+  service.save_roots({'paths':[str(self.root)]});self.assertTrue(service.document_boundary()['requires_approval'])
+  service.save_model({'provider':'ollama','endpoint':'http://127.0.0.1:11434','model':'local'})
+  self.assertFalse(service.document_boundary()['external_model'])
+ def test_document_evidence_cannot_be_used_for_web_search(self):
+  self.caps.evidence.append({'tool':'read_file','result':{'content':'private'}})
+  with self.assertRaisesRegex(ValueError,'웹 검색어로 전송할 수 없습니다'):self.caps.execute('web_search',{'query':'private'})
 
 
 if __name__=='__main__':unittest.main()

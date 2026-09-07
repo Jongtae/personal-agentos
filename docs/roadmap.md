@@ -28,10 +28,12 @@ being silently resent. The next iteration is P2-01.
 Add structured document reading, source evidence, data-boundary visibility,
 and explicit approval semantics.
 
-P2-01 is complete: connected folders support local TXT, Markdown, PDF, DOCX,
-and XLSX extraction with file and line, page, paragraph, or sheet/cell
-evidence. P2-02 will make the boundary for external model and web use visible
-and approval-gated.
+Completed: connected folders support local TXT, Markdown, PDF, DOCX, and XLSX
+extraction with file and line, page, paragraph, or sheet/cell evidence.
+External models are blocked from document search and reads until the owner
+explicitly approves the current model-and-folder scope; that approval resets
+when the model or connected folders change. Document-derived evidence cannot
+be used as a public web-search query.
 
 ## M3 — continuity and installation
 
