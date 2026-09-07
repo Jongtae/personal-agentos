@@ -26,21 +26,21 @@ class DeliveryTests(unittest.TestCase):
     def test_packaged_plan_is_used_when_no_source_checkout_is_present(self):
         installed_root=Path(self.temp.name)/'installed-cli-context';installed_root.mkdir()
         controller=DeliveryController(installed_root,self.state,Runner(),now=lambda:self.clock[0])
-        self.assertEqual(controller.status()['active'],'V1-01')
+        self.assertEqual(controller.status()['active'],'UX-01')
         self.assertEqual(controller.plan.data['repository'],'Jongtae/personal-agentos')
 
-    def test_v1_plan_is_ordered_and_ignores_frozen_legacy_state(self):
+    def test_ux_plan_is_ordered_and_ignores_frozen_legacy_state(self):
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')
-        self.assertEqual(plan.select({})['id'],'V1-01')
-        self.assertEqual(plan.select({'completed':['V1-01']})['id'],'V1-02')
-        self.assertEqual(plan.select({'completed':['V1-01','V1-02']})['id'],'V1-03')
-        self.assertEqual(plan.select({'completed':['V1-01','V1-02','V1-03']})['id'],'V1-04')
-        self.assertEqual(plan.select({'active':'P7-03a','blocked':'P7-03a'})['id'],'V1-01')
+        self.assertEqual(plan.select({})['id'],'UX-01')
+        self.assertEqual(plan.select({'completed':['UX-01']})['id'],'UX-02')
+        self.assertEqual(plan.select({'completed':['UX-01','UX-02']})['id'],'UX-03')
+        self.assertEqual(plan.select({'completed':['UX-01','UX-02','UX-03']})['id'],'UX-04')
+        self.assertEqual(plan.select({'active':'P7-03a','blocked':'P7-03a'})['id'],'UX-01')
 
     def test_stale_frozen_delivery_state_is_migrated_without_waiting_for_retry(self):
         StateStore(self.state).write({'active':'P7-03a','blocked':'P7-03a','milestone':'M7','issue':94,'pr':'https://example.test/pr','release':'v1.0.4','next_retry_at':self.clock[0]+21600,'last_error':'old model content','status':'blocked-validation-failed'})
         result=self.controller(Runner()).status()
-        self.assertEqual(result['active'],'V1-01')
+        self.assertEqual(result['active'],'UX-01')
         self.assertEqual(result['status'],'ready-to-run')
         self.assertNotIn('next_retry_at',result)
         self.assertNotIn('last_error',result)
@@ -49,10 +49,10 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(persisted['status'],'ready-to-run')
         self.assertNotIn('next_retry_at',persisted)
 
-    def test_valid_v1_block_is_not_migrated(self):
-        StateStore(self.state).write({'active':'V1-02','blocked':'V1-02','status':'blocked-validation-failed','next_retry_at':self.clock[0]+21600})
+    def test_valid_ux_block_is_not_migrated(self):
+        StateStore(self.state).write({'active':'UX-02','blocked':'UX-02','status':'blocked-validation-failed','next_retry_at':self.clock[0]+21600})
         result=self.controller(Runner()).status()
-        self.assertEqual(result['active'],'V1-02')
+        self.assertEqual(result['active'],'UX-02')
         self.assertEqual(result['next_action'],'wait for retry')
 
     def test_authenticated_git_push_uses_login_shell_credentials(self):
@@ -86,27 +86,27 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(StateStore(self.state).read()['attempts_today'],1)
 
     def test_retry_cap_waits_until_next_day_without_running_validation(self):
-        day='2023-11-14';StateStore(self.state).write({'active':'V1-01','blocked':'V1-01','status':'blocked-external-rate-limit','attempt_day':day,'attempts_today':4,'next_retry_at':0})
+        day='2023-11-14';StateStore(self.state).write({'active':'UX-01','blocked':'UX-01','status':'blocked-external-rate-limit','attempt_day':day,'attempts_today':4,'next_retry_at':0})
         runner=Runner([SimpleNamespace(returncode=0,stdout='OPEN\n',stderr='')])
         result=self.controller(runner).run_once(dry_run=True)
         self.assertEqual(result['attempts_today'],4)
         self.assertEqual(len(runner.calls),0)
 
     def test_closed_current_issue_is_recorded_without_touching_worktree(self):
-        StateStore(self.state).write({'active':'V1-01','issues':{'V1-01':103}})
+        StateStore(self.state).write({'active':'UX-01','issues':{'UX-01':103}})
         runner=Runner([SimpleNamespace(returncode=0,stdout='CLOSED\n',stderr='')])
         result=self.controller(runner).run_once()
-        self.assertIn('V1-01',result['completed'])
+        self.assertIn('UX-01',result['completed'])
         self.assertFalse((self.root/'worktrees').exists())
 
-    def test_reconcile_adopts_closed_v1_issue_then_selects_next_iteration(self):
-        StateStore(self.state).write({'active':'V1-01','issues':{'V1-01':103}})
+    def test_reconcile_adopts_closed_ux_issue_then_selects_next_iteration(self):
+        StateStore(self.state).write({'active':'UX-01','issues':{'UX-01':103}})
         runner=Runner([SimpleNamespace(returncode=0,stdout='CLOSED\n',stderr='')])
         result=self.controller(runner).reconcile()
-        self.assertEqual(result['completed'],['V1-01'])
-        self.assertEqual(result['active'],'V1-02')
+        self.assertEqual(result['completed'],['UX-01'])
+        self.assertEqual(result['active'],'UX-02')
         self.assertEqual(result['status'],'ready-to-run')
-        self.assertEqual(self.controller(Runner()).status()['active'],'V1-02')
+        self.assertEqual(self.controller(Runner()).status()['active'],'UX-02')
 
     def test_timeout_is_recorded_and_never_leaves_running_state(self):
         plan={'repository':'Jongtae/personal-agentos','iterations':[{'id':'LIVE','milestone':'H0','kind':'live_validation','validation':'python3 verify.py','summary':'live proof'}]}
@@ -120,11 +120,11 @@ class DeliveryTests(unittest.TestCase):
         self.assertIn('Timed out after 900 seconds.',result['last_error'])
 
     def test_github_auth_failure_blocks_before_worker_or_worktree(self):
-        StateStore(self.state).write({'active':'V1-01','issues':{'V1-01':103}})
+        StateStore(self.state).write({'active':'UX-01','issues':{'UX-01':103}})
         runner=Runner([SimpleNamespace(returncode=1,stdout='',stderr='HTTP 401: Bad credentials')])
         result=self.controller(runner).run_once()
         self.assertEqual(result['status'],'blocked-blocked-approval')
-        self.assertEqual(result['active'],'V1-01')
+        self.assertEqual(result['active'],'UX-01')
         self.assertFalse((self.root/'worktrees').exists())
 
     def test_local_live_validation_does_not_require_github(self):
@@ -142,12 +142,12 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(saved,{'active':'P1-01','completed':['P0-01'],'status':'blocked'})
 
     def test_worker_uses_dedicated_worktree_then_controller_publishes(self):
-        (self.root/'.git').mkdir();StateStore(self.state).write({'active':'V1-02','completed':['V1-01'],'issues':{'V1-02':104}})
+        (self.root/'.git').mkdir();StateStore(self.state).write({'active':'UX-02','completed':['UX-01'],'issues':{'UX-02':104}})
         ok=lambda stdout='':SimpleNamespace(returncode=0,stdout=stdout,stderr='')
         runner=Runner([ok('OPEN\n'),ok(),ok(),ok(),ok(),ok('https://github.com/Jongtae/personal-agentos/pull/99\n'),ok()])
         result=self.controller(runner).run_once()
-        self.assertIn('V1-02',result['completed'])
-        worktree=self.state.parent/'worktrees'/'v1-02'
+        self.assertIn('UX-02',result['completed'])
+        worktree=self.state.parent/'worktrees'/'ux-02'
         self.assertEqual(runner.calls[2][1],worktree)
         self.assertEqual(runner.calls[2][0][:3],['codex','exec','--approve-for-me'])
         self.assertIn(['gh','pr','merge','https://github.com/Jongtae/personal-agentos/pull/99','--repo','Jongtae/personal-agentos','--squash','--delete-branch'],[call[0] for call in runner.calls])
@@ -170,19 +170,19 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(runner.calls[0][0][1],'bootout')
         self.assertEqual(runner.calls[-1][0][1],'print')
 
-    def test_frozen_p7_state_cannot_be_selected_by_v1_plan(self):
+    def test_frozen_p7_state_cannot_be_selected_by_ux_plan(self):
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')
         self.assertNotIn('P7-03a',plan.items)
-        self.assertEqual(plan.select({'active':'P7-04','blocked':'P7-03a'})['id'],'V1-01')
+        self.assertEqual(plan.select({'active':'P7-04','blocked':'P7-03a'})['id'],'UX-01')
 
-    def test_v1_plan_requires_each_predecessor(self):
+    def test_ux_plan_requires_each_predecessor(self):
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')
-        completed=['V1-01','V1-02','V1-03','V1-04']
-        self.assertEqual(plan.select({'completed':completed})['id'],'V1-05')
-        completed.append('V1-05')
+        completed=['UX-01','UX-02','UX-03','UX-04']
+        self.assertEqual(plan.select({'completed':completed})['id'],'UX-05')
+        completed.append('UX-05')
         self.assertIsNone(plan.select({'completed':completed}))
 
-    def test_v1_plan_has_explicit_release_iteration(self):
+    def test_ux_plan_has_explicit_release_iteration(self):
         self.assertEqual(DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations'][-1]['kind'],'release')
         completed=[item['id'] for item in DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations']]
         StateStore(self.state).write({'completed':completed,'active':'P7-04','status':'running'})
@@ -194,13 +194,13 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(DeliveryController._next_patch_version('1.0.3'),'1.0.4')
         with self.assertRaises(Exception):DeliveryController._next_patch_version('1.0')
 
-    def test_completed_hub_state_selects_v1_without_stale_issue(self):
+    def test_completed_hub_state_selects_ux_without_stale_issue(self):
         StateStore(self.state).write({'completed':['P1-01','P7-03'],'status':'complete','milestone':'M7','issue':94})
         controller=self.controller(Runner())
         status=controller.status()
-        self.assertEqual(status['active'],'V1-01')
-        self.assertEqual(status['milestone'],'Personal AgentOS v1 Release')
-        self.assertEqual(status['issue'],136)
+        self.assertEqual(status['active'],'UX-01')
+        self.assertEqual(status['milestone'],'AgentOS UX v1.1')
+        self.assertEqual(status['issue'],150)
 
     def test_fully_completed_plan_clears_stale_current_iteration_metadata(self):
         completed=[item['id'] for item in DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations']]
@@ -212,20 +212,20 @@ class DeliveryTests(unittest.TestCase):
         self.assertNotIn('issue',result)
         self.assertEqual(self.controller(Runner()).status()['next_action'],'delivery plan complete')
 
-    def test_created_v1_issue_uses_its_configured_milestone(self):
+    def test_created_ux_issue_uses_its_configured_milestone(self):
         plan=json.loads((self.root/'delivery-plan.yaml').read_text())
-        plan['iterations']=[{'id':'V1-99','milestone':'Personal AgentOS v1 Release','kind':'implementation','summary':'v1 task'}]
+        plan['iterations']=[{'id':'UX-99','milestone':'AgentOS UX v1.1','kind':'implementation','summary':'UX task'}]
         (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
         runner=Runner([SimpleNamespace(returncode=0,stdout='https://github.com/Jongtae/personal-agentos/issues/99\n',stderr='')])
         state={}
-        issue=self.controller(runner)._ensure_issue(DeliveryPlan(self.root/'delivery-plan.yaml').items['V1-99'],state,False)
+        issue=self.controller(runner)._ensure_issue(DeliveryPlan(self.root/'delivery-plan.yaml').items['UX-99'],state,False)
         self.assertEqual(issue,99)
-        self.assertIn('Personal AgentOS v1 Release',runner.calls[0][0])
+        self.assertIn('AgentOS UX v1.1',runner.calls[0][0])
 
     def test_status_reports_current_iteration(self):
         result=self.controller(Runner()).status()
-        self.assertEqual(result['active'],'V1-01')
-        self.assertEqual(result['milestone'],'Personal AgentOS v1 Release')
+        self.assertEqual(result['active'],'UX-01')
+        self.assertEqual(result['milestone'],'AgentOS UX v1.1')
 
 
 if __name__=='__main__':unittest.main()

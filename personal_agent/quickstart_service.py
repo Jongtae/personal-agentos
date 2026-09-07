@@ -106,6 +106,26 @@ class AgentService:
                     'telegram':{'enabled':tg.get('enabled',False),'mode':tg.get('mode','owner-token'),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
                     'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'context_inbox':__import__('personal_agent.context_inbox',fromlist=['ContextInbox']).ContextInbox(self.store).status(), 'agents':[{'id':role['id'],'name':role['name'],'permissions':role['permissions'],'package_id':package['id']} for package in active_packages for role in package['roles']], 'packages':packages, 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery, 'telegram_task_card_acceptance':task_card_report(self.store), 'telegram_first_work_acceptance':__import__('personal_agent.telegram_first_work_acceptance',fromlist=['report']).report(self.store)}
 
+    def home(self):
+        """Return the minimal, credential-free read model for the owner home."""
+        model=self.store.config('model', {})
+        model_ready=self.model_ready(model, self.store.config('model_test'))
+        subscription=self.subscription_engine_status()['selected']
+        recovery=self.store.recovery_summary()
+        active=sum(1 for job in self.store.jobs() if job['status'] in ('queued','running'))
+        if any(recovery.values()):
+            state='attention';next_action='중단되었거나 전달 여부가 불확실한 작업이 있습니다. 기록에서 결과를 확인하세요.'
+        elif active:
+            state='working';next_action='에이전트가 요청을 처리하고 있습니다.'
+        elif model_ready or subscription:
+            state='ready';next_action='무엇을 함께할까요?'
+        else:
+            state='ready';next_action='메모는 바로 남길 수 있어요. 대화가 필요할 때 AI를 연결하세요.'
+        tg=self.store.config('telegram', {})
+        return {'state':state,'next_action':next_action,'active_jobs':active,
+                'conversation':self.store.history(),'model_connected':bool(model_ready or subscription),
+                'telegram_paired':bool(tg.get('enabled') and tg.get('user_id')),'recovery':recovery}
+
     def context_inbox(self):
         from .context_inbox import ContextInbox
         return ContextInbox(self.store)

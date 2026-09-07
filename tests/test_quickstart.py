@@ -80,6 +80,19 @@ class QuickstartTests(unittest.TestCase):
         finally:
             server.shutdown();thread.join();server.server_close()
 
+    def test_home_is_minimal_and_never_includes_connection_secrets(self):
+        self.store.claim(self.store.bootstrap.read_text(),'long-password-test')
+        self.model(key='private-api-key')
+        self.assertTrue(self.service.test_model()['ok'])
+        home=self.service.home()
+        self.assertEqual(home['state'],'ready')
+        self.assertTrue(home['model_connected'])
+        self.assertNotIn('private-api-key',json.dumps(home))
+        self.store.enqueue('hello','home-active')
+        home=self.service.home()
+        self.assertEqual(home['state'],'working')
+        self.assertEqual(home['active_jobs'],1)
+
     def test_initial_claim_requires_local_code_and_is_single_use(self):
         code=self.store.bootstrap.read_text()
         with self.assertRaises(ValueError):self.store.claim('bad','long-test-password')
