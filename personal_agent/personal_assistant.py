@@ -86,7 +86,7 @@ class PersonalAssistantOrchestrator:
                 self.registry.require_enabled('compatibility-a2a-peer', 'delegate')
                 if self.a2a is None:
                     raise AssistantRequestError('A2A test peer가 연결되지 않았습니다.')
-                delegation = self.a2a.delegate({'explicit': True, 'prompt': message})
+                delegation = self.a2a.delegate({'explicit': True, 'owner': owner, 'prompt': message})
                 evidence = self._evidence('a2a-delegate', 'requested', delegation_id=delegation['id'])
                 return {'state': 'requested', 'response': '명시한 작업을 호환성 Agent에 위임했습니다.', 'delegation_id': delegation['id'], 'evidence': evidence}
             except (ValueError, AssistantRequestError) as exc:

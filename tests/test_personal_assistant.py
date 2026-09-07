@@ -58,6 +58,13 @@ class PersonalAssistantTests(unittest.TestCase):
         delegated = self.assistant.handle(self.request('A2A 위임: 자연어 요청을 조사해줘'))
         self.assertEqual(delegated['state'], 'requested'); self.assertEqual(len(self.peer.requests), 1)
 
+    def test_orchestrator_normalizes_invalid_a2a_card_to_recovery(self):
+        self.enable('compatibility-a2a-peer', ('delegate',))
+        self.peer.card = lambda: {'protocol': 'a2a/1', 'skill': 'unknown', 'artifact_schema': 'text'}
+        result = self.assistant.handle(self.request('A2A 위임: 조사해줘'))
+        self.assertEqual(result['state'], 'blocked')
+        self.assertIn('recovery', result['evidence'])
+
     def test_calendar_only_creates_draft_and_never_writes_before_approval(self):
         self.enable('google-calendar-create', ('calendar.events',))
         result = self.assistant.handle(self.request('일정 초안: 내일 검토 일정', event={'summary': 'review', 'start': '2026-01-01T10:00', 'end': '2026-01-01T11:00', 'timezone': 'Asia/Seoul'}))
