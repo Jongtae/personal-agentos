@@ -8,7 +8,7 @@ AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gate
 
 ## M1 — Subscription engine connection
 
-[#104](https://github.com/Jongtae/personal-agentos/issues/104) delivers consumer onboarding that connects Codex or Claude Code without API-key setup. Homebrew remains a developer path.
+[#104](https://github.com/Jongtae/personal-agentos/issues/104) delivers consumer onboarding that detects Codex or Claude Code, guides the owner to its official login, and records only owner-confirmed connection without API-key setup. It does not inspect credentials or run the engine; bounded execution follows in M2. Homebrew remains a developer path.
 
 ## M1.5 — Personal runtime isolation
 
