@@ -76,3 +76,9 @@ private chat, exact notification, active generation, and the current
 model-and-folder fingerprint. Cards and notifications contain only status text,
 never request text, secrets, or document contents; sends left ambiguous by a
 restart are retained as unknown rather than replayed.
+
+P7-03 provides the owner-run, redacted live-acceptance procedure and aggregate
+evidence check for one paired Telegram account. It requires observed card
+creation and cancellation, document approval, terminal notification, shared
+web history, and continuity after a normal restart; it does not treat mocked
+transport coverage as a real Telegram claim.
