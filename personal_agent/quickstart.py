@@ -154,6 +154,7 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 if path=='/api/model/test':return self.reply(200,service.test_model())
                 if path=='/api/telegram':return self.reply(200,service.connect_telegram(body))
                 if path=='/api/telegram/pair':return self.reply(200,service.pair_telegram())
+                if path=='/api/telegram/verify':return self.reply(202,service.queue_telegram_connection_verification())
                 if path=='/api/telegram/disconnect':return self.reply(200,service.disconnect_telegram())
                 if path=='/api/telegram/task-card-acceptance':return self.reply(200,service.attest_telegram_task_card_acceptance(body))
                 if path=='/api/telegram/first-work-acceptance':return self.reply(200,service.attest_telegram_first_work(body))

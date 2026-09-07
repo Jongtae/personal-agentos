@@ -159,18 +159,28 @@ class QuickstartTests(unittest.TestCase):
         self.service.disconnect_telegram()
         self.assertEqual(self.store.secret('telegram_token'),'')
 
-    def test_botfather_codex_first_work_acceptance_requires_source_and_owner_observation(self):
+    def test_botfather_codex_verification_acceptance_is_automatic_after_private_delivery(self):
         self.store.secret('telegram_token','123456:TEST_TOKEN')
         self.store.put('telegram',{'enabled':True,'mode':'owner-token','username':'owner_test_bot','generation':'safe','user_id':42})
         with self.store.db() as db:
-            db.execute("INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",('job','request','private request','telegram:safe',42,'succeeded','done',None,'sent','subscription','codex',time.time()))
+            db.execute("INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",('job','telegram-verify:safe','/search AgentOS personal assistant verification','telegram:safe',42,'succeeded','done',None,'sent','subscription','codex',time.time()))
             db.execute("INSERT INTO tool_events(job_id,tool,status,detail,created) VALUES (?,?,?,?,?)",('job','web_search','succeeded','{}',time.time()))
         from personal_agent.telegram_first_work_acceptance import report
-        self.assertFalse(report(self.store)['passed'])
-        result=self.service.attest_telegram_first_work({'owner_confirmed':True})
+        result=report(self.store)
         self.assertTrue(result['passed'])
-        self.assertNotIn('private request',json.dumps(result))
+        self.assertTrue(result['checks']['paired_delivery_confirmed'])
         self.assertNotIn('123456:TEST_TOKEN',json.dumps(result))
+
+    def test_pairing_queues_one_idempotent_codex_connection_verification(self):
+        self.store.put('subscription_engine',{'id':'codex'})
+        self.pair()
+        jobs=[job for job in self.store.jobs() if job['request_key'].startswith('telegram-verify:')]
+        self.assertEqual(len(jobs),1)
+        first=self.service.queue_telegram_connection_verification()
+        second=self.service.queue_telegram_connection_verification()
+        self.assertTrue(first['queued'])
+        self.assertEqual(first['job_id'],second['job_id'])
+
 
     def test_botfather_connection_rejects_invalid_account_and_webhook(self):
         def invalid_account(url,body,headers=None,timeout=60):
