@@ -79,7 +79,12 @@
       "tests": [
         "python3 -m unittest discover -s tests -q"
       ],
-      "summary": "Run responsive web, paired Telegram, Homebrew, and Compose acceptance before publishing the UX release."
+      "release_validation": [
+        "python3 -m pytest -q",
+        "python3 scripts/verify_compose_acceptance.py",
+        "python3 scripts/verify_telegram_task_card_acceptance.py"
+      ],
+      "summary": "Run responsive web, paired Telegram, Homebrew, and Compose acceptance before publishing the UX release. A failed redacted Telegram acceptance blocks all release, tag, and Formula mutations."
     }
   ],
   "milestones": {
