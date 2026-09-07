@@ -120,13 +120,17 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(runner.calls[2][0][:3],['codex','exec','--approve-for-me'])
         self.assertIn(['gh','pr','merge','https://github.com/Jongtae/personal-agentos/pull/99','--repo','Jongtae/personal-agentos','--squash','--delete-branch'],[call[0] for call in runner.calls])
 
-    def test_launchd_schedule_pins_the_repository_root(self):
+    def test_launchd_schedule_pins_the_repository_root_and_source_runtime(self):
         runner=Runner([SimpleNamespace(returncode=0,stdout='',stderr=''),SimpleNamespace(returncode=0,stdout='',stderr=''),SimpleNamespace(returncode=0,stdout='',stderr='')]);home=self.root/'home'
+        (self.root/'personal_agent').mkdir();(self.root/'personal_agent'/'quickstart.py').write_text('')
         controller=self.controller(runner)
         with patch.object(Path,'home',return_value=home):
             result=controller.install_schedule()
         content=Path(result['path']).read_text()
         self.assertIn(f'<string>{controller.root}</string>',content)
+        self.assertIn('<key>WorkingDirectory</key>',content)
+        self.assertIn(f'<string>{__import__("sys").executable}</string>',content)
+        self.assertIn('<string>-m</string><string>personal_agent.quickstart</string>',content)
         self.assertIn('<string>--scheduled</string>',content)
         self.assertIn(f'<string>{controller.state_store.path}</string>',content)
         self.assertIn('<integer>21600</integer>',content)

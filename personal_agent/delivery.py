@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from xml.sax.saxutils import escape as xml_escape
 from types import SimpleNamespace
 
 RETRY_SECONDS = 6 * 60 * 60
@@ -299,11 +300,24 @@ class DeliveryController:
         if merged.returncode:return self._record_block(item,state,'delivery-failed',(merged.stdout or '')+'\n'+(merged.stderr or ''),False)
         return self._complete(item,state,dry_run=True)
 
+    def _schedule_program(self):
+        """Select the same runtime as the selected delivery-plan checkout."""
+        if (self.root/'personal_agent'/'quickstart.py').is_file():
+            return [sys.executable,'-m','personal_agent.quickstart']
+        command=shutil.which('agentos')
+        return [command] if command else [sys.executable,'-m','personal_agent.quickstart']
+
     def install_schedule(self):
         label='com.jongtae.personal-agentos.delivery';folder=Path.home()/'Library'/'LaunchAgents';path=folder/(label+'.plist')
         folder.mkdir(parents=True,exist_ok=True)
-        command=shutil.which('agentos') or str(Path(sys.argv[0]).resolve())
-        payload=f'''<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>Label</key><string>{label}</string><key>ProgramArguments</key><array><string>{command}</string><string>delivery</string><string>run</string><string>--once</string><string>--scheduled</string><string>--root</string><string>{self.root}</string><string>--state</string><string>{self.state_store.path}</string></array><key>StartInterval</key><integer>{RETRY_SECONDS}</integer><key>RunAtLoad</key><true/><key>StandardOutPath</key><string>{Path.home()/'Library/Logs/personal-agentos-delivery.log'}</string><key>StandardErrorPath</key><string>{Path.home()/'Library/Logs/personal-agentos-delivery.error.log'}</string></dict></plist>'''
+        args=[*self._schedule_program(),'delivery','run','--once','--scheduled','--root',str(self.root),'--state',str(self.state_store.path)]
+        rendered=''.join(f'<string>{xml_escape(str(arg))}</string>' for arg in args)
+        payload=(f'<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict>'
+                 f'<key>Label</key><string>{label}</string><key>ProgramArguments</key><array>{rendered}</array>'
+                 f'<key>WorkingDirectory</key><string>{xml_escape(str(self.root))}</string>'
+                 f'<key>StartInterval</key><integer>{RETRY_SECONDS}</integer><key>RunAtLoad</key><true/>'
+                 f'<key>StandardOutPath</key><string>{xml_escape(str(Path.home()/"Library/Logs/personal-agentos-delivery.log"))}</string>'
+                 f'<key>StandardErrorPath</key><string>{xml_escape(str(Path.home()/"Library/Logs/personal-agentos-delivery.error.log"))}</string></dict></plist>')
         path.write_text(payload);os.chmod(path,0o600)
         self._command(['launchctl','bootout',f'gui/{os.getuid()}',str(path)],timeout=30)
         result=self._command(['launchctl','bootstrap',f'gui/{os.getuid()}',str(path)],timeout=30)
