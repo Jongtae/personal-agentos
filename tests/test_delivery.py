@@ -60,8 +60,16 @@ class DeliveryTests(unittest.TestCase):
         with patch('personal_agent.delivery.subprocess.run',return_value=completed) as run:
             CommandRunner().run(['git','push','-u','origin','delivery/p6-01'])
         args=run.call_args.args[0]
-        self.assertEqual(args[:4],['zsh','-ic','source "$HOME/.zshrc" >/dev/null 2>&1; command "$@"','agentos-auth'])
+        self.assertEqual(args[:4],['zsh','-ic','source "$HOME/.zshrc" >/dev/null 2>&1; unset GITHUB_TOKEN GH_TOKEN; command "$@"','agentos-auth'])
         self.assertEqual(args[4:],['git','push','-u','origin','delivery/p6-01'])
+
+    def test_github_api_uses_keyring_without_loading_shell_tokens(self):
+        completed=SimpleNamespace(returncode=0,stdout='',stderr='')
+        with patch('personal_agent.delivery.subprocess.run',return_value=completed) as run:
+            CommandRunner().run(['gh','issue','view','111'])
+        self.assertEqual(run.call_args.args[0],['gh','issue','view','111'])
+        self.assertNotIn('GITHUB_TOKEN',run.call_args.kwargs['env'])
+        self.assertNotIn('GH_TOKEN',run.call_args.kwargs['env'])
 
     def test_worker_startup_failures_are_not_misclassified_as_product_validation(self):
         self.assertEqual(classify_failure('spawn codex ENOENT'),'worker-unavailable')

@@ -96,12 +96,16 @@ class DeliveryPlan:
 class CommandRunner:
     def run(self, args, cwd=None, timeout=900):
         try:
-            # launchd and GUI-launched Python do not inherit the interactive
-            # shell credentials.  Let gh load the user's normal shell setup
-            # while every other delivery command stays non-interactive.
-            if args and (args[0]=='gh' or args[:2]==['git','push']):
-                args=['zsh','-ic','source "$HOME/.zshrc" >/dev/null 2>&1; command "$@"','agentos-auth',*args]
-            return subprocess.run(args,cwd=cwd,text=True,capture_output=True,timeout=timeout)
+            # A stale shell token can override the valid GitHub account held
+            # in the macOS keychain. API calls always use that keychain account.
+            env=None
+            if args and args[0]=='gh':
+                env=os.environ.copy();env.pop('GITHUB_TOKEN',None);env.pop('GH_TOKEN',None)
+            # Git pushes may need the interactive shell's credential helper,
+            # but it must not reintroduce that stale environment token.
+            if args[:2]==['git','push']:
+                args=['zsh','-ic','source "$HOME/.zshrc" >/dev/null 2>&1; unset GITHUB_TOKEN GH_TOKEN; command "$@"','agentos-auth',*args]
+            return subprocess.run(args,cwd=cwd,text=True,capture_output=True,timeout=timeout,env=env)
         except subprocess.TimeoutExpired as exc:
             stdout=exc.stdout.decode() if isinstance(exc.stdout,bytes) else (exc.stdout or '')
             stderr=exc.stderr.decode() if isinstance(exc.stderr,bytes) else (exc.stderr or '')
