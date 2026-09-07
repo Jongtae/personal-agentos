@@ -114,6 +114,38 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(runner.calls[0][0][1],'bootout')
         self.assertEqual(runner.calls[-1][0][1],'print')
 
+    def test_completed_v1_state_selects_stage_two_without_stale_issue(self):
+        completed=[item['id'] for item in DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations'] if item['id']!='P6-01']
+        StateStore(self.state).write({'completed':completed,'status':'complete','milestone':'M1','issue':25})
+        controller=self.controller(Runner())
+        status=controller.status()
+        self.assertEqual(status['active'],'P6-01')
+        self.assertEqual(status['milestone'],'M6')
+        self.assertEqual(status['issue'],55)
+        result=controller.run_once(dry_run=True)
+        self.assertEqual(result['active'],'P6-01')
+        self.assertEqual(result['status'],'ready-for-codex')
+
+    def test_fully_completed_plan_clears_stale_current_iteration_metadata(self):
+        completed=[item['id'] for item in DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations']]
+        StateStore(self.state).write({'completed':completed,'active':'P5-02','milestone':'M5','issue':25,'status':'running'})
+        result=self.controller(Runner()).run_once(dry_run=True)
+        self.assertEqual(result['status'],'complete')
+        self.assertNotIn('active',result)
+        self.assertNotIn('milestone',result)
+        self.assertNotIn('issue',result)
+        self.assertEqual(self.controller(Runner()).status()['next_action'],'delivery plan complete')
+
+    def test_created_stage_two_issue_uses_its_configured_milestone(self):
+        plan=json.loads((self.root/'delivery-plan.yaml').read_text())
+        plan['iterations']=[{'id':'P6-99','milestone':'M6','kind':'implementation','summary':'stage two task'}]
+        (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
+        runner=Runner([SimpleNamespace(returncode=0,stdout='https://github.com/Jongtae/personal-agentos/issues/99\n',stderr='')])
+        state={}
+        issue=self.controller(runner)._ensure_issue(DeliveryPlan(self.root/'delivery-plan.yaml').items['P6-99'],state,False)
+        self.assertEqual(issue,99)
+        self.assertIn('Personal AgentOS Stage 2',runner.calls[0][0])
+
     def test_status_reports_current_iteration(self):
         result=self.controller(Runner()).status()
         self.assertEqual(result['active'],'P1-01')

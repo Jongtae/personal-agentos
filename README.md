@@ -43,7 +43,7 @@ source of truth.
 
 ### Delivery loop
 
-Maintainers can run the tracked M1–M5 delivery sequence from a product source
+Maintainers can run the tracked delivery sequence (v1 and subsequent stages) from a product source
 checkout. It records only delivery metadata in the local state file; model and
 Telegram secrets stay in the AgentOS secret store.
 
