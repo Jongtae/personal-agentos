@@ -9,6 +9,7 @@ ROLE_PERMISSIONS={'read_only','bounded_write'}
 BUILTIN_MANIFEST={'version':1,'id':'builtin','tools':[{'id':name,'host_action':name,'mode':'bounded_write' if name in WRITE_ACTIONS else 'read_only'} for name in sorted(HOST_ACTIONS)],'roles':[
  {'id':'researcher','name':'조사 에이전트','instructions':'Research the assigned question using read-only tools when needed. Cite evidence and identify gaps. Never invent findings.','permissions':['read_only'],'tools':['web_search','weather','list_roots','find_files','read_file','list_notes','list_agents']},
  {'id':'reviewer','name':'검토 에이전트','instructions':'Produce a review report of the supplied material: findings, uncertainties, and concrete improvements. Review what is provided now. Do not ask whether to edit or save files; editing is not your task. Use read-only tools only if evidence is missing.','permissions':['read_only'],'tools':['web_search','weather','list_roots','find_files','read_file','list_notes','list_agents']},
+ {'id':'planner','name':'계획 에이전트','instructions':'Turn the supplied goal into a concise, ordered plan. State assumptions, dependencies, risks, and what needs the owner\'s decision. Use only supplied material or read-only evidence. Never perform actions, change notes, or delegate work.','permissions':['read_only'],'tools':['web_search','weather','list_roots','find_files','read_file','list_notes']},
 ]}
 
 def _id(value):return isinstance(value,str) and bool(value) and value.replace('-','').replace('_','').isalnum() and value[0].isalpha()
