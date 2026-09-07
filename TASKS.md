@@ -12,6 +12,7 @@
 | Issue | Goal | Status |
 | --- | --- | --- |
 | [#170](https://github.com/Jongtae/personal-agentos/issues/170) | Localize README navigation and prevent direct integration-branch changes | Complete; awaiting PR merge |
+| [#172](https://github.com/Jongtae/personal-agentos/issues/172) | Position AgentOS as an owner-controlled personal AI control plane and record the next proposed Hub v2 outcome | In progress; documentation only, does not advance the active delivery plan |
 
 ## Personal AgentOS v1 release delivery
 

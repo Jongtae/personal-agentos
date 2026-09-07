@@ -53,3 +53,21 @@ The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) turns
 ### UX-06 implementation status
 
 **Delivered.** [#162](https://github.com/Jongtae/personal-agentos/issues/162) records the owner-visible bubble contract in [UX-06 Telegram conversation](ux-06-telegram-conversation.ko.md). The implementation preserves one status card and one terminal answer bubble, keeps approval/recovery controls separate, and expands the readable long-result preview. The root suite passed and the deployed Telegram desktop flow was directly observed to edit a status card to completion followed by one terminal answer without a generic completion duplicate.
+
+## Proposed next Hub v2 phase — Personal capability connections
+
+This is the next proposed product phase, not an active delivery-plan item. It begins only after the active UX release path and its recorded prerequisites are complete.
+
+**Owner outcome:** an owner can connect a reviewed capability and ask one personal assistant for an outcome, while AgentOS retains ownership of the personal state, approval decision, execution evidence, and recovery record.
+
+The phase starts with a small, reviewed catalogue rather than arbitrary installation:
+
+- connect one read-first MCP capability through an explicit account-authorization flow;
+- connect one external A2A agent after discovering and reviewing its declared capabilities;
+- expose both through AgentOS-owned policy, task, approval, cancellation, and evidence contracts;
+- show the owner what data class and external action boundary each connection requests;
+- prove a connected capability can be disabled, removed, and recovered without deleting owner state.
+
+**Non-goals:** an open marketplace, arbitrary local code or shell execution, unrestricted community agents, automatic delegation chains, copying personal state to a control plane, or any claim that b3os, OpenClaw, or another runtime is already integrated.
+
+**Validation plan:** automated protocol and policy tests; a local test MCP server and A2A peer; a named live owner acceptance for one authorized read, one denied consequential action, evidence retention, disconnect, and owner-state export/restore. The live result must name the actual connected capability and must not generalize to untested agents or services.
