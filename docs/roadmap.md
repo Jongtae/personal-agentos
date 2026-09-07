@@ -45,3 +45,7 @@ The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) turns
 ## Planned — Telegram Conversation UX v1.2
 
 [UX-06](https://github.com/Jongtae/personal-agentos/issues/162) begins only after UX-05 releases. It treats the Telegram bubble sequence as product UX: concise acknowledgement, only necessary progress, one scannable completion message, owner-requested detail, clearly distinct approval and recovery prompts, and safe idempotent owner-only controls.
+
+### UX-06 implementation status
+
+[#162](https://github.com/Jongtae/personal-agentos/issues/162) now has its owner-visible bubble contract in [UX-06 Telegram conversation](ux-06-telegram-conversation.ko.md). The first implementation preserves one status card and one terminal answer bubble, keeps approval/recovery controls separate, and expands the readable long-result preview. Automated coverage does not claim paired mobile acceptance.

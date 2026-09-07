@@ -9,7 +9,7 @@ from urllib.request import Request, build_opener, HTTPCookieProcessor, HTTPRedir
 from urllib.error import HTTPError
 from urllib.parse import urlsplit, parse_qs
 from personal_agent.quickstart_store import QuickStore
-from personal_agent.quickstart_service import AgentService
+from personal_agent.quickstart_service import AgentService, TELEGRAM_RESULT_PREVIEW_CHARS
 from personal_agent.quickstart import make_handler
 from personal_agent.providers import ModelAdapter, ProviderError
 
@@ -462,6 +462,46 @@ class QuickstartTests(unittest.TestCase):
         self.service.run_one()
         edit=[c for c in self.calls if c[0].endswith('/editMessageText')][-1]
         self.assertEqual(edit[1]['reply_markup']['inline_keyboard'][0][0]['text'],'결과 상태 보기')
+
+    def test_telegram_normal_request_has_one_terminal_answer_without_generic_completion(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        self.model();self.assertTrue(self.service.test_model()['ok'])
+        baseline=len(self.calls)
+        self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'오늘 할 일을 정리해 줘'}},generation)
+        job=self.store.jobs()[0];self.make_due(job['id'])
+        self.service.run_one();self.service.deliver_one()
+        outbound=[call[1]['text'] for call in self.calls[baseline:] if call[0].endswith('/sendMessage')]
+        self.assertEqual(outbound,['요청을 받았습니다. 곧 시작할게요.','Ollama response'])
+        self.assertFalse(self.service.deliver_notification())
+        self.assertEqual(self.store.job(job['id'])['delivery'],'sent')
+
+    def test_telegram_long_terminal_answer_keeps_one_scannable_bubble(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        job_id=self.store.enqueue('long answer','long-answer',f'telegram:{generation}',42)
+        original='가'* (TELEGRAM_RESULT_PREVIEW_CHARS+100)
+        with self.store.db() as db:
+            db.execute("UPDATE jobs SET status='succeeded',response=?,delivery='pending' WHERE id=?",(original,job_id))
+        self.service.deliver_one()
+        sent=[call[1]['text'] for call in self.calls if call[0].endswith('/sendMessage')][-1]
+        self.assertEqual(sent[:TELEGRAM_RESULT_PREVIEW_CHARS],original[:TELEGRAM_RESULT_PREVIEW_CHARS])
+        self.assertTrue(sent.endswith('전체 결과는 AgentOS 웹에서 확인하세요.'))
+        self.assertEqual(self.store.job(job_id)['delivery'],'sent')
+
+    def test_telegram_failure_has_one_terminal_answer_without_generic_failure_notice(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        baseline=len(self.calls)
+        self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'도움을 줘'}},generation)
+        job=self.store.jobs()[0];self.make_due(job['id'])
+        self.service.run_one();self.service.deliver_one()
+        outbound=[call[1]['text'] for call in self.calls[baseline:] if call[0].endswith('/sendMessage')]
+        self.assertEqual(outbound[0],'요청을 받았습니다. 곧 시작할게요.')
+        self.assertEqual(len(outbound),2)
+        self.assertIn('모델 또는 구독 엔진을 먼저 연결하세요.',outbound[1])
+        self.assertFalse(self.service.deliver_notification())
+        self.assertEqual(self.store.job(job['id'])['delivery'],'sent')
 
     def test_task_card_progress_truthfully_explains_restart_and_uncertain_delivery(self):
         generation=self.pair()

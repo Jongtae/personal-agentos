@@ -34,6 +34,7 @@ TOOL_PROBE = {
 
 
 TELEGRAM_CARD_GRACE_SECONDS = 3
+TELEGRAM_RESULT_PREVIEW_CHARS = 3200
 TELEGRAM_VERIFICATION_QUERY = '/search AgentOS personal assistant verification'
 
 # Subscription CLIs do not receive AgentOS credentials, local paths, or an
@@ -911,6 +912,14 @@ class AgentService:
             # Do not append a second generic completion notification.
             return True
 
+    @staticmethod
+    def telegram_result_text(response, error=None):
+        """Return the one readable terminal bubble for a paired owner."""
+        text=response or ('요청을 완료하지 못했습니다. '+(error or 'AgentOS 웹에서 자세한 내용을 확인하세요.'))
+        if len(text)>TELEGRAM_RESULT_PREVIEW_CHARS:
+            return text[:TELEGRAM_RESULT_PREVIEW_CHARS]+'\n\n전체 결과는 AgentOS 웹에서 확인하세요.'
+        return text
+
     def deliver_one(self):
         # Mark before send. A lost response may mean delivered; never auto-resend.
         with self.lock:
@@ -923,8 +932,7 @@ class AgentService:
                 allowed=cfg.get('enabled') and job['channel']==f"telegram:{cfg.get('generation')}" and job['chat_id']==cfg.get('user_id')
                 db.execute('UPDATE jobs SET delivery=? WHERE id=?',('sending' if allowed else 'cancelled',job['id']))
             if not allowed:return
-            text=job['response'] or ('요청을 완료하지 못했습니다. '+(job['error'] or 'AgentOS 웹에서 자세한 내용을 확인하세요.'))
-            if len(text)>1800:text=text[:1800]+'\n\n전체 결과는 AgentOS 웹에서 확인하세요.'
+            text=self.telegram_result_text(job['response'],job['error'])
             try:
                 self.telegram_method('sendMessage',{'chat_id':job['chat_id'],'text':text})
                 status='sent'
