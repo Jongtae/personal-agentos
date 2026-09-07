@@ -450,7 +450,11 @@ class AgentService:
         labels={'queued':'대기 중','running':'진행 중','succeeded':'완료','failed':'완료하지 못함','cancelled':'취소됨','interrupted':'중단됨'}
         # A request can itself contain a secret or pasted document excerpt.
         # Cards are status controls, never a copy of user-provided content.
-        return f'작업 카드\n상태: {labels.get(state,state)}'
+        if state=='queued':return '요청을 받았습니다. 곧 시작할게요.'
+        if state=='running':return '요청을 처리하고 있어요.'
+        if state in ('succeeded','partial'):return '처리가 끝났습니다. 아래 결과를 확인하세요.'
+        if state=='interrupted':return '작업이 중단되었습니다. 자동으로 다시 실행하지 않았습니다.'
+        return f'이 요청은 {labels.get(state,state)} 상태입니다.'
 
     @staticmethod
     def notification_text(kind):
@@ -520,8 +524,7 @@ class AgentService:
         if not job:return '이 작업 카드를 찾을 수 없습니다.'
         lines=[f"작업 상태: {labels.get(job['status'],job['status'])}"]
         if rows:
-            steps=' · '.join(f"{row['tool']} ({row['status']})" for row in rows)
-            lines.append('실행 단계: '+steps)
+            lines.append(f'필요한 단계를 {len(rows)}개 처리했습니다.')
         elif job['status']=='queued':
             lines.append('실행을 기다리고 있습니다.')
         elif job['status']=='running':
@@ -830,8 +833,8 @@ class AgentService:
             self.update_task_card(job,outcome)
             if approval_needed[0]:self.queue_notification(job,'approval_needed')
             if context_approval_needed[0]:self.queue_notification(job,'context_approval_needed')
-            if outcome in ('succeeded','partial'):self.queue_notification(job,'completed')
-            elif outcome=='failed':self.queue_notification(job,'failed')
+            # The result delivery below is the one terminal Telegram bubble.
+            # Do not append a second generic completion notification.
             return True
 
     def deliver_one(self):
@@ -846,7 +849,7 @@ class AgentService:
                 allowed=cfg.get('enabled') and job['channel']==f"telegram:{cfg.get('generation')}" and job['chat_id']==cfg.get('user_id')
                 db.execute('UPDATE jobs SET delivery=? WHERE id=?',('sending' if allowed else 'cancelled',job['id']))
             if not allowed:return
-            text=job['response'] or job['error'] or '작업 결과를 웹에서 확인하세요.'
+            text=job['response'] or ('요청을 완료하지 못했습니다. '+(job['error'] or 'AgentOS 웹에서 자세한 내용을 확인하세요.'))
             if len(text)>1800:text=text[:1800]+'\n\n전체 결과는 AgentOS 웹에서 확인하세요.'
             try:
                 self.telegram_method('sendMessage',{'chat_id':job['chat_id'],'text':text})

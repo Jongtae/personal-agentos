@@ -363,7 +363,7 @@ class QuickstartTests(unittest.TestCase):
         self.model('compatible','https://example.test/v1','private-api-key')
         self.assertTrue(self.service.test_model()['ok'])
         self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'문서를 찾아 줘'}},generation)
-        card=[c for c in self.calls if c[0].endswith('/sendMessage') and c[1]['text'].startswith('작업 카드')][-1]
+        card=[c for c in self.calls if c[0].endswith('/sendMessage') and c[1]['text'].startswith('요청을 받았습니다.')][-1]
         self.assertNotIn('문서를 찾아',card[1]['text'])
         self.make_due(self.store.jobs()[0]['id'])
         self.service.run_one()
@@ -371,8 +371,6 @@ class QuickstartTests(unittest.TestCase):
         approval=[c for c in self.calls if c[0].endswith('/sendMessage') and c[1]['text'].startswith('연결 문서를')][-1]
         self.assertNotIn('private-api-key',json.dumps(approval[1]))
         self.assertNotIn('confidential document',json.dumps(approval[1]))
-        notification=self.store.next_notification()
-        self.assertEqual(notification['kind'],'failed')
         approval_row=self.store.notification(approval[1]['reply_markup']['inline_keyboard'][0][0]['callback_data'].split(':')[1])
         callback_message={'chat':{'id':42,'type':'private'},'message_id':approval_row['message_id']}
         self.service.ingest_callback({'id':'foreign-approval','from':{'id':99},'message':{'chat':{'id':99,'type':'private'},'message_id':approval_row['message_id']},'data':f"p7a:{approval_row['id']}:approve"},generation)
@@ -413,7 +411,7 @@ class QuickstartTests(unittest.TestCase):
         self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'private request secret'}},generation)
         job=self.store.jobs()[0]
         card=self.store.task_card(job['id'])
-        initial=[c for c in self.calls if c[0].endswith('/sendMessage') and c[1].get('text','').startswith('작업 카드')][-1]
+        initial=[c for c in self.calls if c[0].endswith('/sendMessage') and c[1].get('text','').startswith('요청을 받았습니다.')][-1]
         labels=[button['text'] for button in initial[1]['reply_markup']['inline_keyboard'][0]]
         self.assertEqual(labels,['진행 보기','작업 취소'])
         self.service.ingest_callback({'id':'foreign-progress','from':{'id':99},'message':{'chat':{'id':99,'type':'private'},'message_id':card['message_id']},'data':f"p7v:{job['id']}"},generation)
@@ -453,14 +451,14 @@ class QuickstartTests(unittest.TestCase):
         self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'모델 없이 실패해 줘'}},generation)
         self.make_due(self.store.jobs()[0]['id'])
         self.service.run_one()
-        queued=self.store.next_notification()
-        self.assertEqual(queued['kind'],'failed')
+        job=self.store.jobs()[0]
+        self.assertIn(job['delivery'],('pending','sent'))
         restarted=AgentService(QuickStore(self.temp.name),ModelAdapter(self.transport),self.transport)
-        self.assertTrue(restarted.deliver_notification())
-        self.assertIsNone(restarted.store.next_notification())
-        with restarted.store.db() as db:db.execute("UPDATE telegram_notifications SET state='sending' WHERE id=?",(queued['id'],))
+        restarted.deliver_one()
+        self.assertEqual(restarted.store.job(job['id'])['delivery'],'sent')
+        with restarted.store.db() as db:db.execute("UPDATE jobs SET delivery='sending' WHERE id=?",(job['id'],))
         restarted.store.recover()
-        self.assertEqual(restarted.store.notification(queued['id'])['state'],'unknown')
+        self.assertEqual(restarted.store.job(job['id'])['delivery'],'unknown')
 
     def test_owner_can_record_live_task_card_attestation_only_after_durable_evidence(self):
         generation=self.pair()
