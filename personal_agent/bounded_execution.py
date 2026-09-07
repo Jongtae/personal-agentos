@@ -119,14 +119,23 @@ class BoundedExecutionAdapter:
         except (TypeError, ValueError, IndexError):
             raise ExecutionError('엔진이 요구된 구조화된 응답을 반환하지 않았습니다.') from None
         if engine_id == 'codex':
-            # Codex exec emits JSONL; accepting one final object only avoids
-            # accidentally treating tool/event transcripts as the answer.
-            if isinstance(data, dict):
-                item = data.get('item', {})
-                content = (data.get('content') or data.get('output') or
-                           (item.get('text') if isinstance(item, dict) else None))
-            else:
-                content = None
+            # Codex ends JSONL with usage/completion metadata. Select the last
+            # structured agent message instead of treating that terminal event
+            # as response text or exposing the event stream to the owner.
+            content = None
+            for candidate in reversed(records):
+                if not isinstance(candidate, dict):
+                    continue
+                item = candidate.get('item')
+                if isinstance(item, dict) and item.get('type') == 'agent_message':
+                    text = item.get('text')
+                    if isinstance(text, str) and text.strip():
+                        content = text
+                        break
+                text = candidate.get('content') or candidate.get('output')
+                if isinstance(text, str) and text.strip():
+                    content = text
+                    break
         else:
             content = data.get('result') if isinstance(data, dict) else None
         if not isinstance(content, str) or not content.strip():
