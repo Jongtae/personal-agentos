@@ -53,3 +53,11 @@ Completed: P5-03 adds a reproducible product-validation gate and records
 Homebrew, Compose persistence, live model/document, and Telegram restart
 continuity evidence. Native clients, additional channels, and managed hosting
 remain separate future product-vision work.
+
+## M6 — reviewed runtime extensions
+
+P6-01 makes the reviewed declaration-only package registry an enforced runtime
+configuration source. Built-in and installed roles follow the same bounded
+host-action declarations; disabled or invalid packages cannot be selected for
+delegation or expose tools. The authenticated runtime state shows package,
+role, tool, permission, and enabled-state declarations alongside tool traces.

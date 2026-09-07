@@ -2,7 +2,7 @@
 import json
 import shutil
 from pathlib import Path
-from .manifests import validate
+from .manifests import BUILTIN_MANIFEST, validate, runtime_packages
 
 class PluginRegistry:
  def __init__(self,data):self.root=Path(data)/'plugins';self.root.mkdir(parents=True,exist_ok=True)
@@ -12,6 +12,13 @@ class PluginRegistry:
   target=self.root/(plugin_id+'.json');target.write_text(json.dumps({**manifest,'enabled':True},ensure_ascii=False));return plugin_id
  def list(self):
   return [json.loads(path.read_text()) for path in sorted(self.root.glob('*.json'))]
+ def runtime_packages(self):
+  """Return only reviewed, enabled declarations for a runtime turn."""
+  return runtime_packages(self.list())
+ def declared_packages(self):
+  """Return every reviewed installed declaration for the owner settings view."""
+  self.runtime_packages()  # Validate even disabled declarations before exposing them.
+  return [{'id':'builtin','enabled':True,**BUILTIN_MANIFEST},*[validate(manifest) for manifest in self.list()]]
  def set_enabled(self,plugin_id,enabled):
   path=self.root/(plugin_id+'.json');manifest=validate(json.loads(path.read_text()));manifest['enabled']=bool(enabled);path.write_text(json.dumps(manifest,ensure_ascii=False));return manifest
  def remove(self,plugin_id):

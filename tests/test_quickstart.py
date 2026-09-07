@@ -266,6 +266,11 @@ class QuickstartTests(unittest.TestCase):
             self.assertEqual(error.exception.code,403)
             request('/api/claim',{'password':'long-password-test'})
             self.assertTrue(request('/api/status')['authenticated'])
+            package=self.store.root/'plugins'/'review.json';package.parent.mkdir(exist_ok=True)
+            package.write_text(json.dumps({'version':1,'id':'review','enabled':True,'tools':[{'id':'review_notes','host_action':'list_notes','mode':'read_only'}],'roles':[{'id':'package_reviewer','name':'Package reviewer','instructions':'Review supplied material.','permissions':['read_only'],'tools':['review_notes']}]}))
+            state=request('/api/state')
+            self.assertEqual(state['settings']['packages'][1]['id'],'review')
+            self.assertEqual(state['settings']['agents'][-1]['permissions'],['read_only'])
             request('/api/chat',{'message':'/note HTTP proof','request_key':'http'})
             for _ in range(30):
                 state=request('/api/state')
