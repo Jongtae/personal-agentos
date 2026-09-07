@@ -192,7 +192,7 @@ class QuickstartTests(unittest.TestCase):
         card=self.store.task_card(job['id'])
         self.assertIsNotNone(card)
         create=[c for c in self.calls if c[0].endswith('/sendMessage')][-1]
-        self.assertEqual(create[1]['reply_markup']['inline_keyboard'][0][0]['callback_data'],f"p7c:{job['id']}")
+        self.assertEqual(create[1]['reply_markup']['inline_keyboard'][0][1]['callback_data'],f"p7c:{job['id']}")
         callback_message={'chat':{'id':42,'type':'private'},'message_id':card['message_id']}
         self.service.ingest_callback({'id':'cancel-1','from':{'id':42},'message':callback_message,'data':f"p7c:{job['id']}"},generation)
         self.service.ingest_callback({'id':'cancel-2','from':{'id':42},'message':callback_message,'data':f"p7c:{job['id']}"},generation)
@@ -246,6 +246,26 @@ class QuickstartTests(unittest.TestCase):
         self.assertTrue(self.service.document_boundary()['requires_approval'])
         self.service.ingest_callback({'id':'approve','from':{'id':42},'message':callback_message,'data':f"p7a:{approval_row['id']}:approve"},generation)
         self.assertFalse(self.service.document_boundary()['requires_approval'])
+
+    def test_task_card_progress_button_returns_safe_owner_bound_evidence(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'private request secret'}},generation)
+        job=self.store.jobs()[0]
+        card=self.store.task_card(job['id'])
+        initial=[c for c in self.calls if c[0].endswith('/sendMessage') and c[1].get('text','').startswith('작업 카드')][-1]
+        labels=[button['text'] for button in initial[1]['reply_markup']['inline_keyboard'][0]]
+        self.assertEqual(labels,['진행 보기','작업 취소'])
+        self.service.ingest_callback({'id':'foreign-progress','from':{'id':99},'message':{'chat':{'id':99,'type':'private'},'message_id':card['message_id']},'data':f"p7v:{job['id']}"},generation)
+        self.assertFalse(any(c[0].endswith('/sendMessage') and c[1].get('text','').startswith('작업 상태:') for c in self.calls))
+        self.service.ingest_callback({'id':'progress','from':{'id':42},'message':{'chat':{'id':42,'type':'private'},'message_id':card['message_id']},'data':f"p7v:{job['id']}"},generation)
+        progress=[c for c in self.calls if c[0].endswith('/sendMessage') and c[1].get('text','').startswith('작업 상태:')][-1]
+        self.assertIn('대기 중',progress[1]['text'])
+        self.assertNotIn('private request',progress[1]['text'])
+        self.assertNotIn(job['id'],progress[1]['text'])
+        self.service.run_one()
+        edit=[c for c in self.calls if c[0].endswith('/editMessageText')][-1]
+        self.assertEqual(edit[1]['reply_markup']['inline_keyboard'][0][0]['text'],'결과 상태 보기')
 
     def test_terminal_notifications_survive_restart_without_ambiguous_retry(self):
         generation=self.pair()
