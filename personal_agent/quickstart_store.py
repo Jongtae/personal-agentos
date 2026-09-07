@@ -33,6 +33,7 @@ class QuickStore:
             CREATE TABLE IF NOT EXISTS tool_events(id INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT, tool TEXT, status TEXT, detail TEXT, created REAL);
             CREATE TABLE IF NOT EXISTS notes(id TEXT PRIMARY KEY, content TEXT, created REAL);
             CREATE TABLE IF NOT EXISTS telegram_task_cards(job_id TEXT PRIMARY KEY, chat_id INTEGER NOT NULL, message_id INTEGER NOT NULL, state TEXT NOT NULL, created REAL NOT NULL);
+            CREATE TABLE IF NOT EXISTS telegram_notifications(id TEXT PRIMARY KEY, job_id TEXT NOT NULL, chat_id INTEGER NOT NULL, generation TEXT NOT NULL, kind TEXT NOT NULL, fingerprint TEXT, state TEXT NOT NULL, message_id INTEGER, created REAL NOT NULL, UNIQUE(job_id, kind));
             ''')
         self.path.chmod(0o600)
         if not self.claimed() and not self.bootstrap.exists():
@@ -144,11 +145,6 @@ class QuickStore:
         db.execute('INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',(task_id,request_key,message,channel,chat_id,'queued',None,None,'none',None,None,time.time()))
         return task_id
 
-    def recover(self):
-        with self.db() as db:
-            db.execute("UPDATE jobs SET status='interrupted',error='실행 중 재시작되었습니다. 자동으로 재호출하지 않습니다.' WHERE status='running'")
-            db.execute("UPDATE jobs SET delivery='unknown' WHERE delivery='sending'")
-
     def history(self):
         with self.db() as db:
             return [dict(r) for r in db.execute('SELECT * FROM (SELECT * FROM messages ORDER BY id DESC LIMIT 100) ORDER BY id')]
@@ -180,3 +176,34 @@ class QuickStore:
         with self.db() as db:
             db.execute('INSERT INTO telegram_task_cards VALUES (?,?,?,?,?) ON CONFLICT(job_id) DO UPDATE SET state=excluded.state',
                        (job_id,chat_id,message_id,state,time.time()))
+
+    def notification(self, notification_id):
+        with self.db() as db:
+            row=db.execute('SELECT * FROM telegram_notifications WHERE id=?',(notification_id,)).fetchone()
+            return dict(row) if row else None
+
+    def queue_notification(self, job_id, chat_id, generation, kind, fingerprint=None):
+        notification_id=str(uuid.uuid4())
+        with self.db() as db:
+            db.execute('INSERT OR IGNORE INTO telegram_notifications VALUES (?,?,?,?,?,?,?,?,?)',
+                       (notification_id,job_id,chat_id,generation,kind,fingerprint,'queued',None,time.time()))
+            row=db.execute('SELECT * FROM telegram_notifications WHERE job_id=? AND kind=?',(job_id,kind)).fetchone()
+            return dict(row)
+
+    def next_notification(self):
+        with self.db() as db:
+            row=db.execute("SELECT * FROM telegram_notifications WHERE state='queued' ORDER BY created LIMIT 1").fetchone()
+            return dict(row) if row else None
+
+    def update_notification(self, notification_id, state, message_id=None):
+        with self.db() as db:
+            if message_id is None:
+                db.execute('UPDATE telegram_notifications SET state=? WHERE id=?',(state,notification_id))
+            else:
+                db.execute('UPDATE telegram_notifications SET state=?,message_id=? WHERE id=?',(state,message_id,notification_id))
+
+    def recover(self):
+        with self.db() as db:
+            db.execute("UPDATE jobs SET status='interrupted',error='실행 중 재시작되었습니다. 자동으로 재호출하지 않습니다.' WHERE status='running'")
+            db.execute("UPDATE jobs SET delivery='unknown' WHERE delivery='sending'")
+            db.execute("UPDATE telegram_notifications SET state='unknown' WHERE state='sending'")

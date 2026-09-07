@@ -69,3 +69,10 @@ the paired private Telegram owner. Inline callbacks are bound to the owner,
 private chat, exact card, and active Telegram generation; they can cancel only
 jobs that remain queued. Card progress is best-effort and never retried after
 an ambiguous Telegram response, avoiding duplicate cards.
+
+P7-02 adds a separate durable notification outbox for Telegram terminal states
+and document-sharing approval. Approval buttons are bound to the paired owner,
+private chat, exact notification, active generation, and the current
+model-and-folder fingerprint. Cards and notifications contain only status text,
+never request text, secrets, or document contents; sends left ambiguous by a
+restart are retained as unknown rather than replayed.
