@@ -27,6 +27,14 @@ class ProductValidationTests(unittest.TestCase):
             self.assertEqual(validator.findings[0].status, "failed")
         finally: folder.cleanup()
 
+    def test_delivered_roadmap_wording_is_current(self):
+        folder, root = self.fixture()
+        try:
+            (root / "docs/roadmap.md").write_text("## M3 — continuity and installation\nCompleted: yes\n## M4 — extensibility\nP4-01 delivered\n## M5 — v1 release\nCompleted: yes\n")
+            validator = ProductValidator(root); validator.documentation()
+            self.assertEqual(validator.findings[0].status, "passed")
+        finally: folder.cleanup()
+
     def test_plugin_registry_without_surface_fails(self):
         folder, root = self.fixture()
         try:

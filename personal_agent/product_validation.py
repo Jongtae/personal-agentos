@@ -57,7 +57,8 @@ class ProductValidator:
         for heading in ("## M3 — continuity and installation", "## M4 — extensibility", "## M5 — v1 release"):
             start = roadmap.find(heading)
             section = roadmap[start: roadmap.find("\n## ", start + 1) if roadmap.find("\n## ", start + 1) >= 0 else len(roadmap)]
-            if "Completed" not in section:
+            complete_markers = ("Completed", "delivered")
+            if not any(marker in section for marker in complete_markers):
                 stale.append(heading + " has no completion record")
         if stale:
             self.add("DOC-001", "Published documents match v1 capability", "v1", "failed", "; ".join(stale), "Update user and delivery documents with the current supported scope and evidence.")

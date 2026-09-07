@@ -20,12 +20,13 @@ Validated on 2026-09-07 against `v1.0.0` source commit
   capabilities. Reviewed declaration-only plugin manifests are reachable by
   `agentos plugins` without executing third-party code.
 
-## Remaining live acceptance
+## Telegram continuity acceptance
 
-The paired Telegram account needs one final manual proof: restart AgentOS,
-send a new request to the paired bot, then confirm that the web history shows
-the same request and that its delivery trace is recorded. This is deliberately
-not automated because it requires the owner's private account and bot token.
+After restarting AgentOS, the paired private Telegram account sent a new
+request. The shared store recorded the request and response on the Telegram
+channel; its job completed successfully with delivery state `sent` through the
+verified `gpt-4o-mini` connection. The same store contains the shared web and
+Telegram history. Bot tokens and message contents are not included here.
 
 ## Post-v1 product vision gaps
 
