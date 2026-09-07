@@ -23,6 +23,12 @@ class DeliveryTests(unittest.TestCase):
     def tearDown(self):self.temp.cleanup()
     def controller(self, runner):return DeliveryController(self.root,self.state,runner,now=lambda:self.clock[0])
 
+    def test_packaged_plan_is_used_when_no_source_checkout_is_present(self):
+        installed_root=Path(self.temp.name)/'installed-cli-context';installed_root.mkdir()
+        controller=DeliveryController(installed_root,self.state,Runner(),now=lambda:self.clock[0])
+        self.assertEqual(controller.status()['active'],'P1-01')
+        self.assertEqual(controller.plan.data['repository'],'Jongtae/personal-agentos')
+
     def test_plan_starts_at_live_gate_and_uses_repair_when_blocked(self):
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')
         self.assertEqual(plan.select({})['id'],'P1-01')

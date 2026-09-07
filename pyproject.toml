@@ -16,4 +16,4 @@ agentos = "personal_agent.quickstart:main"
 include = ["personal_agent*"]
 
 [tool.setuptools.package-data]
-personal_agent = ["web/*.html", "web/*.css", "web/*.js"]
+personal_agent = ["web/*.html", "web/*.css", "web/*.js", "delivery-plan.yaml"]
