@@ -12,6 +12,12 @@ with tempfile.TemporaryDirectory() as root:
  store=QuickStore(Path(root)/'data');svc=AgentService(store)
  svc.save_roots({'paths':[str(docs)]})
  config=dict(source.config('model'))
+ checked_source=source.config('model_test',{})
+ if (config.get('provider')=='compatible' and config.get('endpoint')=='https://openrouter.ai/api/v1'
+     and config.get('model')=='openrouter/free' and checked_source.get('runtime_model')):
+  # Re-run acceptance against the exact free model that passed the user's
+  # native-tool probe. The pool alias may otherwise select a text-only model.
+  config['model']=checked_source['runtime_model']
  if '--model' in sys.argv:config['model']=sys.argv[sys.argv.index('--model')+1]
  svc.save_model({**config,'api_key':source.secret('model_key')})
  checked=svc.test_model()
