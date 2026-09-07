@@ -27,7 +27,8 @@ class DeliveryTests(unittest.TestCase):
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')
         self.assertEqual(plan.select({})['id'],'P1-01')
         self.assertEqual(plan.select({'blocked':'P1-01'})['id'],'P1-01a')
-        self.assertEqual(plan.select({'completed':['P1-01','P1-01a']})['id'],'P1-02')
+        self.assertEqual(plan.select({'completed':['P1-01','P1-01a']})['id'],'P1-01b')
+        self.assertEqual(plan.select({'completed':['P1-01','P1-01a','P1-01b']})['id'],'P1-02')
 
     def test_rate_limit_is_blocked_with_six_hour_retry_and_no_secret(self):
         runner=Runner([SimpleNamespace(returncode=1,stdout='',stderr='HTTP 429 rate limit')])
@@ -51,6 +52,30 @@ class DeliveryTests(unittest.TestCase):
         self.assertIn('P1-01a',result['completed'])
         self.assertFalse((self.root/'worktrees').exists())
 
+    def test_reconcile_adopts_a_closed_active_issue_then_selects_schedule_repair(self):
+        StateStore(self.state).write({'active':'P1-01a','completed':['P1-01'],'issues':{'P1-01a':10}})
+        runner=Runner([SimpleNamespace(returncode=0,stdout='CLOSED\n',stderr='')])
+        result=self.controller(runner).reconcile()
+        self.assertEqual(result['completed'],['P1-01','P1-01a'])
+        self.assertEqual(self.controller(Runner()).status()['active'],'P1-01b')
+
+    def test_timeout_is_recorded_and_never_leaves_running_state(self):
+        class TimeoutRunner:
+            def run(self, args, cwd=None, timeout=900):
+                raise __import__('subprocess').TimeoutExpired(args,timeout)
+        result=self.controller(TimeoutRunner()).run_once(dry_run=True)
+        self.assertEqual(result['status'],'blocked-delivery-timeout')
+        self.assertEqual(result['active'],'P1-01')
+        self.assertIn('Timed out after 900 seconds.',result['last_error'])
+
+    def test_github_auth_failure_blocks_before_worker_or_worktree(self):
+        StateStore(self.state).write({'active':'P1-01b','completed':['P1-01','P1-01a']})
+        runner=Runner([SimpleNamespace(returncode=1,stdout='',stderr='HTTP 401: Bad credentials')])
+        result=self.controller(runner).run_once()
+        self.assertEqual(result['status'],'blocked-blocked-approval')
+        self.assertEqual(result['active'],'P1-01b')
+        self.assertFalse((self.root/'worktrees').exists())
+
     def test_state_persists_only_delivery_metadata(self):
         saved=StateStore(self.state).write({'active':'P1-01','completed':['P0-01'],'status':'blocked','api_key':'secret','model_response':'private'})
         self.assertEqual(saved,{'active':'P1-01','completed':['P0-01'],'status':'blocked'})
@@ -66,13 +91,17 @@ class DeliveryTests(unittest.TestCase):
         self.assertIn(['gh','pr','merge','https://github.com/Jongtae/personal-agentos/pull/99','--squash','--delete-branch'],[call[0] for call in runner.calls])
 
     def test_launchd_schedule_pins_the_repository_root(self):
-        runner=Runner([SimpleNamespace(returncode=0,stdout='',stderr='')]);home=self.root/'home'
+        runner=Runner([SimpleNamespace(returncode=0,stdout='',stderr=''),SimpleNamespace(returncode=0,stdout='',stderr=''),SimpleNamespace(returncode=0,stdout='',stderr='')]);home=self.root/'home'
         controller=self.controller(runner)
         with patch.object(Path,'home',return_value=home):
             result=controller.install_schedule()
         content=Path(result['path']).read_text()
         self.assertIn(f'<string>{controller.root}</string>',content)
+        self.assertIn('<string>--scheduled</string>',content)
+        self.assertIn(f'<string>{controller.state_store.path}</string>',content)
         self.assertIn('<integer>21600</integer>',content)
+        self.assertEqual(runner.calls[0][0][1],'bootout')
+        self.assertEqual(runner.calls[-1][0][1],'print')
 
     def test_status_reports_current_iteration(self):
         result=self.controller(Runner()).status()
