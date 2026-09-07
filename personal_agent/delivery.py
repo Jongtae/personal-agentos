@@ -1,5 +1,6 @@
 """Evidence-driven local delivery controller for the Personal AgentOS repository."""
 import argparse
+import hashlib
 import datetime as dt
 import fcntl
 import json
@@ -11,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.request
 from xml.sax.saxutils import escape as xml_escape
 from types import SimpleNamespace
 
@@ -265,12 +267,129 @@ class DeliveryController:
                 if result.returncode:
                     return self._record_block(item,state,classify_failure(output),output,dry_run)
                 return self._complete(item,state,dry_run)
+            if item['kind']=='release':
+                if dry_run:
+                    state.update(status='ready-for-release',updated_at=self.now())
+                    return self.state_store.write(state)
+                return self._run_release(item,state)
             if dry_run:
                 state.update(status='ready-for-codex',updated_at=self.now())
                 return self.state_store.write(state)
             return self._run_worker(item,state)
         finally:
             lock.close()
+
+    @staticmethod
+    def _next_patch_version(version):
+        match=re.fullmatch(r'(\d+)\.(\d+)\.(\d+)',version)
+        if not match:raise DeliveryError('Release version must use major.minor.patch.')
+        major,minor,patch=(int(part) for part in match.groups())
+        return f'{major}.{minor}.{patch+1}'
+
+    @staticmethod
+    def _read_project_version(path):
+        match=re.search(r'^version\s*=\s*"([^"]+)"\s*$',Path(path).read_text(),re.M)
+        if not match:raise DeliveryError('pyproject.toml has no project version.')
+        return match.group(1)
+
+    @staticmethod
+    def _write_project_version(path, version):
+        content=Path(path).read_text()
+        updated=re.sub(r'^version\s*=\s*"[^"]+"\s*$',f'version = "{version}"',content,count=1,flags=re.M)
+        if updated==content:raise DeliveryError('Could not update the project version.')
+        Path(path).write_text(updated)
+
+    def _release_error(self, item, state, result, fallback):
+        detail=((getattr(result,'stdout','') or '')+'\n'+(getattr(result,'stderr','') or '')).strip() or fallback
+        return self._record_block(item,state,classify_failure(detail),detail,False)
+
+    def _archive_sha256(self, tag):
+        url=f'https://github.com/{self.plan.data["repository"]}/archive/refs/tags/{tag}.tar.gz'
+        digest=hashlib.sha256()
+        try:
+            with urllib.request.urlopen(url,timeout=60) as response:
+                while chunk:=response.read(1024*1024):digest.update(chunk)
+        except OSError as exc:raise DeliveryError(f'Could not download release archive: {exc}') from exc
+        return digest.hexdigest()
+
+    def _run_release(self, item, state):
+        """Publish a verified patch release and Formula update from controller-owned clones."""
+        if not (self.root/'.git').exists():
+            return self._record_block(item,state,'delivery-failed','Release requires a git checkout.',False)
+        fetched=self._command(['git','fetch','origin'],cwd=self.root,timeout=180)
+        if fetched.returncode:return self._release_error(item,state,fetched,'Could not fetch the release source.')
+        current=self._read_project_version(self.root/'pyproject.toml')
+        version=self._next_patch_version(current);tag='v'+version
+        release=dict(state.get('release',{}));release.update(version=version,tag=tag)
+        state['release']=release
+        worktree=self.state_store.path.parent/'worktrees'/('release-'+tag)
+        branch='release/'+tag
+        if not worktree.exists():
+            created=self._command(['git','worktree','add','-b',branch,str(worktree),'origin/main'],cwd=self.root,timeout=180)
+            if created.returncode:return self._release_error(item,state,created,'Could not create the release worktree.')
+        project=worktree/'pyproject.toml'
+        worktree_version=self._read_project_version(project)
+        if worktree_version==current:self._write_project_version(project,version)
+        elif worktree_version!=version:return self._record_block(item,state,'delivery-failed','Release worktree has an unexpected version.',False)
+        for command in item.get('tests',[]):
+            checked=self._command(command.split(),cwd=worktree,timeout=900)
+            if checked.returncode:return self._release_error(item,state,checked,'Release validation failed.')
+        changed=self._command(['git','status','--porcelain'],cwd=worktree,timeout=30)
+        if changed.returncode:return self._release_error(item,state,changed,'Could not inspect the release worktree.')
+        if changed.stdout.strip():
+            committed=self._command(['git','add','pyproject.toml'],cwd=worktree,timeout=30)
+            if committed.returncode:return self._release_error(item,state,committed,'Could not stage the release version.')
+            committed=self._command(['git','commit','-m',f'Release {tag}'],cwd=worktree,timeout=60)
+            if committed.returncode:return self._release_error(item,state,committed,'Could not commit the release version.')
+        pushed=self._command(['git','push','-u','origin',branch],cwd=worktree,timeout=180)
+        if pushed.returncode:return self._release_error(item,state,pushed,'Could not push the release branch.')
+        opened=self._gh('pr','create','--repo',self.plan.data['repository'],'--base','main','--head',branch,'--title',f'Release {tag}','--body',f'Automated verified release for `{item["id"]}`.')
+        match=re.search(r'https://github\.com/[^\s]+/pull/\d+',opened.stdout or '')
+        if opened.returncode or not match:return self._release_error(item,state,opened,'Could not open the release PR.')
+        state['pr']=match.group(0)
+        merged=self._gh('pr','merge',state['pr'],'--repo',self.plan.data['repository'],'--squash','--delete-branch')
+        if merged.returncode:return self._release_error(item,state,merged,'Could not merge the release PR.')
+        published=self._gh('release','create',tag,'--repo',self.plan.data['repository'],'--target','main','--title',f'Personal AgentOS {tag}','--generate-notes')
+        if published.returncode:return self._release_error(item,state,published,'Could not publish the GitHub Release.')
+        release['url']=f'https://github.com/{self.plan.data["repository"]}/releases/tag/{tag}'
+        try:sha=self._archive_sha256(tag)
+        except DeliveryError as exc:return self._record_block(item,state,'delivery-failed',str(exc),False)
+        tap_repo=item.get('tap_repository','Jongtae/homebrew-agentos');formula=item.get('formula_path','Formula/agentos.rb')
+        tap=self.state_store.path.parent/'tap'
+        if not (tap/'.git').exists():
+            cloned=self._command(['git','clone',f'https://github.com/{tap_repo}.git',str(tap)],cwd=self.state_store.path.parent,timeout=300)
+            if cloned.returncode:return self._release_error(item,state,cloned,'Could not clone the Homebrew tap.')
+        refreshed=self._command(['git','fetch','origin'],cwd=tap,timeout=180)
+        if refreshed.returncode:return self._release_error(item,state,refreshed,'Could not fetch the Homebrew tap.')
+        formula_branch='agentos-'+version
+        checked=self._command(['git','checkout','-B',formula_branch,'origin/main'],cwd=tap,timeout=60)
+        if checked.returncode:return self._release_error(item,state,checked,'Could not prepare the Formula branch.')
+        formula_path=tap/formula
+        if not formula_path.is_file():return self._record_block(item,state,'delivery-failed','Homebrew Formula file was not found.',False)
+        text=formula_path.read_text()
+        text=re.sub(r'url "[^"]+/archive/refs/tags/v[^"]+\.tar\.gz"',f'url "https://github.com/{self.plan.data["repository"]}/archive/refs/tags/{tag}.tar.gz"',text,count=1)
+        text=re.sub(r'sha256 "[0-9a-f]{64}"',f'sha256 "{sha}"',text,count=1)
+        formula_path.write_text(text)
+        formula_commit=self._command(['git','add',formula],cwd=tap,timeout=30)
+        if formula_commit.returncode:return self._release_error(item,state,formula_commit,'Could not stage the Formula update.')
+        formula_commit=self._command(['git','commit','-m',f'agentos {version}'],cwd=tap,timeout=60)
+        if formula_commit.returncode:return self._release_error(item,state,formula_commit,'Could not commit the Formula update.')
+        formula_push=self._command(['git','push','-u','origin',formula_branch],cwd=tap,timeout=180)
+        if formula_push.returncode:return self._release_error(item,state,formula_push,'Could not push the Formula update.')
+        tap_pr=self._gh('pr','create','--repo',tap_repo,'--base','main','--head',formula_branch,'--title',f'agentos {version}','--body',f'Updates AgentOS to `{tag}` after verified release.')
+        tap_match=re.search(r'https://github\.com/[^\s]+/pull/\d+',tap_pr.stdout or '')
+        if tap_pr.returncode or not tap_match:return self._release_error(item,state,tap_pr,'Could not open the Formula PR.')
+        release['tap_pr']=tap_match.group(0)
+        tap_merge=self._gh('pr','merge',release['tap_pr'],'--repo',tap_repo,'--squash','--delete-branch')
+        if tap_merge.returncode:return self._release_error(item,state,tap_merge,'Could not merge the Formula PR.')
+        brew=self._command(['brew','update'],cwd=self.root,timeout=900)
+        if brew.returncode:return self._release_error(item,state,brew,'Could not update Homebrew.')
+        installed=self._command(['brew','upgrade','jongtae/agentos/agentos'],cwd=self.root,timeout=900)
+        if installed.returncode:return self._release_error(item,state,installed,'Could not upgrade the Homebrew Formula.')
+        verified=self._command(['brew','test','jongtae/agentos/agentos'],cwd=self.root,timeout=900)
+        if verified.returncode:return self._release_error(item,state,verified,'Homebrew Formula verification failed.')
+        state['release']=release
+        return self._complete(item,state,False)
 
     def _run_worker(self, item, state):
         if not (self.root/'.git').exists():return self._record_block(item,state,'delivery-failed','Codex delivery requires a git checkout.',False)
