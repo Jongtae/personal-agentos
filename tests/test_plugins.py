@@ -33,3 +33,13 @@ class PluginTests(unittest.TestCase):
    data=Path(folder)/'data';registry=PluginRegistry(data)
    (registry.root/'unsafe.json').write_text(json.dumps({'version':1,'id':'unsafe','enabled':True,'tools':[{'id':'write','host_action':'save_note','mode':'read_only'}],'roles':[]}))
    with self.assertRaises(ValueError):registry.runtime_packages()
+ def test_role_with_no_declared_tools_receives_no_tools(self):
+  with tempfile.TemporaryDirectory() as folder:
+   data=Path(folder)/'data';manifest=Path(folder)/'silent.json'
+   manifest.write_text(json.dumps({'version':1,'id':'silent','tools':[],'roles':[{'id':'silent_reviewer','name':'Silent reviewer','instructions':'Review supplied material.','permissions':['read_only'],'tools':[]}]}))
+   registry=PluginRegistry(data);registry.install(manifest)
+   caps=Capabilities(QuickStore(data),None,{},'','job',lambda *a:None,packages=registry.runtime_packages())
+   role=caps.roles['silent_reviewer']
+   child=Capabilities(caps.store,None,{},'','job',lambda *a:None,readonly=True,packages=caps.packages,allowed_tools=role['tools'])
+   self.assertEqual(child.definitions(),[])
+   with self.assertRaises(ValueError):child.execute('list_notes',{})

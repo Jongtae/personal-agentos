@@ -35,7 +35,7 @@ class Capabilities:
   self.packages=runtime_packages([]) if packages is None else packages
   self.tools={tool['id']:tool for package in self.packages for tool in package['tools']}
   self.roles={role['id']:{**role,'package_id':package['id']} for package in self.packages for role in package['roles']}
-  self.allowed_tools=set(allowed_tools or self.tools)
+  self.allowed_tools=set(self.tools if allowed_tools is None else allowed_tools)
   self.memo={}
   self.evidence=[]
  def definitions(self):
