@@ -20,13 +20,12 @@ def report(store, web_confirmed=None, restart_confirmed=None):
         web_messages=db.execute(
             "SELECT count(*) FROM messages WHERE channel='web'"
         ).fetchone()[0]
+        terminal=db.execute("SELECT count(*) FROM jobs WHERE channel LIKE 'telegram:%' AND status IN ('succeeded','partial','failed') AND delivery='sent'").fetchone()[0] > 0
 
     paired=bool(telegram.get('enabled') and isinstance(telegram.get('user_id'), int)
                 and isinstance(telegram.get('generation'), str))
     cancellation=cards['cancelled'] > 0
     approval=any(kind == 'approval_needed' and state in ('approved', 'denied')
-                 for kind, state in notifications)
-    terminal=any(kind in ('completed', 'failed') and state == 'sent'
                  for kind, state in notifications)
     checks={
         'paired_private_owner': paired,
