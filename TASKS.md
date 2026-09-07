@@ -20,6 +20,12 @@
 | [MP1-I-02 / #184](https://github.com/Jongtae/personal-agentos/issues/184) | Deliver reviewed capability registry | Complete; merged in #185 with automated validation |
 | [MP1-D-03 / #188](https://github.com/Jongtae/personal-agentos/issues/188) | Define Google Drive read-only connector contract | Complete; merged in #189, design only |
 | [MP1-I-03 / #190](https://github.com/Jongtae/personal-agentos/issues/190) | Deliver mock-validated Google Drive read-only connector | Complete; merged in #191 without live provider configuration |
+| [MP1-D-04 / #198](https://github.com/Jongtae/personal-agentos/issues/198) | Define compatibility A2A delegation contract | Complete; merged in #199, design only |
+| [MP1-I-04 / #200](https://github.com/Jongtae/personal-agentos/issues/200) | Deliver compatibility A2A delegation | Complete; merged in #201 with mock validation |
+| [MP1-D-05 / #202](https://github.com/Jongtae/personal-agentos/issues/202) | Define Calendar create-event approval contract | Complete; merged in #203, design only |
+| [MP1-I-05 / #204](https://github.com/Jongtae/personal-agentos/issues/204) | Deliver Calendar create-only approval flow | Complete; merged in #205 with mock validation |
+| [MP1-D-06 / #206](https://github.com/Jongtae/personal-agentos/issues/206) | Define integrated ReAct release contract | Complete; merged in #207, design only |
+| [MP1-I-06 / #208](https://github.com/Jongtae/personal-agentos/issues/208) | Release Personal Assistant Core | Complete; merged in #209 with automated integrated acceptance |
 | [#192](https://github.com/Jongtae/personal-agentos/issues/192) | Adopt contract-first, mock-driven, CI-gated delivery governance | Complete; merged in #193, documentation and verification policy only |
 
 ## Personal AgentOS v1 release delivery
