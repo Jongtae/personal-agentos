@@ -18,6 +18,11 @@ def links(text):
     return re.findall(r"\[[^]]+\]\(([^)#]+)(?:#[^)]+)?\)", text)
 
 
+def phase_table_ids(text):
+    rows = re.findall(r"^\| [1-6]\. .*\|.*\|.*\|$", text, flags=re.MULTILINE)
+    return tuple(re.findall(r"\b[DI]-\d{2}\b", "\n".join(rows)))
+
+
 def main():
     for korean, english in PAIRS:
         ko = (DOCS / korean).read_text(encoding="utf-8")
@@ -30,9 +35,11 @@ def main():
                     raise SystemExit(f"missing local link in {source}: {link}")
     mp1_ko = (DOCS / PAIRS[1][0]).read_text(encoding="utf-8")
     mp1_en = (DOCS / PAIRS[1][1]).read_text(encoding="utf-8")
-    for phase in PHASE_IDS:
-        if mp1_ko.count(phase) != mp1_en.count(phase) or not mp1_ko.count(phase):
-            raise SystemExit(f"MP1 phase parity failure: {phase}")
+    for source, text in ((PAIRS[1][0], mp1_ko), (PAIRS[1][1], mp1_en)):
+        if phase_table_ids(text) != PHASE_IDS:
+            raise SystemExit(f"MP1 phase table sequence failure: {source}")
+    if phase_table_ids(mp1_ko) != phase_table_ids(mp1_en):
+        raise SystemExit("MP1 phase parity failure")
     print("Master Plan bilingual documents verified")
 
 
