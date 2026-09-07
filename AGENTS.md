@@ -33,8 +33,8 @@ The active delivery order is `delivery-plan.yaml`. Historical v1/P7 plans are ar
 - AgentOS must retain ownership of personal state when an external execution engine is selected.
 - Each owner runtime is isolated from the host home directory and other owner runtimes. Engines receive only declared AgentOS tools; do not add arbitrary shell access, unapproved folders, host mounts, Docker socket access, external writes, or direct broad network access without a dedicated approval design and acceptance suite.
 - Context capture is opt-in, local-first, sensitive-data filtered, and shared externally only under the selected assistant's policy.
-- The managed control plane may create personal bots and relay transient data, but must not persist message bodies, personal history, documents, tool payloads, or provider credentials.
-- Never claim a Codex, Claude Code, Telegram managed-bot, consumer installer, or hosting path works unless that exact path has live evidence.
+- The managed control plane must not persist message bodies, personal history, documents, tool payloads, provider credentials, or Telegram bot tokens. Owners create dedicated Telegram bots in BotFather and enter the token only into their local AgentOS runtime.
+- Never claim a Codex, Claude Code, Telegram BotFather setup, consumer installer, or hosting path works unless that exact path has live evidence.
 
 ## Pull request closeout
 

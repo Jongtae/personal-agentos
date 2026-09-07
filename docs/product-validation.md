@@ -25,7 +25,7 @@ maintainer sends a new Telegram request after restarting AgentOS and verifies
 the shared web history and the delivery trace; no bot token is printed or
 stored in the report.
 
-The gate is a maintained v1 release decision aid, not the Hub v2 product gate. Hub v2 consumer installation, subscription engines, managed personal bots, and context capture each require their own named acceptance evidence.
+The gate is a maintained v1 release decision aid, not the Hub v2 product gate. Hub v2 consumer installation, subscription engines, owner-created BotFather personal bots, and context capture each require their own named acceptance evidence.
 
 When Docker is available, `--compose` builds an isolated Compose project,
 waits for `/healthz`, writes an AgentOS note into its named volume, recreates

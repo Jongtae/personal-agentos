@@ -1,4 +1,4 @@
-"""Redacted H3 first-work acceptance evidence for a managed personal bot."""
+"""Redacted H3 first-work acceptance evidence for an owner BotFather bot."""
 import json
 
 
@@ -22,7 +22,7 @@ def report(store, owner_confirmed=None):
                     detail = {}
                 source = source or isinstance(detail, dict)
     checks = {
-        'managed_personal_bot': config.get('mode') == 'managed' and config.get('enabled') is True,
+        'owner_botfather_bot': config.get('mode') == 'owner-token' and config.get('enabled') is True,
         'paired_private_owner': isinstance(config.get('user_id'), int),
         'codex_first_work_delivered': bool(job),
         'source_backed_evidence': bool(source),

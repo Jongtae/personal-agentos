@@ -6,7 +6,7 @@ The everyday surface is a personal Telegram bot. AgentOS is not only a message r
 
 ## Current baseline
 
-Version 1.0.3 remains the maintained self-hosted API-model preview. Hub v2 is the active product roadmap: subscription-connected engines, automatically created personal Telegram bots, and an opt-in local context inbox. See [Hub v2 product basis](docs/agentos-hub-v2.ko.md).
+Version 1.0.3 remains the maintained self-hosted API-model preview. Hub v2 is the active product roadmap: subscription-connected engines, an owner-created BotFather Telegram bot paired privately to the local runtime, and an opt-in local context inbox. The bot token is entered once, kept only in the local private connection store, and is excluded from settings, events, exports, logs, and acceptance reports. See [Hub v2 product basis](docs/agentos-hub-v2.ko.md).
 
 ## Development installation
 
