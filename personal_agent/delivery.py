@@ -66,11 +66,18 @@ class DeliveryPlan:
         self.data=data
         self.items={item['id']:item for item in data['iterations'] if isinstance(item,dict) and isinstance(item.get('id'),str)}
         if len(self.items)!=len(data['iterations']):raise DeliveryError('Each delivery iteration needs a unique id.')
+        self.milestones=data.get('milestones',{}) if isinstance(data.get('milestones',{}),dict) else {}
+
+    def milestone_title(self, item):
+        configured=self.milestones.get(item.get('milestone'),{})
+        if isinstance(configured,dict) and isinstance(configured.get('title'),str):return configured['title']
+        title=item.get('milestone_title')
+        return title if isinstance(title,str) else None
 
     def select(self, state):
         completed=set(state.get('completed',[])) if isinstance(state.get('completed'),list) else set()
         active=state.get('active')
-        if active in self.items:return self.items[active]
+        if active in self.items and active not in completed:return self.items[active]
         blocked=state.get('blocked')
         if blocked in self.items and blocked not in completed:
             repair=next((item for item in self.items.values() if item.get('repair_of')==blocked and item['id'] not in completed),None)
@@ -120,7 +127,7 @@ class DeliveryController:
         state=self.state_store.read();item=self.plan.select(state)
         return {**state,'active':item and item['id'],'milestone':item and item['milestone'],
                 'issue':item and self._issue_number(item,state),'summary':item and item['summary'],
-                'next_action':'wait for retry' if state.get('status','').startswith('blocked') else ('run current iteration' if item else 'v1 acceptance complete')}
+                'next_action':'wait for retry' if state.get('status','').startswith('blocked') else ('run current iteration' if item else 'delivery plan complete')}
 
     def due(self, state):
         return not state.get('next_retry_at') or self.now()>=state['next_retry_at']
@@ -152,9 +159,12 @@ class DeliveryController:
         issue=self._issue_number(item,state)
         if issue or dry_run:return issue
         title=f'[{item["id"]}] {item["summary"]}'
-        result=self._gh('issue','create','--repo',self.plan.data['repository'],'--title',title,
-                        '--body',f'Automated delivery iteration `{item["id"]}` for {item["milestone"]}.\n\n{item["summary"]}',
-                        '--label','iteration','--label','needs-validation','--milestone','Personal AgentOS v1')
+        args=['issue','create','--repo',self.plan.data['repository'],'--title',title,
+              '--body',f'Automated delivery iteration `{item["id"]}` for {item["milestone"]}.\n\n{item["summary"]}',
+              '--label','iteration','--label','needs-validation']
+        milestone=self.plan.milestone_title(item)
+        if milestone:args.extend(['--milestone',milestone])
+        result=self._gh(*args)
         found=re.search(r'/issues/(\d+)',result.stdout or '')
         if result.returncode or not found:raise DeliveryError(result.stderr or 'Could not create delivery issue.')
         state.setdefault('issues',{})[item['id']]=int(found.group(1))
@@ -188,12 +198,20 @@ class DeliveryController:
             raise DeliveryError(result.stderr or 'Could not read delivery issue status.')
         return result.returncode==0 and result.stdout.strip()=='CLOSED'
 
+    @staticmethod
+    def _complete_plan(state, now):
+        state={**state}
+        for key in ('active','milestone','issue','pr','release','blocked','next_retry_at'):
+            state.pop(key,None)
+        state.update(status='complete',last_validation=state.get('last_validation','passed'),updated_at=now)
+        return state
+
     def reconcile(self, dry_run=False):
         """Adopt a GitHub-closed active iteration without starting new work."""
         lock=self.state_store.locked()
         try:
             state=self.state_store.read();item=self.plan.select(state)
-            if not item:return self.state_store.write({**state,'status':'complete','updated_at':self.now()})
+            if not item:return self.state_store.write(self._complete_plan(state,self.now()))
             issue=self._issue_number(item,state)
             if not issue:
                 return self.state_store.write({**state,'status':'ready-to-run','updated_at':self.now()})
@@ -210,7 +228,7 @@ class DeliveryController:
         lock=self.state_store.locked()
         try:
             state=self.state_store.read();item=self.plan.select(state)
-            if not item:return self.state_store.write({**state,'status':'complete','updated_at':self.now()})
+            if not item:return self.state_store.write(self._complete_plan(state,self.now()))
             # A local validation can establish its evidence without GitHub.
             # This is essential for launchd's intentionally minimal runtime
             # environment and makes local acceptance usable offline.
@@ -254,7 +272,7 @@ class DeliveryController:
         worktrees=self.state_store.path.parent/'worktrees';worktree=worktrees/item['id'].lower()
         branch='delivery/'+item['id'].lower()
         if not worktree.exists():
-            created=self._command(['git','worktree','add','-b',branch,str(worktree),'main'],cwd=self.root,timeout=120)
+            created=self._command(['git','worktree','add','-b',branch,str(worktree),'origin/main'],cwd=self.root,timeout=120)
             if created.returncode:return self._record_block(item,state,classify_failure((created.stdout or '')+'\n'+(created.stderr or '')),created.stderr or 'Could not create delivery worktree.',False)
         prompt=(f'Implement {item["id"]}: {item["summary"]}\n'
                 'Work only in this worktree. Preserve product safety boundaries. Run listed tests and commit the finished change. Do not push, create a PR, merge, tag, or release; the delivery controller owns those actions.')
