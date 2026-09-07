@@ -246,7 +246,14 @@ class DeliveryController:
                 return self.state_store.write({**state,'status':'ready-to-run','updated_at':self.now()})
             try:
                 if self._issue_is_closed(item,state):
-                    return self._complete(item,state,dry_run=True)
+                    completed=self._complete(item,state,dry_run=True)
+                    next_item=self.plan.select(completed)
+                    if next_item:
+                        return self.state_store.write({**completed,'active':next_item['id'],
+                                                       'milestone':next_item['milestone'],
+                                                       'issue':self._issue_number(next_item,completed),
+                                                       'status':'ready-to-run','updated_at':self.now()})
+                    return completed
             except DeliveryError as exc:
                 return self._record_block(item,state,classify_failure(str(exc)),str(exc),dry_run)
             return self.state_store.write({**state,'active':item['id'],'milestone':item['milestone'],'issue':issue,'status':'ready-to-run','updated_at':self.now()})
