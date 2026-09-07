@@ -374,6 +374,24 @@ class QuickstartTests(unittest.TestCase):
         edit=[c for c in self.calls if c[0].endswith('/editMessageText')][-1]
         self.assertEqual(edit[1]['reply_markup']['inline_keyboard'][0][0]['text'],'결과 상태 보기')
 
+    def test_task_card_progress_truthfully_explains_restart_and_uncertain_delivery(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'private recovery request'}},generation)
+        job=self.store.jobs()[0]
+        card=self.store.task_card(job['id'])
+        with self.store.db() as db:
+            db.execute("UPDATE jobs SET status='running',delivery='sending' WHERE id=?",(job['id'],))
+        self.store.recover()
+        self.service.ingest_callback({'id':'recovery-progress','from':{'id':42},'message':{'chat':{'id':42,'type':'private'},'message_id':card['message_id']},'data':f"p7v:{job['id']}"},generation)
+        progress=[c for c in self.calls if c[0].endswith('/sendMessage') and c[1].get('text','').startswith('작업 상태:')][-1][1]['text']
+        self.assertIn('중단됨',progress)
+        self.assertIn('자동으로 다시 실행하지 않았습니다.',progress)
+        self.assertIn('전달 여부를 확인할 수 없습니다.',progress)
+        self.assertIn('자동으로 다시 보내지 않았습니다.',progress)
+        self.assertNotIn('private recovery request',progress)
+        self.assertNotIn(job['id'],progress)
+
     def test_terminal_notifications_survive_restart_without_ambiguous_retry(self):
         generation=self.pair()
         self.service.run_one();self.service.deliver_one()
