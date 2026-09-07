@@ -12,6 +12,7 @@ from .plugins import PluginRegistry
 from .providers import ModelAdapter, ProviderError, request_json, validate_model
 from .subscription_engines import SubscriptionEngines
 from .bounded_execution import AgentOSMcpTools, BoundedExecutionAdapter, ExecutionError
+from .managed_telegram import ManagedBotProvisioner, provisioned_bot
 
 SYSTEM = ('You are the user’s personal AgentOS assistant. Respond in the user’s language. '
           'This preview supports conversation, notes, connected local documents, and local read-only web search and weather tools. '
@@ -36,12 +37,13 @@ TELEGRAM_CARD_GRACE_SECONDS = 3
 
 
 class AgentService:
-    def __init__(self, store, adapter=None, telegram_transport=None, subscription_engines=None, execution_adapter=None):
+    def __init__(self, store, adapter=None, telegram_transport=None, subscription_engines=None, execution_adapter=None, managed_bot_provisioner=None):
         self.store=store
         self.adapter=adapter or ModelAdapter()
         self.telegram_transport=telegram_transport or request_json
         self.subscription_engines=subscription_engines or SubscriptionEngines()
         self.execution_adapter=execution_adapter or BoundedExecutionAdapter()
+        self.managed_bot_provisioner=managed_bot_provisioner or ManagedBotProvisioner()
         self.lock=threading.RLock()
         self.worker_lock=threading.Lock()
         self.local_tools=LocalTools()
@@ -62,8 +64,8 @@ class AgentService:
             return {'model':model,'has_api_key':bool(self.store.secret('model_key')),
                     'subscription_engines':self.subscription_engine_status(),
                     'subscription_execution':{'mode':'bounded-agentos-mcp','tools':['list_notes','save_note','web_search']},
-                    'telegram':{'enabled':tg.get('enabled',False),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
-                    'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'agents':[{'id':role['id'],'name':role['name'],'permissions':role['permissions'],'package_id':package['id']} for package in active_packages for role in package['roles']], 'packages':packages, 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery, 'telegram_task_card_acceptance':task_card_report(self.store)}
+                    'telegram':{'enabled':tg.get('enabled',False),'mode':tg.get('mode','owner-token'),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
+                    'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'agents':[{'id':role['id'],'name':role['name'],'permissions':role['permissions'],'package_id':package['id']} for package in active_packages for role in package['roles']], 'packages':packages, 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery, 'telegram_task_card_acceptance':task_card_report(self.store), 'telegram_first_work_acceptance':__import__('personal_agent.telegram_first_work_acceptance',fromlist=['report']).report(self.store)}
 
     def subscription_engine_status(self):
         connected=self.store.config('subscription_engine',{})
@@ -91,6 +93,16 @@ class AgentService:
             raise ValueError('먼저 Telegram 카드 취소, 문서 승인, 완료 알림과 웹 기록을 확인하세요.')
         self.store.put('telegram_task_card_acceptance',{'web_confirmed':True,'restart_confirmed':True,'recorded_at':time.time()})
         return task_card_report(self.store)
+
+    def attest_telegram_first_work(self, payload):
+        if not isinstance(payload,dict) or payload.get('owner_confirmed') is not True:
+            raise ValueError('실제 Telegram 첫 업무를 확인한 뒤에만 기록할 수 있습니다.')
+        from .telegram_first_work_acceptance import report
+        current=report(self.store, False)
+        if not all(value for key,value in current['checks'].items() if key!='owner_observed_live_work'):
+            raise ValueError('관리형 봇의 Codex 첫 업무, 전송, 출처 근거를 먼저 확인하세요.')
+        self.store.put('telegram_first_work_acceptance',{'owner_confirmed':True,'recorded_at':time.time()})
+        return report(self.store)
 
     def runtime_packages(self):
         return PluginRegistry(self.store.root).runtime_packages()
@@ -237,6 +249,23 @@ class AgentService:
         if not result.get('ok'): raise ProviderError('Telegram 요청이 실패했습니다. 봇 설정을 확인하세요.')
         return result['result']
 
+    def telegram_method(self, method, body):
+        cfg=self.store.config('telegram',{})
+        if cfg.get('mode')=='managed':
+            result=self.managed_bot_provisioner.call(self.store.secret('telegram_relay_capability'),method,body)
+            if not isinstance(result,dict) or result.get('ok') is not True:raise ProviderError('관리형 Telegram 봇 릴레이 요청이 실패했습니다.')
+            return result.get('result')
+        return self.telegram_call(self.store.secret('telegram_token'),method,body)
+
+    def create_managed_telegram(self):
+        username, capability=provisioned_bot(self.managed_bot_provisioner.provision())
+        with self.lock:
+            self.store.secret('telegram_token','')
+            self.store.secret('telegram_relay_capability',capability)
+            self.store.put('telegram',{'enabled':True,'mode':'managed','username':username,'generation':secrets.token_hex(12),'cursor':0,'user_id':None})
+            self.store.put('telegram_status',{'state':'pairing','message':'관리형 개인 Telegram 봇이 생성되었습니다. 개인 계정을 연결하세요.'})
+        return self.pair_telegram()
+
     def connect_telegram(self, body):
         token=body.get('token','')
         if not isinstance(token,str) or not 10<=len(token)<=300 or not all(c.isalnum() or c in ':_-' for c in token):
@@ -247,7 +276,8 @@ class AgentService:
             raise ValueError('이 봇은 webhook을 사용 중입니다. 새 전용 봇을 연결하거나 기존 webhook을 먼저 해제하세요.')
         with self.lock:
             self.store.secret('telegram_token',token)
-            self.store.put('telegram',{'enabled':True,'username':me['username'],'generation':secrets.token_hex(12),'cursor':0,'user_id':None})
+            self.store.secret('telegram_relay_capability','')
+            self.store.put('telegram',{'enabled':True,'mode':'owner-token','username':me['username'],'generation':secrets.token_hex(12),'cursor':0,'user_id':None})
             self.store.put('telegram_status',{'state':'pairing','message':'개인 Telegram 계정을 연결하세요.'})
         return self.pair_telegram()
 
@@ -266,7 +296,10 @@ class AgentService:
             cfg=self.store.config('telegram',{})
             cfg.update(enabled=False,pair_code='',user_id=None)
             self.store.put('telegram',cfg)
-            self.store.secret('telegram_token','')
+            if cfg.get('mode')=='managed':
+                try:self.managed_bot_provisioner.revoke(self.store.secret('telegram_relay_capability'))
+                except ProviderError:pass
+            self.store.secret('telegram_token','');self.store.secret('telegram_relay_capability','')
             self.store.put('telegram_status',{'state':'disabled','message':'Telegram 연결을 해제했습니다.'})
         return {'ok':True}
 
@@ -313,7 +346,7 @@ class AgentService:
                     {'text':'허용 안 함','callback_data':f"p7a:{notification['id']}:deny"},
                 ]]}
             try:
-                result=self.telegram_call(self.store.secret('telegram_token'),'sendMessage',body)
+                result=self.telegram_method('sendMessage',body)
                 message_id=result.get('message_id') if isinstance(result,dict) else None
                 self.store.update_notification(notification['id'],'sent',message_id if isinstance(message_id,int) else None)
             except ProviderError:
@@ -353,7 +386,7 @@ class AgentService:
         # unknown Telegram response could create a second card for one request.
         if self.store.task_card(job_id): return
         try:
-            result=self.telegram_call(self.store.secret('telegram_token'),'sendMessage',{
+            result=self.telegram_method('sendMessage',{
                 'chat_id':chat_id,
                 'text':self.task_card_text(message,'queued'),
                 'reply_markup':self.task_card_markup(job_id,'queued'),
@@ -368,7 +401,7 @@ class AgentService:
         if not card or card['state']==state:return
         markup=self.task_card_markup(job['id'],state)
         try:
-            self.telegram_call(self.store.secret('telegram_token'),'editMessageText',{
+            self.telegram_method('editMessageText',{
                 'chat_id':card['chat_id'],'message_id':card['message_id'],
                 'text':self.task_card_text(job['message'],state),'reply_markup':markup,
             })
@@ -394,7 +427,7 @@ class AgentService:
                 card=self.store.task_card(job_id)
                 if (job and card and card['chat_id']==sender and card['message_id']==message.get('message_id')
                         and job['channel']==f"telegram:{generation}" and job['chat_id']==sender):
-                    try:self.telegram_call(self.store.secret('telegram_token'),'sendMessage',{'chat_id':sender,'text':self.task_progress_text(job_id)})
+                    try:self.telegram_method('sendMessage',{'chat_id':sender,'text':self.task_progress_text(job_id)})
                     except ProviderError:pass
                     changed=True
             elif authorized and isinstance(data,str) and data.startswith('p7c:'):
@@ -427,13 +460,13 @@ class AgentService:
                             self.store.put('document_sharing',{})
                             result_kind='denied'
                         self.store.update_notification(notification['id'],result_kind)
-                        try:self.telegram_call(self.store.secret('telegram_token'),'editMessageText',{
+                        try:self.telegram_method('editMessageText',{
                             'chat_id':sender,'message_id':notification['message_id'],'text':self.notification_text(result_kind),'reply_markup':{'inline_keyboard':[]},
                         })
                         except ProviderError:pass
                         changed=True
             if authorized and isinstance(callback_id,str):
-                try:self.telegram_call(self.store.secret('telegram_token'),'answerCallbackQuery',{'callback_query_id':callback_id,'text':'처리했습니다.' if changed else '처리할 수 있는 요청이 아닙니다.'})
+                try:self.telegram_method('answerCallbackQuery',{'callback_query_id':callback_id,'text':'처리했습니다.' if changed else '처리할 수 있는 요청이 아닙니다.'})
                 except ProviderError:pass
 
     def ingest_update(self, update, generation):
@@ -471,8 +504,8 @@ class AgentService:
         with self.lock:
             cfg=self.store.config('telegram',{})
             token=self.store.secret('telegram_token')
-        if not cfg.get('enabled') or not token: return
-        updates=self.telegram_call(token,'getUpdates',{'offset':cfg.get('cursor',0),'timeout':5,'allowed_updates':['message','callback_query'],'limit':20})
+        if not cfg.get('enabled') or (cfg.get('mode')!='managed' and not token): return
+        updates=self.telegram_method('getUpdates',{'offset':cfg.get('cursor',0),'timeout':5,'allowed_updates':['message','callback_query'],'limit':20})
         for update in sorted(updates,key=lambda u:u.get('update_id',0)):
             if isinstance(update.get('callback_query'),dict):
                 self.ingest_callback(update['callback_query'],cfg['generation'])
@@ -588,7 +621,7 @@ class AgentService:
             text=job['response'] or job['error'] or '작업 결과를 웹에서 확인하세요.'
             if len(text)>1800:text=text[:1800]+'\n\n전체 결과는 AgentOS 웹에서 확인하세요.'
             try:
-                self.telegram_call(self.store.secret('telegram_token'),'sendMessage',{'chat_id':job['chat_id'],'text':text})
+                self.telegram_method('sendMessage',{'chat_id':job['chat_id'],'text':text})
                 status='sent'
             except ProviderError:
                 status='unknown'

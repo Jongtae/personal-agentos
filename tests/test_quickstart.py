@@ -146,6 +146,41 @@ class QuickstartTests(unittest.TestCase):
         self.service.ingest_update({'update_id':10,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'/start '+code}},cfg['generation'])
         return cfg['generation']
 
+    def test_managed_bot_never_stores_a_telegram_token_and_uses_relay(self):
+        class Managed:
+            def __init__(self):self.calls=[]
+            def provision(self):return {'username':'managed_test_bot','relay_capability':'r'*32}
+            def call(self, capability, method, body):
+                self.calls.append((capability,method,body))
+                if method=='getUpdates':return {'ok':True,'result':[]}
+                return {'ok':True,'result':{'message_id':1}}
+            def revoke(self, capability):self.calls.append((capability,'revoke',{}))
+        managed=Managed()
+        service=AgentService(self.store,ModelAdapter(self.transport),self.transport,managed_bot_provisioner=managed)
+        link=service.create_managed_telegram()['url']
+        code=parse_qs(urlsplit(link).query)['start'][0]
+        cfg=self.store.config('telegram')
+        self.assertEqual(cfg['mode'],'managed')
+        self.assertEqual(self.store.secret('telegram_token'),'')
+        self.assertEqual(self.store.secret('telegram_relay_capability'),'r'*32)
+        service.ingest_update({'update_id':10,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'/start '+code}},cfg['generation'])
+        service.poll_telegram()
+        self.assertTrue(any(call[1]=='getUpdates' for call in managed.calls))
+        self.assertNotIn('relay_capability',json.dumps(service.settings()))
+        service.disconnect_telegram()
+        self.assertEqual(self.store.secret('telegram_relay_capability'),'')
+
+    def test_managed_codex_first_work_acceptance_requires_source_and_owner_observation(self):
+        self.store.put('telegram',{'enabled':True,'mode':'managed','username':'managed_test_bot','generation':'safe','user_id':42})
+        with self.store.db() as db:
+            db.execute("INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",('job','request','private request','telegram:safe',42,'succeeded','done',None,'sent','subscription','codex',time.time()))
+            db.execute("INSERT INTO tool_events(job_id,tool,status,detail,created) VALUES (?,?,?,?,?)",('job','web_search','succeeded','{}',time.time()))
+        from personal_agent.telegram_first_work_acceptance import report
+        self.assertFalse(report(self.store)['passed'])
+        result=self.service.attest_telegram_first_work({'owner_confirmed':True})
+        self.assertTrue(result['passed'])
+        self.assertNotIn('private request',json.dumps(result))
+
     def test_successful_telegram_poll_clears_stale_connection_error(self):
         self.pair()
         self.store.put('telegram_status',{'state':'error','message':'stale'})
