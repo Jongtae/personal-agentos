@@ -103,7 +103,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertIn('P1-01a',result['completed'])
         worktree=self.state.parent/'worktrees'/'p1-01a'
         self.assertEqual(runner.calls[2][1],worktree)  # Codex never receives the caller worktree.
-        self.assertEqual(runner.calls[2][0][:5],['codex','exec','--sandbox','workspace-write','--approve-for-me'])
+        self.assertEqual(runner.calls[2][0][:3],['codex','exec','--approve-for-me'])
         self.assertIn(['gh','pr','merge','https://github.com/Jongtae/personal-agentos/pull/99','--squash','--delete-branch'],[call[0] for call in runner.calls])
 
     def test_launchd_schedule_pins_the_repository_root(self):
