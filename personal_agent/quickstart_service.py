@@ -432,11 +432,16 @@ class AgentService:
         return {'inline_keyboard':[buttons]}
 
     def task_progress_text(self, job_id):
-        """Return safe operational evidence without request or tool payloads."""
+        """Return safe operational evidence without request or tool payloads.
+
+        A card is also the owner-facing recovery surface.  In particular, do
+        not let a restart or a lost Telegram response look like work that is
+        still running or a result that was certainly delivered.
+        """
         labels={'queued':'대기 중','running':'진행 중','succeeded':'완료','partial':'일부 완료',
                 'failed':'완료하지 못함','cancelled':'취소됨','interrupted':'중단됨'}
         with self.store.db() as db:
-            job=db.execute('SELECT status FROM jobs WHERE id=?',(job_id,)).fetchone()
+            job=db.execute('SELECT status,delivery FROM jobs WHERE id=?',(job_id,)).fetchone()
             rows=db.execute('SELECT tool,status FROM tool_events WHERE job_id=? AND tool!=? ORDER BY id LIMIT 12',(job_id,'model')).fetchall()
         if not job:return '이 작업 카드를 찾을 수 없습니다.'
         lines=[f"작업 상태: {labels.get(job['status'],job['status'])}"]
@@ -447,8 +452,14 @@ class AgentService:
             lines.append('실행을 기다리고 있습니다.')
         elif job['status']=='running':
             lines.append('에이전트가 작업을 처리하고 있습니다.')
+        elif job['status']=='interrupted':
+            lines.append('재시작으로 작업이 중단되었습니다. 자동으로 다시 실행하지 않았습니다.')
         else:
             lines.append('전체 결과는 AgentOS 웹에서 확인하세요.')
+        if job['delivery']=='unknown':
+            lines.append('Telegram 전달 여부를 확인할 수 없습니다. 자동으로 다시 보내지 않았습니다. AgentOS 웹 기록을 확인하세요.')
+        elif job['delivery']=='cancelled':
+            lines.append('Telegram 전달은 취소되었습니다.')
         return '\n'.join(lines)
 
     def create_task_card(self, job_id, message, chat_id):
