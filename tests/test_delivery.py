@@ -178,6 +178,8 @@ class DeliveryTests(unittest.TestCase):
     def test_ux_plan_requires_each_predecessor(self):
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')
         completed=['UX-01','UX-02','UX-03','UX-04']
+        self.assertEqual(plan.select({'completed':completed})['id'],'UX-03a')
+        completed.append('UX-03a')
         self.assertEqual(plan.select({'completed':completed})['id'],'UX-05')
         completed.append('UX-05')
         self.assertIsNone(plan.select({'completed':completed}))

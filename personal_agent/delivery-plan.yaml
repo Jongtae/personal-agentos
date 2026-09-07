@@ -56,12 +56,25 @@
       "summary": "Show source boundaries and recovery actions in human language while preserving existing approval contracts."
     },
     {
+      "id": "UX-03a",
+      "milestone": "AgentOS UX v1.1",
+      "issue": 159,
+      "kind": "implementation",
+      "depends_on": [
+        "UX-04"
+      ],
+      "tests": [
+        "python3 -m unittest discover -s tests -q"
+      ],
+      "summary": "Replace expert-only Telegram context attachment syntax with an owner-guided, natural-language selection flow while preserving explicit policy and per-request approval."
+    },
+    {
       "id": "UX-05",
       "milestone": "AgentOS UX v1.1",
       "issue": 154,
       "kind": "release",
       "depends_on": [
-        "UX-04"
+        "UX-03a"
       ],
       "tests": [
         "python3 -m unittest discover -s tests -q"

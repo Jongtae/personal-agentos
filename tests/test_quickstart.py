@@ -390,6 +390,31 @@ class QuickstartTests(unittest.TestCase):
         self.service.ingest_callback({'id':'approve','from':{'id':42},'message':callback_message,'data':f"p7a:{approval_row['id']}:approve"},generation)
         self.assertFalse(self.service.document_boundary()['requires_approval'])
 
+    def test_telegram_guides_explicit_context_choice_without_exposing_content(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        inbox=self.service.context_inbox()
+        inbox.configure({'sources':{'text':True}})
+        item=inbox.capture({'source_kind':'text','content':'private roadmap detail'})
+        request={'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'저장한 컨텍스트를 함께 참고해서 계획을 만들어 줘'}}
+        self.service.ingest_update(request,generation)
+        job=self.store.jobs()[0]
+        self.assertEqual(job['status'],'awaiting_context')
+        offer=[call[1] for call in self.calls if call[0].endswith('/sendMessage') and call[1].get('text','').startswith('이번 요청에 참고할')][-1]
+        self.assertNotIn('private roadmap detail',json.dumps(offer))
+        callback=offer['reply_markup']['inline_keyboard'][0][0]['callback_data']
+        self.assertTrue(callback.startswith('p7x:'))
+        choice=self.store.telegram_context_choice(callback[4:])
+        self.assertEqual(choice['event_id'],item['id'])
+        self.service.ingest_callback({'id':'foreign','from':{'id':99},'message':{'chat':{'id':99,'type':'private'},'message_id':choice['message_id']},'data':callback},generation)
+        self.assertEqual(self.store.job(job['id'])['status'],'awaiting_context')
+        self.service.ingest_callback({'id':'wrong-message','from':{'id':42},'message':{'chat':{'id':42,'type':'private'},'message_id':choice['message_id']+1},'data':callback},generation)
+        self.assertEqual(self.store.job(job['id'])['status'],'awaiting_context')
+        self.service.ingest_callback({'id':'choose','from':{'id':42},'message':{'chat':{'id':42,'type':'private'},'message_id':choice['message_id']},'data':callback},generation)
+        self.assertEqual(self.store.job(job['id'])['status'],'queued')
+        self.assertEqual(self.store.context_attachment(job['id'])['event_ids'],[item['id']])
+        self.assertIsNotNone(self.store.task_card(job['id']))
+
     def test_telegram_context_is_explicit_source_evidenced_and_per_job_approved(self):
         generation=self.pair()
         self.service.run_one();self.service.deliver_one()
