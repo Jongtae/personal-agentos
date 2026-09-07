@@ -17,9 +17,10 @@ write access. It does not block product source, release, or iteration work.
 Make model-driven capability selection, tool execution, traces, recovery, and
 web/Telegram continuity dependable.
 
-Current delivery: P1-01 is waiting for a live free-model tool-call success;
-P1-01a adds the bounded local delivery loop that records and retries that gate
-without advancing to M2.
+Current delivery: P1-01 has live tool-call evidence and P1-01a has delivered
+the first bounded controller. P1-01b makes its local state reconciliation,
+timeouts, and launchd execution recoverable before P1-02 verifies each built-in
+capability.
 
 ## M2 — private documents and safety
 

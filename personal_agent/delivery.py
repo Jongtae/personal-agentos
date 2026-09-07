@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 
 RETRY_SECONDS = 6 * 60 * 60
 DAILY_LIMIT = 4
@@ -84,11 +85,17 @@ class DeliveryPlan:
 
 class CommandRunner:
     def run(self, args, cwd=None, timeout=900):
-        return subprocess.run(args,cwd=cwd,text=True,capture_output=True,timeout=timeout)
+        try:
+            return subprocess.run(args,cwd=cwd,text=True,capture_output=True,timeout=timeout)
+        except subprocess.TimeoutExpired as exc:
+            stdout=exc.stdout.decode() if isinstance(exc.stdout,bytes) else (exc.stdout or '')
+            stderr=exc.stderr.decode() if isinstance(exc.stderr,bytes) else (exc.stderr or '')
+            return SimpleNamespace(returncode=124,stdout=stdout,stderr=f'{stderr}\nTimed out after {timeout} seconds.')
 
 
 def classify_failure(text):
     lowered=(text or '').lower()
+    if 'timed out' in lowered or 'timeout' in lowered:return 'delivery-timeout'
     if any(term in lowered for term in ('429','rate limit','quota','free model')):return 'external-rate-limit'
     if any(term in lowered for term in ('oauth','authorization','permission','forbidden','401','403')):return 'blocked-approval'
     return 'validation-failed'
@@ -117,7 +124,16 @@ class DeliveryController:
         return attempts<DAILY_LIMIT,day,attempts
 
     def _gh(self, *args):
-        return self.runner.run(['gh',*args],cwd=self.root,timeout=60)
+        return self._command(['gh',*args],cwd=self.root,timeout=60)
+
+    def _command(self, args, cwd=None, timeout=900):
+        """Run every child process through one bounded, non-throwing boundary."""
+        try:
+            return self.runner.run(args,cwd=cwd,timeout=timeout)
+        except subprocess.TimeoutExpired as exc:
+            stdout=exc.stdout.decode() if isinstance(exc.stdout,bytes) else (exc.stdout or '')
+            stderr=exc.stderr.decode() if isinstance(exc.stderr,bytes) else (exc.stderr or '')
+            return SimpleNamespace(returncode=124,stdout=stdout,stderr=f'{stderr}\nTimed out after {timeout} seconds.')
 
     @staticmethod
     def _issue_number(item, state):
@@ -158,20 +174,47 @@ class DeliveryController:
         issue=self._issue_number(item,state)
         if not issue:return False
         result=self._gh('issue','view',str(issue),'--repo',self.plan.data['repository'],'--json','state','--jq','.state')
+        if result.returncode:
+            raise DeliveryError(result.stderr or 'Could not read delivery issue status.')
         return result.returncode==0 and result.stdout.strip()=='CLOSED'
 
-    def run_once(self, dry_run=False):
+    def reconcile(self, dry_run=False):
+        """Adopt a GitHub-closed active iteration without starting new work."""
         lock=self.state_store.locked()
         try:
             state=self.state_store.read();item=self.plan.select(state)
             if not item:return self.state_store.write({**state,'status':'complete','updated_at':self.now()})
-            issue=self._ensure_issue(item,state,dry_run)
+            issue=self._issue_number(item,state)
+            if not issue:
+                return self.state_store.write({**state,'status':'ready-to-run','updated_at':self.now()})
+            try:
+                if self._issue_is_closed(item,state):
+                    return self._complete(item,state,dry_run=True)
+            except DeliveryError as exc:
+                return self._record_block(item,state,classify_failure(str(exc)),str(exc),dry_run)
+            return self.state_store.write({**state,'active':item['id'],'milestone':item['milestone'],'issue':issue,'status':'ready-to-run','updated_at':self.now()})
+        finally:
+            lock.close()
+
+    def run_once(self, dry_run=False, scheduled=False):
+        lock=self.state_store.locked()
+        try:
+            state=self.state_store.read();item=self.plan.select(state)
+            if not item:return self.state_store.write({**state,'status':'complete','updated_at':self.now()})
+            try:
+                issue=self._ensure_issue(item,state,dry_run)
+            except DeliveryError as exc:
+                return self._record_block(item,state,classify_failure(str(exc)),str(exc),dry_run)
             if issue:state['issues']=dict(state.get('issues',{}),**{item['id']:issue})
             # Launchd has no interactive GitHub credential context. A live
             # validation must record its local evidence before any optional
             # GitHub status lookup; only repair implementation work needs the
             # closed-issue shortcut.
-            if not dry_run and item['kind']!='live_validation' and self._issue_is_closed(item,state):return self._complete(item,state,dry_run=True)
+            if not dry_run and item['kind']!='live_validation':
+                try:
+                    if self._issue_is_closed(item,state):return self._complete(item,state,dry_run=True)
+                except DeliveryError as exc:
+                    return self._record_block(item,state,classify_failure(str(exc)),str(exc),dry_run)
             if state.get('status','').startswith('blocked') and not self.due(state):return self.status()
             allowed,_,_=self._attempt_allowed(state)
             if state.get('status','').startswith('blocked') and not allowed:
@@ -179,7 +222,7 @@ class DeliveryController:
                 return self.state_store.write(state)
             state.update(active=item['id'],milestone=item['milestone'],issue=issue,status='running',updated_at=self.now())
             if item['kind']=='live_validation':
-                result=self.runner.run(item['validation'].split(),cwd=self.root,timeout=900)
+                result=self._command(item['validation'].split(),cwd=self.root,timeout=900)
                 output=(result.stdout or '')+'\n'+(result.stderr or '')
                 if result.returncode:
                     return self._record_block(item,state,classify_failure(output),output,dry_run)
@@ -192,21 +235,21 @@ class DeliveryController:
             lock.close()
 
     def _run_worker(self, item, state):
-        if not (self.root/'.git').exists():raise DeliveryError('Codex delivery requires a git checkout.')
+        if not (self.root/'.git').exists():return self._record_block(item,state,'delivery-failed','Codex delivery requires a git checkout.',False)
         worktrees=self.state_store.path.parent/'worktrees';worktree=worktrees/item['id'].lower()
         branch='delivery/'+item['id'].lower()
         if not worktree.exists():
-            created=self.runner.run(['git','worktree','add','-b',branch,str(worktree),'main'],cwd=self.root,timeout=120)
-            if created.returncode:raise DeliveryError(created.stderr or 'Could not create delivery worktree.')
+            created=self._command(['git','worktree','add','-b',branch,str(worktree),'main'],cwd=self.root,timeout=120)
+            if created.returncode:return self._record_block(item,state,classify_failure((created.stdout or '')+'\n'+(created.stderr or '')),created.stderr or 'Could not create delivery worktree.',False)
         prompt=(f'Implement {item["id"]}: {item["summary"]}\n'
                 'Work only in this worktree. Preserve product safety boundaries. Run listed tests and commit the finished change. Do not push, create a PR, merge, tag, or release; the delivery controller owns those actions.')
-        result=self.runner.run(['codex','exec','--full-auto',prompt],cwd=worktree,timeout=3600)
+        result=self._command(['codex','exec','--full-auto',prompt],cwd=worktree,timeout=3600)
         output=(result.stdout or '')+'\n'+(result.stderr or '')
         if result.returncode:return self._record_block(item,state,classify_failure(output),output,False)
         for command in item.get('tests',[]):
-            checked=self.runner.run(command.split(),cwd=worktree,timeout=900)
+            checked=self._command(command.split(),cwd=worktree,timeout=900)
             if checked.returncode:return self._record_block(item,state,'validation-failed',(checked.stdout or '')+'\n'+(checked.stderr or ''),False)
-        pushed=self.runner.run(['git','push','-u','origin',branch],cwd=worktree,timeout=180)
+        pushed=self._command(['git','push','-u','origin',branch],cwd=worktree,timeout=180)
         if pushed.returncode:return self._record_block(item,state,'delivery-failed',(pushed.stdout or '')+'\n'+(pushed.stderr or ''),False)
         issue=self._issue_number(item,state)
         body=f'Automated delivery implementation for `{item["id"]}`.\n\nCloses #{issue}.' if issue else f'Automated delivery implementation for `{item["id"]}`.'
@@ -222,26 +265,30 @@ class DeliveryController:
         label='com.jongtae.personal-agentos.delivery';folder=Path.home()/'Library'/'LaunchAgents';path=folder/(label+'.plist')
         folder.mkdir(parents=True,exist_ok=True)
         command=shutil.which('agentos') or str(Path(sys.argv[0]).resolve())
-        payload=f'''<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>Label</key><string>{label}</string><key>ProgramArguments</key><array><string>{command}</string><string>delivery</string><string>run</string><string>--once</string><string>--root</string><string>{self.root}</string></array><key>StartInterval</key><integer>{RETRY_SECONDS}</integer><key>RunAtLoad</key><true/><key>StandardOutPath</key><string>{Path.home()/'Library/Logs/personal-agentos-delivery.log'}</string><key>StandardErrorPath</key><string>{Path.home()/'Library/Logs/personal-agentos-delivery.error.log'}</string></dict></plist>'''
+        payload=f'''<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>Label</key><string>{label}</string><key>ProgramArguments</key><array><string>{command}</string><string>delivery</string><string>run</string><string>--once</string><string>--scheduled</string><string>--root</string><string>{self.root}</string><string>--state</string><string>{self.state_store.path}</string></array><key>StartInterval</key><integer>{RETRY_SECONDS}</integer><key>RunAtLoad</key><true/><key>StandardOutPath</key><string>{Path.home()/'Library/Logs/personal-agentos-delivery.log'}</string><key>StandardErrorPath</key><string>{Path.home()/'Library/Logs/personal-agentos-delivery.error.log'}</string></dict></plist>'''
         path.write_text(payload);os.chmod(path,0o600)
-        result=self.runner.run(['launchctl','bootstrap',f'gui/{os.getuid()}',str(path)],timeout=30)
+        self._command(['launchctl','bootout',f'gui/{os.getuid()}',str(path)],timeout=30)
+        result=self._command(['launchctl','bootstrap',f'gui/{os.getuid()}',str(path)],timeout=30)
         if result.returncode:raise DeliveryError(result.stderr or 'Could not install launchd schedule.')
+        health=self._command(['launchctl','print',f'gui/{os.getuid()}/{label}'],timeout=30)
+        if health.returncode:raise DeliveryError(health.stderr or 'launchd did not register the delivery schedule.')
         return {'scheduled':True,'path':str(path)}
 
     def uninstall_schedule(self):
         path=Path.home()/'Library'/'LaunchAgents'/'com.jongtae.personal-agentos.delivery.plist'
-        self.runner.run(['launchctl','bootout',f'gui/{os.getuid()}',str(path)],timeout=30)
+        self._command(['launchctl','bootout',f'gui/{os.getuid()}',str(path)],timeout=30)
         path.unlink(missing_ok=True);return {'scheduled':False}
 
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command',choices=('status','run','install-schedule','uninstall-schedule'))
-    parser.add_argument('--once',action='store_true');parser.add_argument('--dry-run',action='store_true')
+    parser.add_argument('command',choices=('status','run','reconcile','install-schedule','uninstall-schedule'))
+    parser.add_argument('--once',action='store_true');parser.add_argument('--dry-run',action='store_true');parser.add_argument('--scheduled',action='store_true')
     parser.add_argument('--root',default=str(Path.cwd()));parser.add_argument('--state')
     args=parser.parse_args(argv);controller=DeliveryController(args.root,args.state)
     if args.command=='status':result=controller.status()
-    elif args.command=='run':result=controller.run_once(args.dry_run)
+    elif args.command=='run':result=controller.run_once(args.dry_run,args.scheduled)
+    elif args.command=='reconcile':result=controller.reconcile(args.dry_run)
     elif args.command=='install-schedule':result=controller.install_schedule()
     else:result=controller.uninstall_schedule()
     print(json.dumps(result,ensure_ascii=False,sort_keys=True))
