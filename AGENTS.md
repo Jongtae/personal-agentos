@@ -24,6 +24,11 @@ Every milestone and iteration uses:
 4. a pull request with automated and live validation evidence named separately
 5. merge, issue closeout, and a ledger entry
 
+Before making an implementation or documentation change, create the issue and
+switch to its matching branch. Enable the repository hooks once per clone with
+`git config core.hooksPath .githooks`; they reject commits and pushes directly
+to `main` or `master`.
+
 The active delivery order is `delivery-plan.yaml`. Historical v1/P7 plans are archived rather than deleted. An iteration cannot advance until its predecessor is complete or its explicitly recorded external blocker is resolved.
 
 ## Truthfulness and safety

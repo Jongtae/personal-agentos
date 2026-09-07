@@ -7,6 +7,12 @@
 | v1 / M0–M6 | Self-hosted personal runtime, documents, continuity, manifests, and v1 acceptance | Complete baseline through 1.0.3 |
 | v1 / M7 | Telegram task-card polish and release gate | Frozen maintenance; it does not block Hub v2 |
 
+## Completed repository maintenance
+
+| Issue | Goal | Status |
+| --- | --- | --- |
+| [#170](https://github.com/Jongtae/personal-agentos/issues/170) | Localize README navigation and prevent direct integration-branch changes | Complete; awaiting PR merge |
+
 ## Personal AgentOS v1 release delivery
 
 | Iteration | Goal | Status |

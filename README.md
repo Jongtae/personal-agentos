@@ -1,5 +1,7 @@
 # AgentOS
 
+[English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
+
 AgentOS is a local-first personal-agent runtime. It keeps an owner's memory, context, tool permissions, work queue, approvals, and evidence in a user-scoped isolated runtime on their Mac, while using connected AI execution engines such as Codex or Claude Code to complete work.
 
 The everyday surface is a personal Telegram bot. AgentOS is not only a message relay: it chooses the assistant, enforces tool and data boundaries, persists work state, and records the result and its evidence.
