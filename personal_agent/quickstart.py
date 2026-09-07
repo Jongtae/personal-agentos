@@ -103,6 +103,7 @@ def make_handler(service, public_hosts=(), public_access_token=''):
             if path=='/api/status':
                 return self.reply(200,{'claimed':store.claimed(),'authenticated':store.session(self.token()),'local_access':self.local_setup() and store.config('local_access',False)})
             if not self.auth():return
+            if path=='/api/home':return self.reply(200,service.home())
             if path=='/api/state':return self.reply(200,{'settings':service.settings(),'messages':store.history(),'jobs':store.jobs(),'notes':store.notes(),'tool_events':store.recent_tool_events(),'healthy':service.healthy()})
             if path=='/api/onboarding':return self.reply(200,service.onboarding())
             self.reply(404,{'error':'경로를 찾을 수 없습니다.'})

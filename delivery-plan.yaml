@@ -1,14 +1,95 @@
 {
-  "version": 4,
+  "version": 5,
   "repository": "Jongtae/personal-agentos",
-  "retry": {"seconds": 21600, "daily_limit": 4},
+  "retry": {
+    "seconds": 21600,
+    "daily_limit": 4
+  },
   "iterations": [
-    {"id":"V1-01","milestone":"Personal AgentOS v1 Release","issue":136,"kind":"implementation","tests":["python3 -m unittest discover -s tests -q"],"summary":"Guide first-time installation, Codex/model onboarding, update, and recovery without exposing credentials."},
-    {"id":"V1-02","milestone":"Personal AgentOS v1 Release","issue":137,"kind":"implementation","depends_on":["V1-01"],"tests":["python3 -m unittest discover -s tests -q"],"summary":"Make Telegram the natural daily-work interface with task progress, approvals, cancellation, and truthful recovery."},
-    {"id":"V1-03","milestone":"Personal AgentOS v1 Release","issue":138,"kind":"implementation","depends_on":["V1-02"],"tests":["python3 -m unittest discover -s tests -q"],"summary":"Connect opt-in local documents and context to Telegram work with source evidence and external-sharing approval."},
-    {"id":"V1-04","milestone":"Personal AgentOS v1 Release","issue":139,"kind":"implementation","depends_on":["V1-03"],"tests":["python3 -m unittest discover -s tests -q"],"summary":"Prove Docker Compose VPS operation, health, update, backup, restore, and Telegram continuity."},
-    {"id":"V1-05","milestone":"Personal AgentOS v1 Release","issue":140,"kind":"release","depends_on":["V1-04"],"tests":["python3 -m unittest discover -s tests -q"],"summary":"Run clean-environment release acceptance and publish only verified installation artifacts."}
+    {
+      "id": "UX-01",
+      "milestone": "AgentOS UX v1.1",
+      "issue": 150,
+      "kind": "implementation",
+      "tests": [
+        "python3 -m unittest discover -s tests -q"
+      ],
+      "summary": "Make the responsive web home a minimal personal-agent DM and move technical connections into progressive management."
+    },
+    {
+      "id": "UX-02",
+      "milestone": "AgentOS UX v1.1",
+      "issue": 151,
+      "kind": "implementation",
+      "depends_on": [
+        "UX-01"
+      ],
+      "tests": [
+        "python3 -m unittest discover -s tests -q"
+      ],
+      "summary": "Add opt-in workspaces and saved results without expanding engine access or duplicating personal data."
+    },
+    {
+      "id": "UX-03",
+      "milestone": "AgentOS UX v1.1",
+      "issue": 152,
+      "kind": "implementation",
+      "depends_on": [
+        "UX-02"
+      ],
+      "tests": [
+        "python3 -m unittest discover -s tests -q"
+      ],
+      "summary": "Make paired Telegram the concise remote DM with intentional native conversation bubbles, safe inline actions, guided natural-language context selection, and shared workspace/results."
+    },
+    {
+      "id": "UX-04",
+      "milestone": "AgentOS UX v1.1",
+      "issue": 153,
+      "kind": "implementation",
+      "depends_on": [
+        "UX-03"
+      ],
+      "tests": [
+        "python3 -m unittest discover -s tests -q"
+      ],
+      "summary": "Show source boundaries and recovery actions in human language while preserving existing approval contracts."
+    },
+    {
+      "id": "UX-05",
+      "milestone": "AgentOS UX v1.1",
+      "issue": 154,
+      "kind": "release",
+      "depends_on": [
+        "UX-04"
+      ],
+      "tests": [
+        "python3 -m unittest discover -s tests -q"
+      ],
+      "summary": "Run responsive web, paired Telegram, Homebrew, and Compose acceptance before publishing the UX release."
+    }
   ],
-  "milestones":{"Personal AgentOS v1 Release":{"title":"Personal AgentOS v1 Release"}},
-  "history":{"archived_plan":"docs/archive/delivery-plan-hub-v2.json","completed_iterations":["H0-01","H1-01","H1-02","H2-01","H3-01","H4-01","H5-01"],"reason":"Hub v2 delivered the runtime foundation. Version 4 tracks the release-ready non-developer product path."}
+  "milestones": {
+    "AgentOS UX v1.1": {
+      "title": "AgentOS UX v1.1"
+    }
+  },
+  "history": {
+    "archived_plan": "docs/archive/delivery-plan-v1.json",
+    "completed_iterations": [
+      "H0-01",
+      "H1-01",
+      "H1-02",
+      "H2-01",
+      "H3-01",
+      "H4-01",
+      "H5-01",
+      "V1-01",
+      "V1-02",
+      "V1-03",
+      "V1-04",
+      "V1-05"
+    ],
+    "reason": "v1.0.4 delivered the runtime and release baseline. Version 5 tracks the approved DM-first consumer experience."
+  }
 }
