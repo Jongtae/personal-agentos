@@ -17,8 +17,8 @@ def test_mp1_owner_flow_uses_evidence_explicit_delegation_approval_and_disconnec
   store=QuickStore(root)
   def drive_transport(url,body,headers):return {'files':[{'id':'f','name':'source'}]}
   source=GoogleDrive(drive_transport,'mock-token').search('source')[0]
-  delegation=A2ADelegation(store,Peer()).delegate({'explicit':True,'prompt':'summarize '+source['name']})
-  assert A2ADelegation(store,Peer()).status(delegation['id'])['state']=='completed'
+  delegation=A2ADelegation(store,Peer()).delegate({'explicit':True,'owner':'owner','prompt':'summarize '+source['name']})
+  assert A2ADelegation(store,Peer()).status(delegation['id'],'owner')['state']=='completed'
   calls=[];calendar=CalendarCreate(store,lambda url,body,headers:calls.append((url,body,headers)) or {'id':'event-1'})
   draft=calendar.draft({'summary':'review','start':'2026-01-01T10:00','end':'2026-01-01T11:00','timezone':'Asia/Seoul'})
   approval=calendar.approve(draft['id'],'owner');assert not calls

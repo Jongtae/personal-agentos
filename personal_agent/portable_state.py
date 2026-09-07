@@ -28,6 +28,14 @@ def _portable_db(source, target):
         if not {"auth", "sessions", "config"} <= tables: raise ValueError("AgentOS owner database has an unsupported schema.")
         copy.execute("DELETE FROM auth");copy.execute("DELETE FROM sessions")
         copy.executemany("DELETE FROM config WHERE key=?", ((key,) for key in _RESET_CONFIG))
+        row = copy.execute("SELECT value FROM config WHERE key='a2a_delegations'").fetchone()
+        if row:
+            try: delegations = json.loads(row[0])
+            except ValueError: delegations = {}
+            if isinstance(delegations, dict):
+                safe = {ident: {key: item[key] for key in ('id','state','peer','skill','created_at','updated_at','error') if key in item}
+                        for ident, item in delegations.items() if isinstance(item, dict)}
+                copy.execute("UPDATE config SET value=? WHERE key='a2a_delegations'", (json.dumps(safe, sort_keys=True),))
         copy.commit();copy.execute("VACUUM")
 
 def export_owner_state(data, archive):
