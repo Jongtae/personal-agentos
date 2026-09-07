@@ -40,12 +40,14 @@ def request_json(url, body, headers=None, timeout=60):
 
 def validate_model(config):
     provider = config.get('provider', '')
-    if provider not in ('ollama', 'compatible', 'anthropic'):
+    if provider not in ('ollama', 'compatible', 'openai', 'anthropic'):
         raise ValueError('모델 연결 방식을 선택하세요.')
     endpoint = config.get('endpoint', '').rstrip('/')
     parts = urlsplit(endpoint)
     if parts.scheme not in ('http', 'https') or not parts.hostname or parts.username or parts.password or parts.query or parts.fragment:
         raise ValueError('인증 정보나 쿼리가 없는 HTTP(S) 서버 주소를 입력하세요.')
+    if provider == 'openai' and endpoint != 'https://api.openai.com/v1':
+        raise ValueError('OpenAI 주소는 https://api.openai.com/v1을 사용하세요.')
     if provider == 'anthropic' and endpoint != 'https://api.anthropic.com':
         raise ValueError('Anthropic 주소는 https://api.anthropic.com을 사용하세요.')
     model = config.get('model', '').strip()
@@ -69,7 +71,7 @@ class ModelAdapter:
         import uuid
         cfg=validate_model(config);provider=cfg['provider']
         try:
-            if provider=='compatible':
+            if provider in ('compatible','openai'):
                 body={'model':cfg['model'],'messages':messages,'tools':tools,'tool_choice':tool_choice,'stream':False}
                 if cfg['endpoint']=='https://openrouter.ai/api/v1':body['provider']={'require_parameters':True}
                 data=self.transport(cfg['endpoint']+'/chat/completions',body,{'Authorization':'Bearer '+key} if key else {})
@@ -121,7 +123,7 @@ class ModelAdapter:
             if provider == 'ollama':
                 data = self.transport(endpoint+'/api/chat', {'model': model, 'messages': messages, 'stream': False}, headers)
                 content = data['message']['content']
-            elif provider == 'compatible':
+            elif provider in ('compatible','openai'):
                 data = self.transport(endpoint+'/chat/completions', {'model': model, 'messages': messages, 'stream': False}, headers)
                 content = data['choices'][0]['message']['content']
             else:

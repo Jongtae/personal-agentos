@@ -27,8 +27,10 @@ async function status(){
 }
 $('auth-form').addEventListener('submit',async e=>{e.preventDefault();$('auth-error').textContent='';await busy($('auth-submit'),async()=>{try{await api(claimed?'/api/login':'/api/claim',{password:$('password').value,code:bootstrap});bootstrap='';$('password').value='';await status();}catch(e){error('auth-error',e);}});});
 $('logout').onclick=async()=>{try{await api('/api/logout',{});modelLoaded=false;stateFingerprint='';await status();}catch(e){error('global-error',e);}};
-const providers={ollama:{endpoint:'http://127.0.0.1:11434',help:'Ollama 서버의 주소입니다. 모델은 Ollama에 미리 설치되어 있어야 합니다.'},compatible:{endpoint:'https://openrouter.ai/api/v1',help:'Chat Completions 호환 기본 URL입니다. 필요한 경우 /v1을 포함하세요.'},anthropic:{endpoint:'https://api.anthropic.com',help:'Anthropic에서 사용 가능한 모델 ID와 API 키를 입력하세요.'}};
-$('provider').onchange=()=>{const p=providers[$('provider').value];$('endpoint').value=p.endpoint;$('endpoint-help').textContent=p.help;$('api-key').value='';$('model-feedback').textContent='연결 대상이 바뀌면 기존 키를 자동으로 전달하지 않습니다. 필요한 키를 다시 입력하세요.';};
+const providers={ollama:{endpoint:'http://127.0.0.1:11434',help:'Ollama 서버의 주소입니다. 모델은 Ollama에 미리 설치되어 있어야 합니다.'},compatible:{endpoint:'https://openrouter.ai/api/v1',help:'OpenRouter 호환 서버의 주소입니다. 필요한 경우 /v1을 포함하세요.',model:'openrouter/free'},openai:{endpoint:'https://api.openai.com/v1',help:'OpenAI API 서버입니다. 기존 OpenAI API 키를 입력하면 GPT-4o mini를 연결합니다.',model:'gpt-4o-mini'},anthropic:{endpoint:'https://api.anthropic.com',help:'Anthropic에서 사용 가능한 모델 ID와 API 키를 입력하세요.'}};
+const providerNames={compatible:'OpenRouter',openai:'OpenAI',ollama:'Ollama',anthropic:'Anthropic'};
+function displayProvider(model){return model.provider==='compatible'&&model.endpoint==='https://api.openai.com/v1'?'openai':model.provider;}
+$('provider').onchange=()=>{const p=providers[$('provider').value];$('endpoint').value=p.endpoint;if(p.model)$('model-name').value=p.model;$('endpoint-help').textContent=p.help;$('api-key').value='';$('model-feedback').textContent='연결 대상이 바뀌면 기존 키를 자동으로 전달하지 않습니다. 필요한 키를 다시 입력하세요.';};
 $('model-form').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{await api('/api/model',{provider:$('provider').value,endpoint:$('endpoint').value,model:$('model-name').value,api_key:$('api-key').value});$('api-key').value='';$('model-feedback').textContent='저장했습니다. 연결 확인을 누르면 실제 응답을 확인합니다.';await refresh();}catch(e){error('model-feedback',e);}});};
 $('test-model').onclick=async()=>busy($('test-model'),async()=>{try{const data=await api('/api/model/test',{});$('model-feedback').textContent=data.ok?'텍스트와 네이티브 도구 호출을 확인했습니다. 실제 모델 응답: '+data.response:(data.error||'도구 호출을 확인하지 못했습니다. 도구 지원 모델을 선택해 주세요.');await refresh();}catch(e){error('model-feedback',e);}});
 function showPair(data){$('pair-link').href=data.url;$('telegram-pair').hidden=false;$('telegram-token').value='';}
@@ -54,15 +56,15 @@ async function refresh(){
  try{
  const state=await api('/api/state');const settings=state.settings;const model=settings.model;const tg=settings.telegram;hasModel=!!model.model;
  const delivery=settings.delivery||{};let deliveryView=$('delivery-status');if(!deliveryView){deliveryView=element('p',undefined);deliveryView.id='delivery-status';document.querySelector('.workspace-heading').append(deliveryView);}deliveryView.textContent=delivery.active?`전달 루프 · ${delivery.milestone||''} ${delivery.active} · ${delivery.status||'대기'}${delivery.next_retry_at?' · 다음 재시도 '+new Date(delivery.next_retry_at*1000).toLocaleString():''}`:'전달 루프 · 아직 실행 기록이 없습니다.';
- const latest=state.jobs.find(j=>j.status==='succeeded'&&j.model)||state.jobs.find(j=>j.model);
- $('actual-model').textContent=latest?'최근 응답 모델: '+latest.model:(model.model==='openrouter/free'?'도구 지원 무료 모델을 선택해 연결을 확인해 주세요.':'');
+ const latest=state.jobs.find(j=>j.status==='succeeded'&&j.model)||state.jobs.find(j=>j.model);const shownProvider=displayProvider(model);
+ $('actual-model').textContent=latest?'최근 응답 모델: '+latest.model:(model.model?`현재 선택: ${providerNames[shownProvider]||shownProvider} · ${model.model}`:'도구 지원 무료 모델을 선택해 연결을 확인해 주세요.');
  const currentTool=(state.tool_events||[]).find(e=>e.job_id===state.jobs[0]?.id);
  $('tool-status').textContent=currentTool?({running:'실행 중',succeeded:'실행 완료',failed:'실행 실패'}[currentTool.status]+' · '+currentTool.tool+' · 내 AgentOS에서 실행'):'';
  $('tool-history').replaceChildren();for(const e of state.tool_events||[]){const trace=e.trace||{};const attempt=trace.attempt?' · '+trace.attempt+'회차':'';const error=trace.error?' · '+trace.error:'';$('tool-history').append(element('div',new Date(e.created*1000).toLocaleTimeString()+' · '+e.tool+' · '+({running:'실행 중',succeeded:'완료',failed:'실패'}[e.status]||e.status)+attempt+error));}
  $('runtime-badge').textContent=state.healthy?'● 개인 환경 실행 중':'실행 상태 확인 필요';
- if(!modelLoaded){if(model.provider){$('provider').value=model.provider;$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;$('root-paths').value=(settings.file_roots||[]).map(r=>r.path).join('\n');modelLoaded=true;}showDocumentBoundary(settings.document_boundary);
+ if(!modelLoaded){if(model.provider){$('provider').value=displayProvider(model);$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;$('root-paths').value=(settings.file_roots||[]).map(r=>r.path).join('\n');modelLoaded=true;}showDocumentBoundary(settings.document_boundary);
  const tested=settings.model_test;
- $('model-label').textContent=model.model?model.model+' · '+(settings.model_ready?'도구 호출 확인됨':tested?.text_ok?'텍스트만 확인됨 · 도구 호출 필요':'저장됨 · 확인 전'):'메모 기능 준비됨';
+ $('model-label').textContent=model.model?(providerNames[shownProvider]||shownProvider)+' · '+model.model+' · '+(settings.model_ready?'도구 호출 확인됨':tested?.text_ok?'텍스트만 확인됨 · 도구 호출 필요':'저장됨 · 확인 전'):'메모 기능 준비됨';
  $('model-step').textContent=settings.model_ready?'✓ 모델과 도구 연결 확인':'② 모델과 도구 연결';$('model-step').classList.toggle('done',!!settings.model_ready);
  $('telegram-step').textContent=tg.paired?'✓ Telegram 계정 연결':'③ Telegram 연결 · 선택';$('telegram-step').classList.toggle('done',tg.paired);
  $('key-hint').textContent=settings.has_api_key?'키가 저장되어 있습니다. 빈칸으로 저장하면 같은 연결의 키를 유지합니다.':'키는 대화 기록과 분리된 개인 설정 파일에 저장합니다.';
