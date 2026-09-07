@@ -20,7 +20,7 @@ AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gate
 
 ## M3 — Personal Telegram bot and first work
 
-[#106](https://github.com/Jongtae/personal-agentos/issues/106) creates a personal bot through the managed-bot flow and proves a real source-backed Telegram task through Codex.
+[#106](https://github.com/Jongtae/personal-agentos/issues/106) creates a personal bot through the managed-bot flow and proves a real source-backed Telegram task through Codex. The runtime stores only a revocable managed-relay capability, never a Telegram bot token; see the [live acceptance procedure](validation/h3-01-managed-telegram-first-work.md).
 
 ## M4 — Personal context inbox
 
