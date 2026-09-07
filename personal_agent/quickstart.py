@@ -154,6 +154,7 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 if path=='/api/telegram':return self.reply(200,service.connect_telegram(body))
                 if path=='/api/telegram/pair':return self.reply(200,service.pair_telegram())
                 if path=='/api/telegram/disconnect':return self.reply(200,service.disconnect_telegram())
+                if path=='/api/telegram/task-card-acceptance':return self.reply(200,service.attest_telegram_task_card_acceptance(body))
                 if path=='/api/chat':return self.reply(202,{'id':store.enqueue(body.get('message'),body.get('request_key'))})
                 self.reply(404,{'error':'경로를 찾을 수 없습니다.'})
             except (ValueError,UnicodeDecodeError) as exc:self.reply(400,{'error':str(exc)})

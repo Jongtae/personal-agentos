@@ -138,6 +138,13 @@ class DeliveryTests(unittest.TestCase):
         completed=[item['id'] for item in plan.data['iterations'] if item['id'] not in ('P7-01','P7-02','P7-03','P7-04')]
         self.assertEqual(plan.select({'completed':completed})['id'],'P7-01')
 
+    def test_p7_release_waits_for_recorded_live_acceptance(self):
+        plan=DeliveryPlan(self.root/'delivery-plan.yaml')
+        completed=[item['id'] for item in plan.data['iterations'] if item['id'] not in ('P7-03a','P7-04')]
+        self.assertEqual(plan.select({'completed':completed})['id'],'P7-03a')
+        completed.append('P7-03a')
+        self.assertEqual(plan.select({'completed':completed})['id'],'P7-04')
+
     def test_completed_v1_state_selects_stage_two_without_stale_issue(self):
         completed=[item['id'] for item in DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations'] if item['id']!='P6-01']
         StateStore(self.state).write({'completed':completed,'status':'complete','milestone':'M1','issue':25})

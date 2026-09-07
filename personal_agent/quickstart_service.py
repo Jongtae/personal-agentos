@@ -51,9 +51,22 @@ class AgentService:
             boundary=self.document_boundary(model)
             active_packages=self.runtime_packages()
             packages=PluginRegistry(self.store.root).declared_packages()
+            from .telegram_task_card_acceptance import report as task_card_report
             return {'model':model,'has_api_key':bool(self.store.secret('model_key')),
                     'telegram':{'enabled':tg.get('enabled',False),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
-                    'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'agents':[{'id':role['id'],'name':role['name'],'permissions':role['permissions'],'package_id':package['id']} for package in active_packages for role in package['roles']], 'packages':packages, 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery}
+                    'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'agents':[{'id':role['id'],'name':role['name'],'permissions':role['permissions'],'package_id':package['id']} for package in active_packages for role in package['roles']], 'packages':packages, 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery, 'telegram_task_card_acceptance':task_card_report(self.store)}
+
+    def attest_telegram_task_card_acceptance(self, payload):
+        """Persist only an owner acknowledgement after durable evidence exists."""
+        if not isinstance(payload,dict) or payload.get('web_confirmed') is not True or payload.get('restart_confirmed') is not True:
+            raise ValueError('웹 기록과 재시작 후 Telegram 연속성을 모두 확인한 뒤에만 기록할 수 있습니다.')
+        from .telegram_task_card_acceptance import report as task_card_report
+        current=task_card_report(self.store,False,False)
+        required=('paired_private_owner','task_card_cancellation','document_approval_callback','terminal_notification')
+        if not all(current['checks'][key] for key in required) or not all(current['message_channels'].values()):
+            raise ValueError('먼저 Telegram 카드 취소, 문서 승인, 완료 알림과 웹 기록을 확인하세요.')
+        self.store.put('telegram_task_card_acceptance',{'web_confirmed':True,'restart_confirmed':True,'recorded_at':time.time()})
+        return task_card_report(self.store)
 
     def runtime_packages(self):
         return PluginRegistry(self.store.root).runtime_packages()

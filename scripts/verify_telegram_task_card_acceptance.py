@@ -26,10 +26,11 @@ def main(argv=None):
     parser.add_argument('--restart-confirmed', action='store_true',
                         help='Owner observed the same paired flow after a restart.')
     args = parser.parse_args(argv)
-    database = args.data_dir.resolve() / 'private' / 'quickstart.db'
+    data_dir=args.data_dir.expanduser().resolve()
+    database = data_dir / 'private' / 'quickstart.db'
     if not database.is_file():
         parser.error('AgentOS quickstart database was not found in --data-dir.')
-    result = report(QuickStore(args.data_dir), args.web_confirmed, args.restart_confirmed)
+    result = report(QuickStore(data_dir), args.web_confirmed or None, args.restart_confirmed or None)
     print(json.dumps(result, ensure_ascii=False, sort_keys=True))
     return 0 if result['passed'] else 1
 
