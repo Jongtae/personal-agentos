@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "repository": "Jongtae/personal-agentos",
   "retry": {
     "seconds": 21600,
@@ -98,6 +98,19 @@
         "python3 -m pytest -q"
       ],
       "summary": "Make paired Telegram a deliberate native conversation: concise acknowledgement, optional progress, one readable terminal answer, safe on-demand detail, and owner-bound recovery and action bubbles."
+    },
+    {
+      "id": "MP1-D-01",
+      "milestone": "AgentOS Personal Assistant Core",
+      "issue": 176,
+      "kind": "design",
+      "depends_on": [
+        "UX-06"
+      ],
+      "tests": [
+        "python3 -m pytest -q tests"
+      ],
+      "summary": "Define Personal Space memory, source, evidence, sharing, export, and I-01 acceptance contracts without changing runtime behavior."
     }
   ],
   "milestones": {
@@ -106,6 +119,9 @@
     },
     "AgentOS Telegram Conversation UX v1.2": {
       "title": "AgentOS Telegram Conversation UX v1.2"
+    },
+    "AgentOS Personal Assistant Core": {
+      "title": "AgentOS Personal Assistant Core"
     }
   },
   "history": {

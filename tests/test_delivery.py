@@ -184,6 +184,8 @@ class DeliveryTests(unittest.TestCase):
         completed.append('UX-05')
         self.assertEqual(plan.select({'completed':completed})['id'],'UX-06')
         completed.append('UX-06')
+        self.assertEqual(plan.select({'completed':completed})['id'],'MP1-D-01')
+        completed.append('MP1-D-01')
         self.assertIsNone(plan.select({'completed':completed}))
 
     def test_ux_plan_keeps_release_before_post_release_conversation_iteration(self):

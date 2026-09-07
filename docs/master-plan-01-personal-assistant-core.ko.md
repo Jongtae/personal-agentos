@@ -2,7 +2,7 @@
 
 ## 상태와 목표
 
-**상태: proposed.** 이 계획은 현재 UX 릴리스 경로와 그 기록된 선행 조건이 완료된 뒤에만 활성 delivery plan이 된다. 그 전에는 `delivery-plan.yaml`의 순서를 바꾸지 않는다.
+**상태: active — D-01.** UX-05의 남은 수동 Telegram 관찰은 소유자 결정으로 release gate에서 제외됐으며, 이 결정은 해당 관찰이 통과했다는 주장이 아니다. UX-06 종료 뒤 첫 design iteration인 [D-01 Personal Space 경계 계약](mp1-d01-personal-space-contract.ko.md)을 진행한다.
 
 목표는 한 명의 사용자가 AgentOS 개인 공간에서 자연어로 결과를 요청하고, AgentOS가 개인 상태·승인·증거·복구를 소유한 채 검토된 연결만 조율하는 개인 비서 코어를 검증하는 것이다.
 
