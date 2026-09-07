@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from personal_agent.delivery import DeliveryController, DeliveryPlan, StateStore, classify_failure
+from personal_agent.delivery import CommandRunner, DeliveryController, DeliveryPlan, StateStore, classify_failure
 
 
 class Runner:
@@ -30,6 +30,14 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(plan.select({'completed':['P1-01','P1-01a']})['id'],'P1-01b')
         self.assertEqual(plan.select({'completed':['P1-01','P1-01a','P1-01b']})['id'],'P1-02')
         self.assertEqual(plan.select({'completed':['P1-01','P1-01a','P1-01b','P1-02'],'blocked':'P1-02'})['id'],'P1-03')
+
+    def test_authenticated_git_push_uses_login_shell_credentials(self):
+        completed=SimpleNamespace(returncode=0,stdout='',stderr='')
+        with patch('personal_agent.delivery.subprocess.run',return_value=completed) as run:
+            CommandRunner().run(['git','push','-u','origin','delivery/p6-01'])
+        args=run.call_args.args[0]
+        self.assertEqual(args[:4],['zsh','-ic','source "$HOME/.zshrc" >/dev/null 2>&1; command "$@"','agentos-auth'])
+        self.assertEqual(args[4:],['git','push','-u','origin','delivery/p6-01'])
 
     def test_worker_startup_failures_are_not_misclassified_as_product_validation(self):
         self.assertEqual(classify_failure('spawn codex ENOENT'),'worker-unavailable')

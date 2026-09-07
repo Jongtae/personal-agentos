@@ -96,8 +96,8 @@ class CommandRunner:
             # launchd and GUI-launched Python do not inherit the interactive
             # shell credentials.  Let gh load the user's normal shell setup
             # while every other delivery command stays non-interactive.
-            if args and args[0]=='gh':
-                args=['zsh','-ic','source "$HOME/.zshrc" >/dev/null 2>&1; command "$@"','agentos-gh',*args]
+            if args and (args[0]=='gh' or args[:2]==['git','push']):
+                args=['zsh','-ic','source "$HOME/.zshrc" >/dev/null 2>&1; command "$@"','agentos-auth',*args]
             return subprocess.run(args,cwd=cwd,text=True,capture_output=True,timeout=timeout)
         except subprocess.TimeoutExpired as exc:
             stdout=exc.stdout.decode() if isinstance(exc.stdout,bytes) else (exc.stdout or '')
