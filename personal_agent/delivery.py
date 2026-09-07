@@ -112,6 +112,8 @@ def classify_failure(text):
     if 'timed out' in lowered or 'timeout' in lowered:return 'delivery-timeout'
     if any(term in lowered for term in ('429','rate limit','quota','free model')):return 'external-rate-limit'
     if any(term in lowered for term in ('oauth','authorization','permission','forbidden','401','403')):return 'blocked-approval'
+    if 'enoent' in lowered and 'codex' in lowered:return 'worker-unavailable'
+    if 'unexpected argument' in lowered and 'codex' in lowered:return 'worker-incompatible'
     return 'validation-failed'
 
 
@@ -276,7 +278,7 @@ class DeliveryController:
             if created.returncode:return self._record_block(item,state,classify_failure((created.stdout or '')+'\n'+(created.stderr or '')),created.stderr or 'Could not create delivery worktree.',False)
         prompt=(f'Implement {item["id"]}: {item["summary"]}\n'
                 'Work only in this worktree. Preserve product safety boundaries. Run listed tests and commit the finished change. Do not push, create a PR, merge, tag, or release; the delivery controller owns those actions.')
-        result=self._command(['codex','exec','--full-auto',prompt],cwd=worktree,timeout=3600)
+        result=self._command(['codex','exec','--sandbox','workspace-write','--approve-for-me',prompt],cwd=worktree,timeout=3600)
         output=(result.stdout or '')+'\n'+(result.stderr or '')
         if result.returncode:return self._record_block(item,state,classify_failure(output),output,False)
         for command in item.get('tests',[]):

@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from personal_agent.delivery import DeliveryController, DeliveryPlan, StateStore
+from personal_agent.delivery import DeliveryController, DeliveryPlan, StateStore, classify_failure
 
 
 class Runner:
@@ -30,6 +30,10 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(plan.select({'completed':['P1-01','P1-01a']})['id'],'P1-01b')
         self.assertEqual(plan.select({'completed':['P1-01','P1-01a','P1-01b']})['id'],'P1-02')
         self.assertEqual(plan.select({'completed':['P1-01','P1-01a','P1-01b','P1-02'],'blocked':'P1-02'})['id'],'P1-03')
+
+    def test_worker_startup_failures_are_not_misclassified_as_product_validation(self):
+        self.assertEqual(classify_failure('spawn codex ENOENT'),'worker-unavailable')
+        self.assertEqual(classify_failure('codex: unexpected argument --full-auto'),'worker-incompatible')
 
     def test_rate_limit_is_blocked_with_six_hour_retry_and_no_secret(self):
         runner=Runner([SimpleNamespace(returncode=1,stdout='',stderr='HTTP 429 rate limit')])
@@ -99,6 +103,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertIn('P1-01a',result['completed'])
         worktree=self.state.parent/'worktrees'/'p1-01a'
         self.assertEqual(runner.calls[2][1],worktree)  # Codex never receives the caller worktree.
+        self.assertEqual(runner.calls[2][0][:5],['codex','exec','--sandbox','workspace-write','--approve-for-me'])
         self.assertIn(['gh','pr','merge','https://github.com/Jongtae/personal-agentos/pull/99','--squash','--delete-branch'],[call[0] for call in runner.calls])
 
     def test_launchd_schedule_pins_the_repository_root(self):
