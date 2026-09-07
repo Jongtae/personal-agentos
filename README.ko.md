@@ -19,7 +19,7 @@ ChatGPT와 기업용 Agent 플랫폼은 범용 대화 또는 조직이 관리하
 - 외부 전송, 파일·계정 변경 등 중요한 행동은 명시적 승인을 요구합니다.
 - 작업 상태와 증거는 취소, 재시도, 복구, 내보내기, 복원을 위해 남습니다.
 
-계획된 capability 연결은 이 경계를 검토된 MCP 도구, 외부 A2A Agent, 격리된 로컬 runtime까지 확장합니다. 이는 아직 일반적인 설치 또는 상호운용성 제공을 주장하는 기능이 아닙니다.
+장기 방향은 한·영 [개인 AI 비서 비전](docs/personal-ai-assistant-vision.ko.md)과 [Master Plan 1](docs/master-plan-01-personal-assistant-core.ko.md)에 기록합니다. 검토된 MCP 도구, 외부 A2A Agent, 격리된 로컬 runtime은 계획된 capability이며 아직 일반적인 설치 또는 상호운용성 제공을 주장하는 기능이 아닙니다.
 
 ## 현재 기준선
 

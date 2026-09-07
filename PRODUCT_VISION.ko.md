@@ -1,5 +1,7 @@
 # AgentOS 제품 비전
 
+> 이 문서는 현재 Hub v2 제품 기준의 요약이다. 구현 상태와 분리한 장기 개인 비서 북극성은 [개인 AI 비서 비전](docs/personal-ai-assistant-vision.ko.md), 단계별 실행 계획은 [Master Plan 1](docs/master-plan-01-personal-assistant-core.ko.md), 다음 계획 선택 절차는 [Master Plan 2](docs/master-plan-02-proposal.ko.md)를 기준으로 한다.
+
 ## 한 문장
 
 **AgentOS는 사용자의 Mac에서 개인 기억·도구·권한·작업을 지속적으로 관리하고, Telegram에서 자신의 AI 비서에게 일을 맡길 수 있게 하는 로컬 우선 개인 에이전트 런타임이다.**

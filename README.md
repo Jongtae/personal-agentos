@@ -19,7 +19,7 @@ This is a different trust boundary from an enterprise platform. AgentOS keeps it
 - Sending externally, changing files or accounts, and other consequential actions require explicit approval.
 - Work state and evidence remain available for cancellation, retry, recovery, export, and restore.
 
-Planned capability connections will extend this boundary to reviewed MCP tools, external A2A agents, and isolated local runtimes. They are not available as general installation or interoperability claims today.
+The long-term direction is in the bilingual [Personal AI Assistant Vision](docs/personal-ai-assistant-vision.en.md) and [Master Plan 1](docs/master-plan-01-personal-assistant-core.en.md). Reviewed MCP tools, external A2A agents, and isolated local runtimes remain planned; they are not general installation or interoperability claims today.
 
 ## Current baseline
 
