@@ -13,6 +13,7 @@ from .plugins import PluginRegistry
 from .providers import ModelAdapter, ProviderError, request_json, validate_model
 from .subscription_engines import SubscriptionEngines
 from .bounded_execution import AgentOSMcpTools, BoundedExecutionAdapter, ExecutionError
+from .personal_assistant import PersonalAssistantOrchestrator
 
 SYSTEM = ('You are the user’s personal AgentOS assistant. Respond in the user’s language. '
           'This preview supports conversation, notes, connected local documents, and local read-only web search and weather tools. '
@@ -78,17 +79,28 @@ def subscription_public_evidence(result):
 
 
 class AgentService:
-    def __init__(self, store, adapter=None, telegram_transport=None, subscription_engines=None, execution_adapter=None):
+    def __init__(self, store, adapter=None, telegram_transport=None, subscription_engines=None, execution_adapter=None, assistant_orchestrator=None):
         self.store=store
         self.adapter=adapter or ModelAdapter()
         self.telegram_transport=telegram_transport or request_json
         self.subscription_engines=subscription_engines or SubscriptionEngines()
         self.execution_adapter=execution_adapter or BoundedExecutionAdapter()
+        # Capability adapters never receive an HTTP or Telegram endpoint.  A
+        # caller may supply reviewed adapters only through this policy owner.
+        self.assistant_orchestrator=assistant_orchestrator or PersonalAssistantOrchestrator(store)
         self.lock=threading.RLock()
         self.worker_lock=threading.Lock()
         self.local_tools=LocalTools()
         self.stop=threading.Event()
         self.threads=[]
+
+    def personal_assistant_request(self, body, owner_id='local-owner'):
+        """One owner-authenticated entry point for MP1 capability requests."""
+        if not isinstance(body, dict):
+            raise ValueError('개인 비서 요청을 확인하세요.')
+        request = dict(body)
+        request['owner_id'] = owner_id
+        return self.assistant_orchestrator.handle(request)
 
     def settings(self):
         with self.lock:
@@ -810,6 +822,13 @@ class AgentService:
                 prompt=job['message'].strip()
                 if prompt in ('/start','/help'):
                     response='개인 AgentOS에 연결되었습니다. 하고 싶은 일을 자연스럽게 적어 주세요. 웹과 Telegram은 같은 대화 기록을 사용합니다.'
+                elif prompt.startswith('/assistant '):
+                    # Web and paired Telegram jobs share this exact policy
+                    # path.  The command is intentionally explicit while the
+                    # MP1 vocabulary remains small and capability-specific.
+                    result=self.personal_assistant_request({'message':prompt[len('/assistant '):]}, owner_id=f"channel:{job['channel']}:{job.get('chat_id') or 'local'}")
+                    response=result['response']
+                    outcome='succeeded' if result['state'] in ('completed','requested','awaiting-approval','fallback') else 'failed'
                 elif prompt.startswith(('/note ','메모:','기록:')):
                     note=prompt[6:] if prompt.startswith('/note ') else prompt.split(':',1)[1].strip()
                     if not note.strip():raise ValueError('기록할 내용을 입력하세요.')

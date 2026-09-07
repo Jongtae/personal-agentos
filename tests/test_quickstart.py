@@ -80,6 +80,24 @@ class QuickstartTests(unittest.TestCase):
         finally:
             server.shutdown();thread.join();server.server_close()
 
+    def test_personal_assistant_http_surface_uses_policy_owned_fallback(self):
+        self.store.claim(self.store.bootstrap.read_text(),'long-password-test')
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(self.service))
+        thread=threading.Thread(target=server.serve_forever);thread.start()
+        client=build_opener(HTTPCookieProcessor(CookieJar()));url='http://127.0.0.1:'+str(server.server_port)
+        def request(path,body):
+            req=Request(url+path,data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})
+            with client.open(req,timeout=3) as response:return json.load(response)
+        try:
+            with self.assertRaises(HTTPError) as error:request('/api/assistant/request',{'message':'개인 공간을 보여줘'})
+            self.assertEqual(error.exception.code,401)
+            request('/api/login',{'password':'long-password-test'})
+            result=request('/api/assistant/request',{'message':'알 수 없는 요청'})
+            self.assertEqual(result['state'],'fallback')
+            self.assertNotIn('알 수 없는 요청',json.dumps(self.store.config('personal_assistant_evidence')))
+        finally:
+            server.shutdown();thread.join();server.server_close()
+
     def test_home_is_minimal_and_never_includes_connection_secrets(self):
         self.store.claim(self.store.bootstrap.read_text(),'long-password-test')
         self.model(key='private-api-key')
