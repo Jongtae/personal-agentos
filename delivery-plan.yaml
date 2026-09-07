@@ -111,6 +111,99 @@
         "python3 -m pytest -q tests"
       ],
       "summary": "Define Personal Space memory, source, evidence, sharing, export, and I-01 acceptance contracts without changing runtime behavior."
+    },
+    {
+      "id": "MP1-I-01",
+      "milestone": "AgentOS Personal Assistant Core",
+      "issue": 179,
+      "kind": "implementation",
+      "depends_on": ["MP1-D-01"],
+      "tests": ["python3 -m pytest -q tests"],
+      "summary": "Deliver owner-local Personal Space and the single-assistant UX."
+    },
+    {
+      "id": "MP1-D-02",
+      "milestone": "AgentOS Personal Assistant Core",
+      "issue": 182,
+      "kind": "design",
+      "depends_on": ["MP1-I-01"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
+      "summary": "Define reviewed MCP, A2A, and runtime capability lifecycle contracts."
+    },
+    {
+      "id": "MP1-I-02",
+      "milestone": "AgentOS Personal Assistant Core",
+      "issue": 184,
+      "kind": "implementation",
+      "depends_on": ["MP1-D-02"],
+      "tests": ["python3 -m pytest -q tests"],
+      "summary": "Deliver reviewed capability registry enable, pause, disconnect, and audit flows."
+    },
+    {
+      "id": "MP1-D-03",
+      "milestone": "AgentOS Personal Assistant Core",
+      "issue": 188,
+      "kind": "design",
+      "depends_on": ["MP1-I-02"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
+      "summary": "Define the Google Drive read-only connector contract."
+    },
+    {
+      "id": "MP1-I-03",
+      "milestone": "AgentOS Personal Assistant Core",
+      "issue": 190,
+      "kind": "implementation",
+      "depends_on": ["MP1-D-03"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
+      "summary": "Deliver the mock-validated Google Drive read-only connector."
+    },
+    {
+      "id": "MP1-D-04",
+      "milestone": "AgentOS Personal Assistant Core",
+      "kind": "design",
+      "depends_on": ["MP1-I-03"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
+      "summary": "Define compatibility A2A peer delegation contracts."
+    },
+    {
+      "id": "MP1-I-04",
+      "milestone": "AgentOS Personal Assistant Core",
+      "kind": "implementation",
+      "depends_on": ["MP1-D-04"],
+      "tests": ["python3 -m pytest -q tests"],
+      "summary": "Deliver explicit delegation through a compatibility A2A test peer."
+    },
+    {
+      "id": "MP1-D-05",
+      "milestone": "AgentOS Personal Assistant Core",
+      "kind": "design",
+      "depends_on": ["MP1-I-04"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
+      "summary": "Define Google Calendar create-event approval contracts."
+    },
+    {
+      "id": "MP1-I-05",
+      "milestone": "AgentOS Personal Assistant Core",
+      "kind": "implementation",
+      "depends_on": ["MP1-D-05"],
+      "tests": ["python3 -m pytest -q tests"],
+      "summary": "Deliver mock-validated Google Calendar new-event creation."
+    },
+    {
+      "id": "MP1-D-06",
+      "milestone": "AgentOS Personal Assistant Core",
+      "kind": "design",
+      "depends_on": ["MP1-I-05"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
+      "summary": "Define the integrated ReAct policy, fallback, and release contract."
+    },
+    {
+      "id": "MP1-I-06",
+      "milestone": "AgentOS Personal Assistant Core",
+      "kind": "release",
+      "depends_on": ["MP1-D-06"],
+      "release_validation": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
+      "summary": "Release the Personal Assistant Core through automated integrated acceptance."
     }
   ],
   "milestones": {

@@ -16,6 +16,10 @@
 | [#174](https://github.com/Jongtae/personal-agentos/issues/174) | Add bilingual personal-assistant vision and Master Plan hierarchy | Complete; merged in #175, activated MP1 documentation and reserved MP2 |
 | [MP1-D-01 / #176](https://github.com/Jongtae/personal-agentos/issues/176) | Define the Personal Space memory, source, evidence, sharing, and I-01 acceptance contract | Complete; merged in #177, design only and no runtime behavior change |
 | [MP1-I-01 / #179](https://github.com/Jongtae/personal-agentos/issues/179) | Deliver Personal Space and the single-assistant UX | Complete; merged in #180 with owner-attested live acceptance |
+| [MP1-D-02 / #182](https://github.com/Jongtae/personal-agentos/issues/182) | Define reviewed capability lifecycle | Complete; merged in #183, design only |
+| [MP1-I-02 / #184](https://github.com/Jongtae/personal-agentos/issues/184) | Deliver reviewed capability registry | Complete; merged in #185 with automated validation |
+| [MP1-D-03 / #188](https://github.com/Jongtae/personal-agentos/issues/188) | Define Google Drive read-only connector contract | Complete; merged in #189, design only |
+| [MP1-I-03 / #190](https://github.com/Jongtae/personal-agentos/issues/190) | Deliver mock-validated Google Drive read-only connector | Complete; merged in #191 without live provider configuration |
 | [#192](https://github.com/Jongtae/personal-agentos/issues/192) | Adopt contract-first, mock-driven, CI-gated delivery governance | Complete; merged in #193, documentation and verification policy only |
 
 ## Personal AgentOS v1 release delivery
