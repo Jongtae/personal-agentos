@@ -3,7 +3,7 @@
 | Milestone | Goal | Status |
 | --- | --- | --- |
 | M0 | Product source, GitHub workflow, and release separation | Complete except GitHub Project board permission |
-| M1 | Reliable personal runtime | In progress — P1-01 through P1-01b are complete; P1-02 is validating traceable capability recovery before continuity acceptance |
+| M1 | Reliable personal runtime | In progress — P1-01 through P1-02 are complete; P1-03 is validating web and Telegram continuity before M1 closeout |
 | M2 | Personal data and document capability | Planned |
 | M3 | Persistent runtime and official server install | Planned |
 | M4 | Role and tool extension contract | Planned |

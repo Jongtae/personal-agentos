@@ -12,7 +12,7 @@ import time
 import webbrowser
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 from .quickstart_store import QuickStore
 from .quickstart_service import AgentService
 from .providers import ProviderError
@@ -20,10 +20,13 @@ from .providers import ProviderError
 WEB=Path(__file__).parent/'web'
 
 
-def make_handler(service):
+def make_handler(service, public_hosts=(), public_access_token=''):
     store=service.store
     attempts=[]
     attempts_lock=threading.Lock()
+    public_hosts={host.strip().lower() for host in public_hosts if host.strip()}
+    pairing_lock=threading.Lock()
+    pairing_available=bool(public_access_token)
     class Handler(BaseHTTPRequestHandler):
         def setup(self):
             super().setup()
@@ -61,13 +64,36 @@ def make_handler(service):
         def valid_host(self):
             if self.server.server_address[0] not in ('127.0.0.1', '::1'):return True
             allowed={f'127.0.0.1:{self.server.server_port}',f'localhost:{self.server.server_port}',f'[::1]:{self.server.server_port}'}
-            if self.headers.get('Host') in allowed:return True
+            if self.headers.get('Host','').lower() in allowed | public_hosts:return True
             self.reply(403,{'error':'로컬 주소로 AgentOS를 열어 주세요.'})
             return False
 
+        def public_host(self):
+            return self.headers.get('Host','').lower() in public_hosts
+
+        def cookie(self,token,max_age=86400):
+            secure='; Secure' if os.environ.get('AGENTOS_SECURE_COOKIE')=='1' or public_hosts else ''
+            return f'agentos_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age={max_age}{secure}'
+
+        def redirect(self,path,cookie=None):
+            self.send_response(303)
+            self.send_header('Location',path)
+            self.send_header('Cache-Control','no-store')
+            self.send_header('Referrer-Policy','no-referrer')
+            if cookie:self.send_header('Set-Cookie',cookie)
+            self.end_headers()
+
         def do_GET(self):
             if not self.valid_host():return
-            path=urlsplit(self.path).path
+            parts=urlsplit(self.path)
+            path=parts.path
+            if path=='/' and self.public_host() and public_access_token:
+                token=parse_qs(parts.query).get('access',[''])[0]
+                nonlocal pairing_available
+                with pairing_lock:
+                    accepted=pairing_available and secrets.compare_digest(token,public_access_token)
+                    if accepted:pairing_available=False
+                if accepted:return self.redirect('/',self.cookie(store.local_session()))
             if path=='/healthz':return self.reply(200 if service.healthy() else 503,{'ok':service.healthy()})
             if path in ('/','/app.js','/style.css'):
                 filename={'/':'index.html','/app.js':'app.js','/style.css':'style.css'}[path]
@@ -112,8 +138,7 @@ def make_handler(service):
                         body['password']=password
                     token=store.login(body.get('password',''))
                     if not token:return self.reply(401,{'error':'비밀번호가 올바르지 않습니다.'})
-                    secure='; Secure' if os.environ.get('AGENTOS_SECURE_COOKIE')=='1' else ''
-                    return self.reply(200,{'ok':True},cookie=f'agentos_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400{secure}')
+                    return self.reply(200,{'ok':True},cookie=self.cookie(token))
                 if not self.auth():return
                 if path=='/api/logout':
                     store.logout(self.token())
@@ -147,6 +172,8 @@ def main():
     parser.add_argument('--port',type=int,default=8787)
     parser.add_argument('--data',default=os.environ.get('AGENTOS_DATA',str(Path.home()/'.local/share/agentos')))
     parser.add_argument('--no-browser',action='store_true')
+    parser.add_argument('--public-tunnel-host',action='append',default=[],help='Allow one exact HTTPS tunnel host for mobile access.')
+    parser.add_argument('--public-access-token',default=os.environ.get('AGENTOS_PUBLIC_ACCESS_TOKEN',''),help='One-time mobile pairing token. Generated when omitted.')
     args=parser.parse_args()
     os.umask(0o077)
     store=QuickStore(args.data)
@@ -154,13 +181,18 @@ def main():
     try:fcntl.flock(instance_lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     except BlockingIOError:parser.exit(1,'이 데이터 폴더의 AgentOS가 이미 실행 중입니다.\n')
     service=AgentService(store)
-    try:server=ThreadingHTTPServer((args.host,args.port),make_handler(service))
+    public_hosts=args.public_tunnel_host
+    public_token=args.public_access_token
+    if public_hosts and not public_token:public_token=secrets.token_urlsafe(24)
+    try:server=ThreadingHTTPServer((args.host,args.port),make_handler(service,public_hosts,public_token))
     except OSError as exc:parser.exit(1,f'시작할 수 없습니다: {exc}\n다른 포트는 --port로 지정하세요.\n')
     service.start()
     url=f'http://127.0.0.1:{server.server_port}/'
     if not store.claimed():url+='#setup='+store.bootstrap.read_text()
     store.write_private(store.private/'setup-link.txt',url)
     print(f'AgentOS: http://127.0.0.1:{server.server_port}/',flush=True)
+    if public_hosts:
+        print(f'Mobile pairing URL: https://{public_hosts[0]}/?access={public_token}',flush=True)
     if not store.claimed():print(f'초기 설정 링크: {store.private / "setup-link.txt"} (개인 파일)',flush=True)
     if not args.no_browser:threading.Timer(.6,lambda:webbrowser.open(url)).start()
     def shutdown(signum,frame):
