@@ -61,3 +61,11 @@ configuration source. Built-in and installed roles follow the same bounded
 host-action declarations; disabled or invalid packages cannot be selected for
 delegation or expose tools. The authenticated runtime state shows package,
 role, tool, permission, and enabled-state declarations alongside tool traces.
+
+## M7 — safe Telegram task cards
+
+P7-01 creates one persisted, editable task card for each ordinary request from
+the paired private Telegram owner. Inline callbacks are bound to the owner,
+private chat, exact card, and active Telegram generation; they can cancel only
+jobs that remain queued. Card progress is best-effort and never retried after
+an ambiguous Telegram response, avoiding duplicate cards.

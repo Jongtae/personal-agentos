@@ -233,6 +233,72 @@ class AgentService:
             self.store.put('telegram_status',{'state':'disabled','message':'Telegram 연결을 해제했습니다.'})
         return {'ok':True}
 
+    @staticmethod
+    def is_natural_language(text):
+        return isinstance(text,str) and bool(text.strip()) and not text.lstrip().startswith('/')
+
+    @staticmethod
+    def task_card_text(message, state):
+        labels={'queued':'대기 중','running':'진행 중','succeeded':'완료','failed':'완료하지 못함','cancelled':'취소됨','interrupted':'중단됨'}
+        excerpt=' '.join(message.split())[:500]
+        return f'작업 카드\n요청: {excerpt}\n상태: {labels.get(state,state)}'
+
+    def create_task_card(self, job_id, message, chat_id):
+        # This is deliberately a single best-effort send.  Retrying after an
+        # unknown Telegram response could create a second card for one request.
+        if self.store.task_card(job_id): return
+        try:
+            result=self.telegram_call(self.store.secret('telegram_token'),'sendMessage',{
+                'chat_id':chat_id,
+                'text':self.task_card_text(message,'queued'),
+                'reply_markup':{'inline_keyboard':[[{'text':'작업 취소','callback_data':f'p7c:{job_id}'}]]},
+            })
+            message_id=result.get('message_id') if isinstance(result,dict) else None
+            if isinstance(message_id,int): self.store.save_task_card(job_id,chat_id,message_id,'queued')
+        except ProviderError:
+            pass
+
+    def update_task_card(self, job, state):
+        card=self.store.task_card(job['id'])
+        if not card or card['state']==state:return
+        markup={'inline_keyboard':[[{'text':'작업 취소','callback_data':f"p7c:{job['id']}"}]]} if state=='queued' else {'inline_keyboard':[]}
+        try:
+            self.telegram_call(self.store.secret('telegram_token'),'editMessageText',{
+                'chat_id':card['chat_id'],'message_id':card['message_id'],
+                'text':self.task_card_text(job['message'],state),'reply_markup':markup,
+            })
+            self.store.save_task_card(job['id'],card['chat_id'],card['message_id'],state)
+        except ProviderError:
+            pass
+
+    def ingest_callback(self, callback, generation):
+        """Accept only the paired owner's private-card cancellation once."""
+        with self.lock:
+            cfg=self.store.config('telegram',{})
+            sender=callback.get('from',{}).get('id')
+            message=callback.get('message',{})
+            chat=message.get('chat',{}) if isinstance(message,dict) else {}
+            callback_id=callback.get('id')
+            data=callback.get('data','')
+            authorized=(cfg.get('enabled') and cfg.get('generation')==generation and isinstance(sender,int)
+                        and sender==cfg.get('user_id') and chat.get('type')=='private' and chat.get('id')==sender)
+            changed=False
+            if authorized and isinstance(data,str) and data.startswith('p7c:'):
+                job_id=data[4:]
+                with self.store.db() as db:
+                    db.execute('BEGIN IMMEDIATE')
+                    job=db.execute('SELECT * FROM jobs WHERE id=?',(job_id,)).fetchone()
+                    card=db.execute('SELECT * FROM telegram_task_cards WHERE job_id=?',(job_id,)).fetchone()
+                    if (job and card and card['chat_id']==sender and card['message_id']==message.get('message_id')
+                            and job['channel']==f"telegram:{generation}" and job['chat_id']==sender and job['status']=='queued'):
+                        db.execute("UPDATE jobs SET status='cancelled',error='소유자가 작업 카드를 통해 취소했습니다.',delivery='cancelled' WHERE id=? AND status='queued'",(job_id,))
+                        changed=db.total_changes==1
+                        job=dict(job)
+                if changed:self.update_task_card(job,'cancelled')
+            if authorized and isinstance(callback_id,str):
+                try:self.telegram_call(self.store.secret('telegram_token'),'answerCallbackQuery',{'callback_query_id':callback_id,'text':'작업을 취소했습니다.' if changed else '취소할 수 있는 대기 작업이 아닙니다.'})
+                except ProviderError:pass
+
     def ingest_update(self, update, generation):
         with self.lock:
             cfg=self.store.config('telegram',{})
@@ -255,19 +321,32 @@ class AgentService:
             with self.store.db() as db:
                 db.execute('BEGIN IMMEDIATE')
                 if authorized and isinstance(text,str) and 0<len(text)<=12000:
-                    self.store.enqueue(text,f'tg:{generation}:{update_id}',f'telegram:{generation}',sender,db)
+                    task_id=self.store.enqueue(text,f'tg:{generation}:{update_id}',f'telegram:{generation}',sender,db)
+                else:
+                    task_id=None
                 cfg['cursor']=update_id+1
                 db.execute('INSERT INTO config VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',('telegram',json.dumps(cfg)))
             if paired:self.store.put('telegram_status',{'state':'connected','message':'개인 계정이 연결되었습니다. 봇에게 메시지를 보내세요.'})
+            if authorized and self.is_natural_language(text) and task_id:
+                self.create_task_card(task_id,text,sender)
 
     def poll_telegram(self):
         with self.lock:
             cfg=self.store.config('telegram',{})
             token=self.store.secret('telegram_token')
         if not cfg.get('enabled') or not token: return
-        updates=self.telegram_call(token,'getUpdates',{'offset':cfg.get('cursor',0),'timeout':5,'allowed_updates':['message'],'limit':20})
+        updates=self.telegram_call(token,'getUpdates',{'offset':cfg.get('cursor',0),'timeout':5,'allowed_updates':['message','callback_query'],'limit':20})
         for update in sorted(updates,key=lambda u:u.get('update_id',0)):
-            self.ingest_update(update,cfg['generation'])
+            if isinstance(update.get('callback_query'),dict):
+                self.ingest_callback(update['callback_query'],cfg['generation'])
+                # Callback updates must advance the durable cursor too, or
+                # Telegram will resend them after every restart.
+                with self.lock:
+                    current=self.store.config('telegram',{})
+                    if current.get('generation')==cfg['generation'] and isinstance(update.get('update_id'),int) and update['update_id']>=current.get('cursor',0):
+                        current['cursor']=update['update_id']+1
+                        self.store.put('telegram',current)
+            else:self.ingest_update(update,cfg['generation'])
 
     def run_one(self):
         # One conversation worker: ordering is shared across all connected channels.
@@ -279,6 +358,7 @@ class AgentService:
                 job=dict(row)
                 db.execute("UPDATE jobs SET status='running' WHERE id=?",(job['id'],))
                 db.execute('INSERT INTO messages(role,content,channel,created) VALUES (?,?,?,?)',('user',job['message'],job['channel'],time.time()))
+            self.update_task_card(job,'running')
             response=''
             provider='builtin'
             model='notes'
@@ -286,7 +366,7 @@ class AgentService:
             try:
                 prompt=job['message'].strip()
                 if prompt in ('/start','/help'):
-                    response='개인 AgentOS에 연결되었습니다. 메시지로 대화하거나 /note 내용, /notes, /summarize 명령을 사용하세요. 웹과 Telegram은 같은 대화 기록을 사용합니다.'
+                    response='개인 AgentOS에 연결되었습니다. 하고 싶은 일을 자연스럽게 적어 주세요. 웹과 Telegram은 같은 대화 기록을 사용합니다.'
                 elif prompt.startswith(('/note ','메모:','기록:')):
                     note=prompt[6:] if prompt.startswith('/note ') else prompt.split(':',1)[1].strip()
                     if not note.strip():raise ValueError('기록할 내용을 입력하세요.')
@@ -328,6 +408,8 @@ class AgentService:
                 with self.store.db() as db:
                     db.execute('INSERT INTO messages(role,content,channel,created) VALUES (?,?,?,?)',('assistant','이 요청은 완료하지 못했습니다: '+response,job['channel'],time.time()))
                     db.execute("UPDATE jobs SET status='failed',error=?,delivery=? WHERE id=?",(response,'pending' if job['chat_id'] else 'none',job['id']))
+                outcome='failed'
+            self.update_task_card(job,outcome)
             return True
 
     def deliver_one(self):
