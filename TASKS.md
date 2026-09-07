@@ -13,3 +13,6 @@
 
 P0-01 through P5-03 are complete. Follow-up vision work is tracked in the open
 Stage 2 and Stage 3 epics, with evidence recorded in `docs/issue-branch-ledger.jsonl`.
+User-approved clipboard, browser, and native-companion context capture is a
+post-M7 idea tracked in [#100](https://github.com/Jongtae/personal-agentos/issues/100);
+its local-first safety boundaries are recorded in `docs/context-capture-idea.ko.md`.
