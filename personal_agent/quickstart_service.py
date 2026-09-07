@@ -283,6 +283,34 @@ class AgentService:
                 self.store.update_notification(notification['id'],'unknown')
         return True
 
+    @staticmethod
+    def task_card_markup(job_id, state):
+        progress_label='진행 보기' if state in ('queued','running') else '결과 상태 보기'
+        buttons=[{'text':progress_label,'callback_data':f'p7v:{job_id}'}]
+        if state=='queued':
+            buttons.append({'text':'작업 취소','callback_data':f'p7c:{job_id}'})
+        return {'inline_keyboard':[buttons]}
+
+    def task_progress_text(self, job_id):
+        """Return safe operational evidence without request or tool payloads."""
+        labels={'queued':'대기 중','running':'진행 중','succeeded':'완료','partial':'일부 완료',
+                'failed':'완료하지 못함','cancelled':'취소됨','interrupted':'중단됨'}
+        with self.store.db() as db:
+            job=db.execute('SELECT status FROM jobs WHERE id=?',(job_id,)).fetchone()
+            rows=db.execute('SELECT tool,status FROM tool_events WHERE job_id=? AND tool!=? ORDER BY id LIMIT 12',(job_id,'model')).fetchall()
+        if not job:return '이 작업 카드를 찾을 수 없습니다.'
+        lines=[f"작업 상태: {labels.get(job['status'],job['status'])}"]
+        if rows:
+            steps=' · '.join(f"{row['tool']} ({row['status']})" for row in rows)
+            lines.append('실행 단계: '+steps)
+        elif job['status']=='queued':
+            lines.append('실행을 기다리고 있습니다.')
+        elif job['status']=='running':
+            lines.append('에이전트가 작업을 처리하고 있습니다.')
+        else:
+            lines.append('전체 결과는 AgentOS 웹에서 확인하세요.')
+        return '\n'.join(lines)
+
     def create_task_card(self, job_id, message, chat_id):
         # This is deliberately a single best-effort send.  Retrying after an
         # unknown Telegram response could create a second card for one request.
@@ -291,7 +319,7 @@ class AgentService:
             result=self.telegram_call(self.store.secret('telegram_token'),'sendMessage',{
                 'chat_id':chat_id,
                 'text':self.task_card_text(message,'queued'),
-                'reply_markup':{'inline_keyboard':[[{'text':'작업 취소','callback_data':f'p7c:{job_id}'}]]},
+                'reply_markup':self.task_card_markup(job_id,'queued'),
             })
             message_id=result.get('message_id') if isinstance(result,dict) else None
             if isinstance(message_id,int): self.store.save_task_card(job_id,chat_id,message_id,'queued')
@@ -301,7 +329,7 @@ class AgentService:
     def update_task_card(self, job, state):
         card=self.store.task_card(job['id'])
         if not card or card['state']==state:return
-        markup={'inline_keyboard':[[{'text':'작업 취소','callback_data':f"p7c:{job['id']}"}]]} if state=='queued' else {'inline_keyboard':[]}
+        markup=self.task_card_markup(job['id'],state)
         try:
             self.telegram_call(self.store.secret('telegram_token'),'editMessageText',{
                 'chat_id':card['chat_id'],'message_id':card['message_id'],
@@ -323,7 +351,16 @@ class AgentService:
             authorized=(cfg.get('enabled') and cfg.get('generation')==generation and isinstance(sender,int)
                         and sender==cfg.get('user_id') and chat.get('type')=='private' and chat.get('id')==sender)
             changed=False
-            if authorized and isinstance(data,str) and data.startswith('p7c:'):
+            if authorized and isinstance(data,str) and data.startswith('p7v:'):
+                job_id=data[4:]
+                job=self.store.job(job_id)
+                card=self.store.task_card(job_id)
+                if (job and card and card['chat_id']==sender and card['message_id']==message.get('message_id')
+                        and job['channel']==f"telegram:{generation}" and job['chat_id']==sender):
+                    try:self.telegram_call(self.store.secret('telegram_token'),'sendMessage',{'chat_id':sender,'text':self.task_progress_text(job_id)})
+                    except ProviderError:pass
+                    changed=True
+            elif authorized and isinstance(data,str) and data.startswith('p7c:'):
                 job_id=data[4:]
                 with self.store.db() as db:
                     db.execute('BEGIN IMMEDIATE')

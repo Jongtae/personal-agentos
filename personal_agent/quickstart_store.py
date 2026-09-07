@@ -153,6 +153,11 @@ class QuickStore:
         with self.db() as db:
             return [dict(r) for r in db.execute('SELECT * FROM jobs ORDER BY created DESC LIMIT 40')]
 
+    def job(self, job_id):
+        with self.db() as db:
+            row=db.execute('SELECT * FROM jobs WHERE id=?',(job_id,)).fetchone()
+            return dict(row) if row else None
+
     def notes(self):
         with self.db() as db:
             return [dict(r) for r in db.execute('SELECT * FROM notes ORDER BY created DESC LIMIT 50')]
