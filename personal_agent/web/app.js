@@ -42,6 +42,13 @@ $('try-note').onclick=()=>{$('message').value='메모: ';$('message').focus();};
 $('chat-form').onsubmit=async e=>{e.preventDefault();const message=$('message').value.trim();if(!message)return;if(!hasModel&&!/^(메모:|기록:|\/note(?:s)?(?:\s|$)|\/help$)/.test(message)){openConnections();$('easy-feedback').textContent='AI를 연결하면 작성한 메시지를 보낼 수 있어요. 입력한 내용은 그대로 남겨 두었습니다.';return;}await busy(e.submitter,async()=>{try{await api('/api/chat',{message,request_key:crypto.randomUUID()});$('message').value='';$('global-error').textContent='';await refresh();}catch(e){error('global-error',e);}});};
 document.querySelectorAll('[data-message]').forEach(button=>button.onclick=()=>{$('message').value=button.dataset.message;$('message').focus();});
 function element(tag,text,className){const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(className)el.className=className;return el;}
+function showDocumentBoundary(boundary){
+ let box=$('document-boundary');if(!box){box=element('div',undefined,'document-boundary');box.id='document-boundary';$('roots-feedback').after(box);}
+ box.replaceChildren();if(!boundary)return;
+ if(!boundary.external_model){box.append(element('p','문서 발췌문은 이 컴퓨터에서 실행되는 모델에만 전달됩니다.'));return;}
+ if(boundary.approved){box.append(element('p','문서 공유 승인됨 · 현재 선택 모델과 연결한 폴더의 필요한 발췌문만 외부 AI에 전달됩니다. 모델이나 폴더를 바꾸면 다시 승인해야 합니다.'));return;}
+ box.append(element('p','문서는 이 컴퓨터에서 읽습니다. 외부 AI가 문서 검색 결과나 발췌문을 받기 전에는 명시적 승인이 필요합니다.'));const button=element('button','문서 발췌문 전송 승인');button.type='button';button.onclick=()=>busy(button,async()=>{try{await api('/api/documents/approval',{approved:true});await refresh();}catch(e){error('roots-feedback',e);}});box.append(button);
+}
 async function refresh(){
  if(!authenticated||refreshing)return;refreshing=true;
  try{
@@ -53,7 +60,7 @@ async function refresh(){
  $('tool-status').textContent=currentTool?({running:'실행 중',succeeded:'실행 완료',failed:'실행 실패'}[currentTool.status]+' · '+currentTool.tool+' · 내 AgentOS에서 실행'):'';
  $('tool-history').replaceChildren();for(const e of state.tool_events||[]){const trace=e.trace||{};const attempt=trace.attempt?' · '+trace.attempt+'회차':'';const error=trace.error?' · '+trace.error:'';$('tool-history').append(element('div',new Date(e.created*1000).toLocaleTimeString()+' · '+e.tool+' · '+({running:'실행 중',succeeded:'완료',failed:'실패'}[e.status]||e.status)+attempt+error));}
  $('runtime-badge').textContent=state.healthy?'● 개인 환경 실행 중':'실행 상태 확인 필요';
- if(!modelLoaded){if(model.provider){$('provider').value=model.provider;$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;$('root-paths').value=(settings.file_roots||[]).map(r=>r.path).join('\n');modelLoaded=true;}
+ if(!modelLoaded){if(model.provider){$('provider').value=model.provider;$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;$('root-paths').value=(settings.file_roots||[]).map(r=>r.path).join('\n');modelLoaded=true;}showDocumentBoundary(settings.document_boundary);
  const tested=settings.model_test;
  $('model-label').textContent=model.model?model.model+' · '+(settings.model_ready?'도구 호출 확인됨':tested?.text_ok?'텍스트만 확인됨 · 도구 호출 필요':'저장됨 · 확인 전'):'메모 기능 준비됨';
  $('model-step').textContent=settings.model_ready?'✓ 모델과 도구 연결 확인':'② 모델과 도구 연결';$('model-step').classList.toggle('done',!!settings.model_ready);

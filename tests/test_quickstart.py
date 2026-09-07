@@ -278,5 +278,21 @@ class QuickstartTests(unittest.TestCase):
             self.service.stop.set();server.shutdown();thread.join();server.server_close()
             for worker in self.service.threads:worker.join(timeout=2)
 
+    def test_document_approval_http_api(self):
+        self.store.claim(self.store.bootstrap.read_text(),'long-password-test')
+        self.service.save_model({'provider':'compatible','endpoint':'https://example.test/v1','model':'test-model','api_key':'test-key'})
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(self.service))
+        thread=threading.Thread(target=server.serve_forever);thread.start()
+        client=build_opener(HTTPCookieProcessor(CookieJar()));url='http://127.0.0.1:'+str(server.server_port)
+        def post(path,body):
+            request=Request(url+path,data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})
+            with client.open(request,timeout=3) as response:return json.load(response)
+        try:
+            post('/api/login',{'password':'long-password-test'})
+            self.assertTrue(post('/api/documents/approval',{'approved':True})['approved'])
+            self.assertFalse(self.service.document_boundary()['requires_approval'])
+        finally:
+            server.shutdown();thread.join();server.server_close()
+
 
 if __name__=='__main__':unittest.main()

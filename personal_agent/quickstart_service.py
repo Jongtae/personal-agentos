@@ -5,6 +5,7 @@ import secrets
 import threading
 import time
 import hashlib
+from urllib.parse import urlsplit
 from .local_tools import LocalTools
 from .agent_runtime import Capabilities, run_agent, AGENTS
 from .providers import ModelAdapter, ProviderError, request_json, validate_model
@@ -46,9 +47,36 @@ class AgentService:
             model_test=self.store.config('model_test')
             from .delivery import StateStore
             delivery=StateStore().read()
+            boundary=self.document_boundary(model)
             return {'model':model,'has_api_key':bool(self.store.secret('model_key')),
                     'telegram':{'enabled':tg.get('enabled',False),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
-                    'file_roots':self.store.config('file_roots',[]), 'agents':[{'id':k,'name':v['name']} for k,v in AGENTS.items()], 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery}
+                    'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'agents':[{'id':k,'name':v['name']} for k,v in AGENTS.items()], 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery}
+
+    def document_fingerprint(self, model=None):
+        model=self.store.config('model',{}) if model is None else model
+        roots=self.store.config('file_roots',[])
+        public={'model':{key:model.get(key,'') for key in ('provider','endpoint','model')},'roots':[root.get('id','') for root in roots]}
+        return hashlib.sha256(json.dumps(public,sort_keys=True).encode()).hexdigest()
+
+    @staticmethod
+    def external_model(model):
+        endpoint=urlsplit(str(model.get('endpoint',''))).hostname
+        return bool(model) and endpoint not in ('localhost','127.0.0.1','::1')
+
+    def document_boundary(self, model=None):
+        model=self.store.config('model',{}) if model is None else model
+        external=self.external_model(model)
+        saved=self.store.config('document_sharing',{})
+        approved=external and saved.get('approved') is True and saved.get('fingerprint')==self.document_fingerprint(model)
+        return {'external_model':external,'approved':approved,'requires_approval':external and not approved,'scope':'현재 선택 모델과 연결 폴더의 문서 발췌문'}
+
+    def set_document_approval(self, body):
+        if body.get('approved') is not True:raise ValueError('문서 공유 승인만 설정할 수 있습니다.')
+        model=self.store.config('model',{})
+        if not model:raise ValueError('먼저 모델을 연결하세요.')
+        if not self.external_model(model):return self.document_boundary(model)
+        self.store.put('document_sharing',{'approved':True,'fingerprint':self.document_fingerprint(model),'approved_at':time.time()})
+        return self.document_boundary(model)
 
     @staticmethod
     def model_fingerprint(config):
@@ -73,6 +101,7 @@ class AgentService:
             if not p.is_dir() or p==Path('/') or p==Path.home() or p.is_relative_to(self.store.private):raise ValueError('전체 홈이나 시스템 루트 대신 작업용 하위 폴더를 선택하세요.')
             roots.append({'id':__import__('hashlib').sha256(str(p).encode()).hexdigest()[:12],'path':str(p)})
         self.store.put('file_roots',roots)
+        self.store.put('document_sharing',{})
         return {'roots':roots}
 
     def save_model(self, body):
@@ -87,6 +116,7 @@ class AgentService:
                 self.store.secret('model_key',key)
             self.store.put('model',config)
             self.store.put('model_test',None)
+            self.store.put('document_sharing',{})
         return self.settings()
 
     def connect_openrouter(self, body):
@@ -279,7 +309,8 @@ class AgentService:
                         with self.store.db() as db:
                             db.execute('INSERT INTO tool_events(job_id,tool,status,detail,created) VALUES (?,?,?,?,?)',(job['id'],tool,status,detail,time.time()))
                         if tool!='model':self.store.put('tool_run',{'job_id':job['id'],'tool':tool,'status':status,'detail':detail,'time':time.time()})
-                    capabilities=Capabilities(self.store,self.adapter,runtime_config,key,job['id'],record,network=self.local_tools)
+                    boundary=self.document_boundary(config)
+                    capabilities=Capabilities(self.store,self.adapter,runtime_config,key,job['id'],record,network=self.local_tools,document_access=not boundary['requires_approval'])
                     result=run_agent(self.adapter,runtime_config,key,history,'',capabilities,record)
                     outcome=getattr(result,'outcome','succeeded')
                     response,provider,model=result.content,result.provider,result.model
