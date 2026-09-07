@@ -11,6 +11,7 @@ from .agent_runtime import Capabilities, run_agent, AGENTS
 from .plugins import PluginRegistry
 from .providers import ModelAdapter, ProviderError, request_json, validate_model
 from .subscription_engines import SubscriptionEngines
+from .bounded_execution import AgentOSMcpTools, BoundedExecutionAdapter, ExecutionError
 
 SYSTEM = ('You are the user’s personal AgentOS assistant. Respond in the user’s language. '
           'This preview supports conversation, notes, connected local documents, and local read-only web search and weather tools. '
@@ -35,11 +36,12 @@ TELEGRAM_CARD_GRACE_SECONDS = 3
 
 
 class AgentService:
-    def __init__(self, store, adapter=None, telegram_transport=None, subscription_engines=None):
+    def __init__(self, store, adapter=None, telegram_transport=None, subscription_engines=None, execution_adapter=None):
         self.store=store
         self.adapter=adapter or ModelAdapter()
         self.telegram_transport=telegram_transport or request_json
         self.subscription_engines=subscription_engines or SubscriptionEngines()
+        self.execution_adapter=execution_adapter or BoundedExecutionAdapter()
         self.lock=threading.RLock()
         self.worker_lock=threading.Lock()
         self.local_tools=LocalTools()
@@ -59,6 +61,7 @@ class AgentService:
             from .telegram_task_card_acceptance import report as task_card_report
             return {'model':model,'has_api_key':bool(self.store.secret('model_key')),
                     'subscription_engines':self.subscription_engine_status(),
+                    'subscription_execution':{'mode':'bounded-agentos-mcp','tools':['list_notes','save_note','web_search']},
                     'telegram':{'enabled':tg.get('enabled',False),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
                     'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'agents':[{'id':role['id'],'name':role['name'],'permissions':role['permissions'],'package_id':package['id']} for package in active_packages for role in package['roles']], 'packages':packages, 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery, 'telegram_task_card_acceptance':task_card_report(self.store)}
 
@@ -514,13 +517,6 @@ class AgentService:
                     with self.lock:
                         config=self.store.config('model',{})
                         key=self.store.secret('model_key')
-                    if not config:raise ValueError('설정에서 모델을 먼저 연결하세요. 모델 없이도 /note와 /notes는 사용할 수 있습니다.')
-                    if not self.model_ready(config):
-                        raise ValueError('모델의 도구 호출 연결을 아직 확인하지 못했습니다. 설정에서 “모델 연결 확인”을 실행한 뒤 다시 요청하세요.')
-                    runtime_config=dict(config)
-                    checked=self.store.config('model_test',{})
-                    if checked.get('runtime_model'):
-                        runtime_config['model']=checked['runtime_model']
                     history=[{'role':m['role'],'content':m['content']} for m in self.store.history()[-16:]]
                     if prompt in ('/summarize','메모 요약'):
                         notes='\n\n'.join(n['content'] for n in self.store.notes())[:24000]
@@ -535,14 +531,37 @@ class AgentService:
                     def record(tool,status,detail):
                         if (tool in ('find_files','read_file') and status=='failed' and boundary['requires_approval']):approval_needed[0]=True
                         original_record(tool,status,detail)
-                    capabilities=Capabilities(self.store,self.adapter,runtime_config,key,job['id'],record,network=self.local_tools,document_access=not boundary['requires_approval'],packages=self.runtime_packages())
-                    result=run_agent(self.adapter,runtime_config,key,history,'',capabilities,record)
-                    outcome=getattr(result,'outcome','succeeded')
-                    response,provider,model=result.content,result.provider,result.model
+                    subscription=self.store.config('subscription_engine',{})
+                    if subscription.get('id'):
+                        # The selected CLI runs only through the narrow MCP
+                        # facade; it never gets this store, model key, or roots.
+                        capabilities=Capabilities(self.store,None,{},'',job['id'],record,network=self.local_tools,
+                                                  document_access=False,packages=self.runtime_packages(),
+                                                  allowed_tools={'list_notes','save_note','web_search'})
+                        record('subscription_engine','running',json.dumps({'engine':subscription['id'],'mode':'bounded-agentos-mcp'}))
+                        try:
+                            result=self.execution_adapter.execute(subscription['id'],prompt,AgentOSMcpTools(capabilities))
+                        except ExecutionError as exc:
+                            record('subscription_engine','failed',json.dumps({'engine':subscription['id'],'error':str(exc)}))
+                            raise
+                        record('subscription_engine','succeeded',json.dumps({'engine':result.engine,'exit_code':result.exit_code}))
+                        response,provider,model=result.content,'subscription',result.engine
+                    else:
+                        if not config:raise ValueError('설정에서 모델 또는 구독 엔진을 먼저 연결하세요. 모델 없이도 /note와 /notes는 사용할 수 있습니다.')
+                        if not self.model_ready(config):
+                            raise ValueError('모델의 도구 호출 연결을 아직 확인하지 못했습니다. 설정에서 “모델 연결 확인”을 실행한 뒤 다시 요청하세요.')
+                        runtime_config=dict(config)
+                        checked=self.store.config('model_test',{})
+                        if checked.get('runtime_model'):
+                            runtime_config['model']=checked['runtime_model']
+                        capabilities=Capabilities(self.store,self.adapter,runtime_config,key,job['id'],record,network=self.local_tools,document_access=not boundary['requires_approval'],packages=self.runtime_packages())
+                        result=run_agent(self.adapter,runtime_config,key,history,'',capabilities,record)
+                        outcome=getattr(result,'outcome','succeeded')
+                        response,provider,model=result.content,result.provider,result.model
                 with self.store.db() as db:
                     db.execute('INSERT INTO messages(role,content,channel,created) VALUES (?,?,?,?)',('assistant',response,job['channel'],time.time()))
                     db.execute("UPDATE jobs SET status=?,response=?,provider=?,model=?,delivery=? WHERE id=?",(outcome,response,provider,model,'pending' if job['chat_id'] else 'none',job['id']))
-            except (ValueError,ProviderError) as exc:
+            except (ValueError,ProviderError,ExecutionError) as exc:
                 response=str(exc)
                 with self.store.db() as db:
                     db.execute('INSERT INTO messages(role,content,channel,created) VALUES (?,?,?,?)',('assistant','이 요청은 완료하지 못했습니다: '+response,job['channel'],time.time()))
