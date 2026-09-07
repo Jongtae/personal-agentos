@@ -44,4 +44,4 @@ AgentOS는 범용 대화 플랫폼이나 조직이 관리하는 Agent 플랫폼�
 
 MP1은 공개 marketplace, 임의 코드 실행, 무제한 자동 위임, 개인 데이터를 복제하는 중앙 control plane을 범위에 넣지 않는다. 향후 capability acquisition도 검토된 카탈로그와 소유자 승인·격리·검증을 우회하지 않는다. AgentOS는 ChatGPT나 기업 Agent 플랫폼보다 보안적 우위를 일반적으로 주장하지 않는다. 대신 개인 상태와 신뢰 경계가 어디에 있는지를 투명하게 만든다.
 
-어떤 capability도 자동화 테스트와 그 실제 연결의 named live acceptance가 있기 전에는 지원된다고 주장하지 않는다. 장기 실행 계획은 [Master Plan 1](master-plan-01-personal-assistant-core.ko.md)에서, 그 다음 선택 절차는 [Master Plan 2](master-plan-02-proposal.ko.md)에서 관리한다.
+어떤 capability도 선언된 자동화 테스트가 통과하기 전에는 지원된다고 주장하지 않는다. 장기 실행 계획은 [Master Plan 1](master-plan-01-personal-assistant-core.ko.md)에서, 그 다음 선택 절차는 [Master Plan 2](master-plan-02-proposal.ko.md)에서 관리한다.

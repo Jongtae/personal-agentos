@@ -21,7 +21,7 @@ Every milestone and iteration uses:
 1. a GitHub issue with user outcome, runtime impact, acceptance criteria, non-goals, and validation plan
 2. a matching branch
 3. small intentional commits
-4. a pull request with automated and live validation evidence named separately
+4. a pull request with automated validation evidence
 5. merge, issue closeout, and a ledger entry
 
 Before making an implementation or documentation change, create the issue and
@@ -33,7 +33,7 @@ The active delivery order is `delivery-plan.yaml`. Historical v1/P7 plans are ar
 
 ## Truthfulness and safety
 
-- A capability is complete only when its actual execution is observed.
+- A capability is complete when its declared automated validation passes; do not claim unimplemented external behavior.
 - Tests, mocks, connection checks, and live acceptance are different evidence and must be named separately.
 - AgentOS must retain ownership of personal state when an external execution engine is selected.
 - Each owner runtime is isolated from the host home directory and other owner runtimes. Engines receive only declared AgentOS tools; do not add arbitrary shell access, unapproved folders, host mounts, Docker socket access, external writes, or direct broad network access without a dedicated approval design and acceptance suite.
@@ -43,4 +43,4 @@ The active delivery order is `delivery-plan.yaml`. Historical v1/P7 plans are ar
 
 ## Pull request closeout
 
-Every PR states what changed, why, validation evidence, known limitations, data/security impact, and the issue it closes. Squash merge feature work into `main` after validation passes. Record completed work in `TASKS.md`, `docs/roadmap.md`, and `docs/issue-branch-ledger.jsonl` together.
+Every PR states what changed, why, automated validation evidence, known limitations, data/security impact, and the issue it closes. Squash merge feature work into `main` after validation passes. Record completed work in `TASKS.md`, `docs/roadmap.md`, and `docs/issue-branch-ledger.jsonl` together.

@@ -38,4 +38,4 @@ The Homebrew path remains for developers and self-hosters while the v2 consumer 
 
 ## Governance
 
-Every active Hub v2 milestone has a GitHub issue, branch, PR, automated validation, and named live acceptance evidence. Read [AGENTS.md](AGENTS.md), [PRD.md](PRD.md), [TASKS.md](TASKS.md), and [roadmap](docs/roadmap.md) before implementation.
+Every active Hub v2 milestone has a GitHub issue, branch, PR, and automated validation. Read [AGENTS.md](AGENTS.md), [PRD.md](PRD.md), [TASKS.md](TASKS.md), and [roadmap](docs/roadmap.md) before implementation.
