@@ -307,7 +307,7 @@ class DeliveryController:
             # The delivery controller path is standard-library-only, so the
             # macOS runtime is a safe source-schedule fallback.
             system_python=Path('/usr/bin/python3')
-            return [str(system_python if system_python.is_file() else Path(sys.executable)),'-m','personal_agent.quickstart']
+            return [str(system_python if system_python.is_file() else Path(sys.executable))]
         command=shutil.which('agentos')
         return [command] if command else [sys.executable,'-m','personal_agent.quickstart']
 
@@ -315,14 +315,20 @@ class DeliveryController:
         label='com.jongtae.personal-agentos.delivery';folder=Path.home()/'Library'/'LaunchAgents';path=folder/(label+'.plist')
         folder.mkdir(parents=True,exist_ok=True)
         source_mode=(self.root/'personal_agent'/'quickstart.py').is_file()
-        args=[*self._schedule_program(),'delivery','run','--once','--scheduled','--root',str(self.root),'--state',str(self.state_store.path)]
+        delivery_args=['delivery','run','--once','--scheduled','--root',str(self.root),'--state',str(self.state_store.path)]
+        if source_mode:
+            # launchd may strip PYTHONPATH, so bootstrap the exact source tree
+            # through an absolute sys.path entry rather than inherited state.
+            bootstrap=(f'import runpy,sys;sys.path.insert(0,{str(self.root)!r});'
+                       f'sys.argv={["agentos",*delivery_args]!r};'
+                       "runpy.run_module('personal_agent.quickstart',run_name='__main__')")
+            args=[*self._schedule_program(),'-c',bootstrap]
+        else:
+            args=[*self._schedule_program(),*delivery_args]
         rendered=''.join(f'<string>{xml_escape(str(arg))}</string>' for arg in args)
-        # launchd can stall Python while resolving a cloud-synchronised project
-        # directory. Source mode imports through PYTHONPATH from a stable cwd.
         working_directory='/' if source_mode else str(self.root)
-        environment=(f'<key>EnvironmentVariables</key><dict><key>PYTHONPATH</key><string>{xml_escape(str(self.root))}</string></dict>' if source_mode else '')
         payload=(f'<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict>'
-                 f'<key>Label</key><string>{label}</string><key>ProgramArguments</key><array>{rendered}</array>{environment}'
+                 f'<key>Label</key><string>{label}</string><key>ProgramArguments</key><array>{rendered}</array>'
                  f'<key>WorkingDirectory</key><string>{xml_escape(working_directory)}</string>'
                  f'<key>StartInterval</key><integer>{RETRY_SECONDS}</integer><key>RunAtLoad</key><true/>'
                  f'<key>StandardOutPath</key><string>{xml_escape(str(Path.home()/"Library/Logs/personal-agentos-delivery.log"))}</string>'
