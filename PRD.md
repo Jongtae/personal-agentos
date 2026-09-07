@@ -1,37 +1,31 @@
-# Personal AgentOS v1
+# AgentOS Hub v2
 
-## Problem
+## Product outcome
 
-Personal agents currently require developer-level setup and rebuild work.
-People should be able to run their own agent, select models and capabilities,
-reach it through normal communication channels, and retain control of their
-data and runtime.
+A Mac owner installs AgentOS, connects a ChatGPT or Claude subscription without an API key, creates a personal Telegram bot, and assigns real work to trusted assistants. AgentOS retains the owner's memory, context, tool policy, approvals, and evidence across engine changes.
 
-## v1 user
+## Primary user
 
-A technical individual who can install Homebrew on macOS or Docker Compose on
-a single Linux/VPS server.
+A non-developer Mac user who already uses a ChatGPT or Claude subscription and wants a personal agent they can reach through Telegram.
 
-## v1 outcome
+## Core capabilities
 
-One owner installs AgentOS, connects a model and Telegram, and uses one shared
-agent from web and Telegram. The agent can perform web search, weather lookup,
-connected-document reading, notes, and bounded researcher/reviewer delegation.
-The UI shows work actually performed and recovers clearly from failure.
+- Assistant-first setup with Codex and Claude Code as default execution engines.
+- Telegram personal bot for requests, progress, approvals, and results.
+- AgentOS-owned MCP tools for web research, connected documents, notes, and reviewed delegation.
+- User-scoped isolated AgentOS runtime, local-first task queue, evidence, recovery, and opt-in context inbox.
+- Three curated assistants: personal records, research and briefing, project review.
+- Portable owner export and restore; managed hosting remains an explicit opt-in future path.
 
-## v1 boundaries
+## Boundaries
 
-Included: single owner, one runtime instance, web, Telegram, Homebrew,
-Docker Compose, read-only connected files, explicit note/delegation requests,
-model adapters, plugin/role manifests.
+Included: local Mac runtime, subscription-engine connection, transient control-plane relay, personal-bot pairing, read-only research/document work, note writes, explicit approval, opt-in clipboard/URL context, export/restore.
 
-Excluded: multi-tenant hosting, Kubernetes as an official runtime, native
-mobile apps, arbitrary shell/file writes, external service writes, and live
-Codex/Claude Code execution adapters.
+Excluded: API key as a consumer prerequisite, arbitrary shell or file writes, automatic cloud failover, persistent relay content storage, unmanaged community assistants, user-managed Kubernetes installation, native mobile app, and additional messengers. Kubernetes remains an internal managed-hosting isolation option.
 
 ## Success measures
 
-- a new user reaches first successful agent task from a documented install
-- a task shows its capability execution and source evidence
-- restart, update, backup, and Telegram recovery retain the owner's runtime
-- every supported installation path has repeatable acceptance evidence
+- A new owner completes installation, official engine login, personal-bot creation, and a first source-backed Telegram task without an API key.
+- AgentOS shows work state and evidence while preventing engines from reaching undeclared host capabilities.
+- Restart preserves local state and Telegram updates are processed after reconnect.
+- Context capture rejects sensitive values and shares data externally only by assistant policy.

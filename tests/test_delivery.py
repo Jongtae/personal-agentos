@@ -26,16 +26,16 @@ class DeliveryTests(unittest.TestCase):
     def test_packaged_plan_is_used_when_no_source_checkout_is_present(self):
         installed_root=Path(self.temp.name)/'installed-cli-context';installed_root.mkdir()
         controller=DeliveryController(installed_root,self.state,Runner(),now=lambda:self.clock[0])
-        self.assertEqual(controller.status()['active'],'P1-01')
+        self.assertEqual(controller.status()['active'],'H0-01')
         self.assertEqual(controller.plan.data['repository'],'Jongtae/personal-agentos')
 
-    def test_plan_starts_at_live_gate_and_uses_repair_when_blocked(self):
+    def test_hub_plan_is_ordered_and_ignores_frozen_legacy_state(self):
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')
-        self.assertEqual(plan.select({})['id'],'P1-01')
-        self.assertEqual(plan.select({'blocked':'P1-01'})['id'],'P1-01a')
-        self.assertEqual(plan.select({'completed':['P1-01','P1-01a']})['id'],'P1-01b')
-        self.assertEqual(plan.select({'completed':['P1-01','P1-01a','P1-01b']})['id'],'P1-02')
-        self.assertEqual(plan.select({'completed':['P1-01','P1-01a','P1-01b','P1-02'],'blocked':'P1-02'})['id'],'P1-03')
+        self.assertEqual(plan.select({})['id'],'H0-01')
+        self.assertEqual(plan.select({'completed':['H0-01']})['id'],'H1-01')
+        self.assertEqual(plan.select({'completed':['H0-01','H1-01']})['id'],'H1-02')
+        self.assertEqual(plan.select({'completed':['H0-01','H1-01','H1-02']})['id'],'H2-01')
+        self.assertEqual(plan.select({'active':'P7-03a','blocked':'P7-03a'})['id'],'H0-01')
 
     def test_authenticated_git_push_uses_login_shell_credentials(self):
         completed=SimpleNamespace(returncode=0,stdout='',stderr='')
@@ -50,6 +50,8 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(classify_failure('codex: unexpected argument --full-auto'),'worker-incompatible')
 
     def test_rate_limit_is_blocked_with_six_hour_retry_and_no_secret(self):
+        plan={'repository':'Jongtae/personal-agentos','iterations':[{'id':'LIVE','milestone':'H0','kind':'live_validation','validation':'python3 verify.py','summary':'live proof'}]}
+        (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
         runner=Runner([SimpleNamespace(returncode=1,stdout='',stderr='HTTP 429 rate limit')])
         result=self.controller(runner).run_once(dry_run=True)
         self.assertEqual(result['status'],'blocked-external-rate-limit')
@@ -64,35 +66,37 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(result['attempts_today'],4)
         self.assertEqual(len(runner.calls),0)
 
-    def test_closed_repair_issue_is_recorded_without_touching_worktree(self):
-        StateStore(self.state).write({'blocked':'P1-01'})
+    def test_closed_current_issue_is_recorded_without_touching_worktree(self):
+        StateStore(self.state).write({'active':'H0-01','issues':{'H0-01':103}})
         runner=Runner([SimpleNamespace(returncode=0,stdout='CLOSED\n',stderr='')])
         result=self.controller(runner).run_once()
-        self.assertIn('P1-01a',result['completed'])
+        self.assertIn('H0-01',result['completed'])
         self.assertFalse((self.root/'worktrees').exists())
 
-    def test_reconcile_adopts_a_closed_active_issue_then_selects_schedule_repair(self):
-        StateStore(self.state).write({'active':'P1-01a','completed':['P1-01'],'issues':{'P1-01a':10}})
+    def test_reconcile_adopts_closed_hub_issue_then_selects_next_iteration(self):
+        StateStore(self.state).write({'active':'H0-01','issues':{'H0-01':103}})
         runner=Runner([SimpleNamespace(returncode=0,stdout='CLOSED\n',stderr='')])
         result=self.controller(runner).reconcile()
-        self.assertEqual(result['completed'],['P1-01','P1-01a'])
-        self.assertEqual(self.controller(Runner()).status()['active'],'P1-01b')
+        self.assertEqual(result['completed'],['H0-01'])
+        self.assertEqual(self.controller(Runner()).status()['active'],'H1-01')
 
     def test_timeout_is_recorded_and_never_leaves_running_state(self):
+        plan={'repository':'Jongtae/personal-agentos','iterations':[{'id':'LIVE','milestone':'H0','kind':'live_validation','validation':'python3 verify.py','summary':'live proof'}]}
+        (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
         class TimeoutRunner:
             def run(self, args, cwd=None, timeout=900):
                 raise __import__('subprocess').TimeoutExpired(args,timeout)
         result=self.controller(TimeoutRunner()).run_once(dry_run=True)
         self.assertEqual(result['status'],'blocked-delivery-timeout')
-        self.assertEqual(result['active'],'P1-01')
+        self.assertEqual(result['active'],'LIVE')
         self.assertIn('Timed out after 900 seconds.',result['last_error'])
 
     def test_github_auth_failure_blocks_before_worker_or_worktree(self):
-        StateStore(self.state).write({'active':'P1-01b','completed':['P1-01','P1-01a']})
+        StateStore(self.state).write({'active':'H0-01','issues':{'H0-01':103}})
         runner=Runner([SimpleNamespace(returncode=1,stdout='',stderr='HTTP 401: Bad credentials')])
         result=self.controller(runner).run_once()
         self.assertEqual(result['status'],'blocked-blocked-approval')
-        self.assertEqual(result['active'],'P1-01b')
+        self.assertEqual(result['active'],'H0-01')
         self.assertFalse((self.root/'worktrees').exists())
 
     def test_local_live_validation_does_not_require_github(self):
@@ -110,13 +114,13 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(saved,{'active':'P1-01','completed':['P0-01'],'status':'blocked'})
 
     def test_worker_uses_dedicated_worktree_then_controller_publishes(self):
-        (self.root/'.git').mkdir();StateStore(self.state).write({'active':'P1-01a','blocked':'P1-01'})
+        (self.root/'.git').mkdir();StateStore(self.state).write({'active':'H1-01','completed':['H0-01'],'issues':{'H1-01':104}})
         ok=lambda stdout='':SimpleNamespace(returncode=0,stdout=stdout,stderr='')
         runner=Runner([ok('OPEN\n'),ok(),ok(),ok(),ok(),ok('https://github.com/Jongtae/personal-agentos/pull/99\n'),ok()])
         result=self.controller(runner).run_once()
-        self.assertIn('P1-01a',result['completed'])
-        worktree=self.state.parent/'worktrees'/'p1-01a'
-        self.assertEqual(runner.calls[2][1],worktree)  # Codex never receives the caller worktree.
+        self.assertIn('H1-01',result['completed'])
+        worktree=self.state.parent/'worktrees'/'h1-01'
+        self.assertEqual(runner.calls[2][1],worktree)
         self.assertEqual(runner.calls[2][0][:3],['codex','exec','--approve-for-me'])
         self.assertIn(['gh','pr','merge','https://github.com/Jongtae/personal-agentos/pull/99','--repo','Jongtae/personal-agentos','--squash','--delete-branch'],[call[0] for call in runner.calls])
 
@@ -138,41 +142,36 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(runner.calls[0][0][1],'bootout')
         self.assertEqual(runner.calls[-1][0][1],'print')
 
-    def test_p7_starts_after_completed_runtime_extensions(self):
+    def test_frozen_p7_state_cannot_be_selected_by_hub_plan(self):
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')
-        completed=[item['id'] for item in plan.data['iterations'] if item['id'] not in ('P7-01','P7-02','P7-03','P7-04')]
-        self.assertEqual(plan.select({'completed':completed})['id'],'P7-01')
+        self.assertNotIn('P7-03a',plan.items)
+        self.assertEqual(plan.select({'active':'P7-04','blocked':'P7-03a'})['id'],'H0-01')
 
-    def test_p7_release_waits_for_recorded_live_acceptance(self):
+    def test_hub_plan_requires_each_predecessor(self):
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')
-        completed=[item['id'] for item in plan.data['iterations'] if item['id'] not in ('P7-03a','P7-04')]
-        self.assertEqual(plan.select({'completed':completed})['id'],'P7-03a')
-        completed.append('P7-03a')
-        self.assertEqual(plan.select({'completed':completed})['id'],'P7-04')
+        completed=['H0-01','H1-01','H1-02','H2-01']
+        self.assertEqual(plan.select({'completed':completed})['id'],'H3-01')
+        completed.append('H3-01')
+        self.assertEqual(plan.select({'completed':completed})['id'],'H4-01')
 
-    def test_release_iteration_is_ready_for_controller_release_not_codex(self):
-        plan=DeliveryPlan(self.root/'delivery-plan.yaml')
-        completed=[item['id'] for item in plan.data['iterations'] if item['id']!='P7-04']
-        StateStore(self.state).write({'completed':completed})
+    def test_hub_plan_has_no_implicit_release_iteration(self):
+        completed=[item['id'] for item in DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations']]
+        StateStore(self.state).write({'completed':completed,'active':'P7-04','status':'running'})
         result=self.controller(Runner()).run_once(dry_run=True)
-        self.assertEqual(result['active'],'P7-04')
-        self.assertEqual(result['status'],'ready-for-release')
+        self.assertEqual(result['status'],'complete')
+        self.assertNotIn('active',result)
 
     def test_patch_release_version_helpers(self):
         self.assertEqual(DeliveryController._next_patch_version('1.0.3'),'1.0.4')
         with self.assertRaises(Exception):DeliveryController._next_patch_version('1.0')
 
-    def test_completed_v1_state_selects_stage_two_without_stale_issue(self):
-        completed=[item['id'] for item in DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations'] if item['id']!='P6-01']
-        StateStore(self.state).write({'completed':completed,'status':'complete','milestone':'M1','issue':25})
+    def test_completed_v1_state_selects_hub_without_stale_issue(self):
+        StateStore(self.state).write({'completed':['P1-01','P7-03'],'status':'complete','milestone':'M7','issue':94})
         controller=self.controller(Runner())
         status=controller.status()
-        self.assertEqual(status['active'],'P6-01')
-        self.assertEqual(status['milestone'],'M6')
-        self.assertEqual(status['issue'],55)
-        result=controller.run_once(dry_run=True)
-        self.assertEqual(result['active'],'P6-01')
-        self.assertEqual(result['status'],'ready-for-codex')
+        self.assertEqual(status['active'],'H0-01')
+        self.assertEqual(status['milestone'],'H0')
+        self.assertEqual(status['issue'],103)
 
     def test_fully_completed_plan_clears_stale_current_iteration_metadata(self):
         completed=[item['id'] for item in DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations']]
@@ -184,20 +183,20 @@ class DeliveryTests(unittest.TestCase):
         self.assertNotIn('issue',result)
         self.assertEqual(self.controller(Runner()).status()['next_action'],'delivery plan complete')
 
-    def test_created_stage_two_issue_uses_its_configured_milestone(self):
+    def test_created_hub_issue_uses_its_configured_milestone(self):
         plan=json.loads((self.root/'delivery-plan.yaml').read_text())
-        plan['iterations']=[{'id':'P6-99','milestone':'M6','kind':'implementation','summary':'stage two task'}]
+        plan['iterations']=[{'id':'H1-99','milestone':'H1','kind':'implementation','summary':'hub task'}]
         (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
         runner=Runner([SimpleNamespace(returncode=0,stdout='https://github.com/Jongtae/personal-agentos/issues/99\n',stderr='')])
         state={}
-        issue=self.controller(runner)._ensure_issue(DeliveryPlan(self.root/'delivery-plan.yaml').items['P6-99'],state,False)
+        issue=self.controller(runner)._ensure_issue(DeliveryPlan(self.root/'delivery-plan.yaml').items['H1-99'],state,False)
         self.assertEqual(issue,99)
-        self.assertIn('Personal AgentOS Stage 2',runner.calls[0][0])
+        self.assertIn('AgentOS Hub v2',runner.calls[0][0])
 
     def test_status_reports_current_iteration(self):
         result=self.controller(Runner()).status()
-        self.assertEqual(result['active'],'P1-01')
-        self.assertEqual(result['milestone'],'M1')
+        self.assertEqual(result['active'],'H0-01')
+        self.assertEqual(result['milestone'],'H0')
 
 
 if __name__=='__main__':unittest.main()

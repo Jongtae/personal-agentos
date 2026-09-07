@@ -1,71 +1,22 @@
-# Personal AgentOS
+# AgentOS
 
-Personal AgentOS is a self-hosted personal agent for one owner. It runs on a
-Mac or a single Linux server, keeps its conversations and configuration under
-the owner's control, and can be reached through the web and Telegram.
+AgentOS is a local-first personal-agent runtime. It keeps an owner's memory, context, tool permissions, work queue, approvals, and evidence in a user-scoped isolated runtime on their Mac, while using connected AI execution engines such as Codex or Claude Code to complete work.
 
-The current preview supports model-backed conversation, web search, weather,
-connected text files, notes, and bounded researcher/reviewer roles. Every
-tool run is recorded in the conversation UI.
+The everyday surface is a personal Telegram bot. AgentOS is not only a message relay: it chooses the assistant, enforces tool and data boundaries, persists work state, and records the result and its evidence.
 
-## Product direction
+## Current baseline
 
-The v1 goal is a dependable personal runtime: install it, connect a model and
-Telegram, give it a task, and see the work it actually performed. This project
-does not build an operating system. Kubernetes, multi-tenant hosting, native
-mobile apps, and external coding-engine adapters are post-v1 tracks.
+Version 1.0.3 remains the maintained self-hosted API-model preview. Hub v2 is the active product roadmap: subscription-connected engines, automatically created personal Telegram bots, and an opt-in local context inbox. See [Hub v2 product basis](docs/agentos-hub-v2.ko.md).
 
-## Install
-
-macOS installation currently uses the Homebrew tap:
+## Development installation
 
 ```sh
 brew install jongtae/agentos/agentos
 agentos start
 ```
 
-See [Quickstart](QUICKSTART.md) for setup, privacy boundaries, and supported
-model connections.
+The Homebrew path remains for developers and self-hosters while the v2 consumer installer is built.
 
-## Development workflow
+## Governance
 
-Product work is issue-first and PR-centered. Read these in order before a new
-iteration:
-
-1. [AGENTS.md](AGENTS.md)
-2. [PRD.md](PRD.md)
-3. [TASKS.md](TASKS.md)
-4. [Roadmap](docs/roadmap.md)
-
-Each task has an issue, branch, focused validation, PR, merge, and closeout
-record. The Homebrew tap is a separate release integration, not the product
-source of truth.
-
-### Delivery loop
-
-Maintainers can run the tracked delivery sequence (v1 and subsequent stages) from a product source
-checkout. It records only delivery metadata in the local state file; model and
-Telegram secrets stay in the AgentOS secret store.
-
-```sh
-agentos delivery status
-agentos delivery run --once --dry-run
-agentos delivery install-schedule
-```
-
-The macOS schedule retries external validation every six hours, at most four
-times per UTC day. It does not advance past a blocked acceptance gate, use paid
-models, or request a new OAuth permission.
-
-## Validation
-
-```sh
-python3 -m unittest discover -s tests -q
-python3 scripts/quickstart_install_check.py
-python3 scripts/verify_general_agent.py --installed --model minimax/minimax-m2.7:free
-```
-
-The final command needs a configured model key and uses a temporary test store.
-For a release-level cross-check of product requirements, documentation,
-installation, Compose persistence, and optional live evidence, see
-[Product validation](docs/product-validation.md).
+Every active Hub v2 milestone has a GitHub issue, branch, PR, automated validation, and named live acceptance evidence. Read [AGENTS.md](AGENTS.md), [PRD.md](PRD.md), [TASKS.md](TASKS.md), and [roadmap](docs/roadmap.md) before implementation.

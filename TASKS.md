@@ -1,18 +1,22 @@
 # Delivery tracks
 
-| Milestone | Goal | Status |
-| --- | --- | --- |
-| M0 | Product source, GitHub workflow, and release separation | Complete except GitHub Project board permission |
-| M1 | Reliable personal runtime | Complete — native-tool, bounded recovery, and web/Telegram continuity accepted |
-| M2 | Personal data and document capability | Complete — connected-document evidence and external-model approval boundaries accepted |
-| M3 | Persistent runtime and official server install | Complete — Docker Compose, backup/restore, and service-operation paths accepted |
-| M4 | Role, tool, plugin, and runtime extension contract | Core complete — manifests and local plugin lifecycle delivered; [Epic #36](https://github.com/Jongtae/personal-agentos/issues/36) tracks b3os-informed interoperability follow-up |
-| M5 | v1 release acceptance | Complete — P5-03 added repeatable product validation, live OpenAI tool/document evidence, Compose persistence, and Telegram restart continuity proof |
-| M6 | Reviewed runtime extensions | In progress — P6-01 activates enabled declaration-only role and tool packages through the bounded runtime contract |
-| M7 | Safe Telegram task cards | In progress — P7-03 adds a redacted paired-account acceptance gate for cards, cancellation, approval, notifications, restart continuity, and shared web evidence |
+## Maintained baseline
 
-P0-01 through P5-03 are complete. Follow-up vision work is tracked in the open
-Stage 2 and Stage 3 epics, with evidence recorded in `docs/issue-branch-ledger.jsonl`.
-User-approved clipboard, browser, and native-companion context capture is a
-post-M7 idea tracked in [#100](https://github.com/Jongtae/personal-agentos/issues/100);
-its local-first safety boundaries are recorded in `docs/context-capture-idea.ko.md`.
+| Track | Goal | Status |
+| --- | --- | --- |
+| v1 / M0–M6 | Self-hosted personal runtime, documents, continuity, manifests, and v1 acceptance | Complete baseline through 1.0.3 |
+| v1 / M7 | Telegram task-card polish and release gate | Frozen maintenance; it does not block Hub v2 |
+
+## Active: AgentOS Hub v2
+
+| Milestone | Goal | Issue | Status |
+| --- | --- | --- | --- |
+| M0 | Record Hub v2 product basis and delivery sequence | [#103](https://github.com/Jongtae/personal-agentos/issues/103) | In progress |
+| M1 | Connect subscription engines without API-key setup | [#104](https://github.com/Jongtae/personal-agentos/issues/104) | Planned |
+| M1.5 | Isolate each personal AgentOS runtime from the Mac host | [#109](https://github.com/Jongtae/personal-agentos/issues/109) | Planned |
+| M2 | Run subscription engines through AgentOS-owned tools | [#105](https://github.com/Jongtae/personal-agentos/issues/105) | Planned |
+| M3 | Deliver first work through an automatically created personal bot | [#106](https://github.com/Jongtae/personal-agentos/issues/106) | Planned |
+| M4 | Build an opt-in local context inbox | [#107](https://github.com/Jongtae/personal-agentos/issues/107) | Planned |
+| M5 | Provide trusted assistants and portable personal state | [#108](https://github.com/Jongtae/personal-agentos/issues/108) | Planned |
+
+The Hub v2 Epic is [#102](https://github.com/Jongtae/personal-agentos/issues/102). The current delivery loop selects this ordered sequence only; historical v1 records remain in the ledger.

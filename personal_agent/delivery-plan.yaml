@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "repository": "Jongtae/personal-agentos",
   "retry": {
     "seconds": 21600,
@@ -7,273 +7,123 @@
   },
   "iterations": [
     {
-      "id": "P1-01",
-      "milestone": "M1",
-      "issue": 7,
-      "kind": "live_validation",
-      "validation": "python3 scripts/verify_general_agent.py --installed",
-      "summary": "Verify a live native tool-call capable model before closing M1 validation."
-    },
-    {
-      "id": "P1-01a",
-      "milestone": "M1",
-      "issue": 10,
-      "repair_of": "P1-01",
+      "id": "H0-01",
+      "milestone": "H0",
+      "issue": 103,
       "kind": "implementation",
       "tests": [
         "python3 -m unittest discover -s tests -q"
       ],
-      "summary": "Build the evidence-driven delivery loop while P1-01 is externally blocked."
+      "summary": "Record AgentOS Hub v2 direction and freeze superseded P7 delivery work."
     },
     {
-      "id": "P1-01b",
-      "milestone": "M1",
-      "issue": 17,
+      "id": "H1-01",
+      "milestone": "H1",
+      "issue": 104,
       "kind": "implementation",
       "depends_on": [
-        "P1-01",
-        "P1-01a"
+        "H0-01"
       ],
       "tests": [
         "python3 -m unittest discover -s tests -q"
       ],
-      "summary": "Make scheduled delivery reconciliation, bounded subprocess failures, and launchd recovery reliable."
+      "summary": "Connect Codex and Claude Code subscriptions without consumer API-key setup."
     },
     {
-      "id": "P1-02",
-      "milestone": "M1",
-      "issue": 22,
-      "depends_on": [
-        "P1-01",
-        "P1-01a",
-        "P1-01b"
-      ],
+      "id": "H1-02",
+      "milestone": "H1.5",
+      "issue": 109,
       "kind": "implementation",
-      "tests": [
-        "python3 -m unittest discover -s tests -q",
-        "python3 scripts/verify_general_agent.py --installed"
-      ],
-      "summary": "Verify execution traces, failure recovery, and retry limits for every built-in capability."
-    },
-    {
-      "id": "P1-03",
-      "milestone": "M1",
-      "issue": 25,
       "depends_on": [
-        "P1-02"
+        "H1-01"
       ],
-      "kind": "implementation",
       "tests": [
         "python3 -m unittest discover -s tests -q"
       ],
-      "summary": "Verify web and Telegram continuity, restart recovery, and ambiguous delivery behavior."
+      "summary": "Isolate each owner AgentOS runtime from the Mac host and prepare the Kubernetes hosting boundary."
     },
     {
-      "id": "P2-01",
-      "milestone": "M2",
-      "issue": 29,
-      "depends_on": [
-        "P1-03"
-      ],
+      "id": "H2-01",
+      "milestone": "H2",
+      "issue": 105,
       "kind": "implementation",
+      "depends_on": [
+        "H1-02"
+      ],
       "tests": [
         "python3 -m unittest discover -s tests -q"
       ],
-      "summary": "Read txt, md, PDF, DOCX, and XLSX from connected folders with source evidence."
+      "summary": "Run subscription engines through AgentOS-owned MCP tools and bounded execution adapters."
     },
     {
-      "id": "P2-02",
-      "milestone": "M2",
-      "issue": 31,
-      "depends_on": [
-        "P2-01"
-      ],
+      "id": "H3-01",
+      "milestone": "H3",
+      "issue": 106,
       "kind": "implementation",
+      "depends_on": [
+        "H2-01"
+      ],
       "tests": [
         "python3 -m unittest discover -s tests -q"
       ],
-      "summary": "Make document-to-model and document-to-web boundaries visible and approval-gated."
+      "summary": "Create personal Telegram bots and prove a live first-work acceptance."
     },
     {
-      "id": "P3-01",
-      "milestone": "M3",
-      "issue": 34,
-      "depends_on": [
-        "P2-02"
-      ],
+      "id": "H4-01",
+      "milestone": "H4",
+      "issue": 107,
       "kind": "implementation",
-      "summary": "Deliver Docker Compose installation, persistent data, update, and health checks for a Linux VPS."
-    },
-    {
-      "id": "P3-02",
-      "milestone": "M3",
-      "issue": 38,
       "depends_on": [
-        "P3-01"
+        "H3-01"
       ],
-      "kind": "implementation",
-      "summary": "Deliver launchd continuity, backup/restore, update, and Telegram recovery."
-    },
-    {
-      "id": "P4-01",
-      "milestone": "M4",
-      "issue": 40,
-      "depends_on": [
-        "P3-02"
-      ],
-      "kind": "implementation",
-      "summary": "Define declaration-only local tool and role manifests with a bounded host API."
-    },
-    {
-      "id": "P4-02",
-      "milestone": "M4",
-      "issue": 43,
-      "depends_on": [
-        "P4-01"
-      ],
-      "kind": "implementation",
-      "summary": "Migrate built-ins and add plugin install, validate, disable, and remove lifecycle."
-    },
-    {
-      "id": "P5-01",
-      "milestone": "M5",
-      "issue": 45,
-      "depends_on": [
-        "P4-02"
-      ],
-      "kind": "implementation",
-      "summary": "Run macOS Homebrew and Linux VPS Docker Compose v1 acceptance."
-    },
-    {
-      "id": "P5-02",
-      "milestone": "M5",
-      "depends_on": [
-        "P5-01"
-      ],
-      "kind": "release",
-      "summary": "Tag, release, update Homebrew, and re-run installed acceptance before closing v1."
-    },
-    {
-      "id": "P6-01",
-      "milestone": "M6",
-      "issue": 55,
-      "depends_on": [
-        "P5-02"
-      ],
-      "kind": "implementation",
       "tests": [
         "python3 -m unittest discover -s tests -q"
       ],
-      "summary": "Activate reviewed declaration-only role and tool packages at runtime."
+      "summary": "Build the opt-in local context inbox with safe sharing boundaries."
     },
     {
-      "id": "P7-01",
-      "milestone": "M7",
-      "issue": 71,
-      "depends_on": [
-        "P6-01"
-      ],
+      "id": "H5-01",
+      "milestone": "H5",
+      "issue": 108,
       "kind": "implementation",
+      "depends_on": [
+        "H4-01"
+      ],
       "tests": [
         "python3 -m unittest discover -s tests -q"
       ],
-      "summary": "Create natural-language Telegram task cards with safe inline progress and queued-job cancellation.",
-      "acceptance": [
-        "paired owner gets one editable task card per natural-language request",
-        "callbacks are authorized and idempotent",
-        "only queued jobs can be cancelled",
-        "no default command-based guidance"
-      ]
-    },
-    {
-      "id": "P7-02",
-      "milestone": "M7",
-      "issue": 72,
-      "depends_on": [
-        "P7-01"
-      ],
-      "kind": "implementation",
-      "tests": [
-        "python3 -m unittest discover -s tests -q"
-      ],
-      "summary": "Add Telegram document-approval buttons and durable terminal notifications.",
-      "acceptance": [
-        "approve or deny document sharing from paired Telegram owner",
-        "completion, failure, and approval-needed notifications are restart-safe",
-        "no secrets or document contents in card or notification"
-      ]
-    },
-    {
-      "id": "P7-03",
-      "milestone": "M7",
-      "issue": 73,
-      "depends_on": [
-        "P7-02"
-      ],
-      "kind": "implementation",
-      "tests": [
-        "python3 -m unittest discover -s tests -q"
-      ],
-      "summary": "Verify live Telegram task-card continuity and shared web evidence.",
-      "acceptance": [
-        "actual paired Telegram account validates cards, cancellation, approval, notifications, and restart continuity"
-      ]
-    },
-    {
-      "id": "P7-03a",
-      "milestone": "M7",
-      "depends_on": [
-        "P7-03"
-      ],
-      "kind": "live_validation",
-      "validation": "python3 scripts/verify_telegram_task_card_acceptance.py --data-dir ~/.local/share/agentos",
-      "summary": "Record and verify redacted paired Telegram task-card acceptance before release.",
-      "acceptance": [
-        "owner records web and restart observations only after durable card, cancellation, approval, and notification evidence exists",
-        "release remains unavailable until the local redacted verifier passes"
-      ],
-      "issue": 91
-    },
-    {
-      "id": "P7-04",
-      "milestone": "M7",
-      "depends_on": [
-        "P7-03a"
-      ],
-      "kind": "release",
-      "summary": "Release verified Telegram task-card continuity through GitHub and Homebrew.",
-      "acceptance": [
-        "release only after M7 automated and live acceptance passes"
-      ],
-      "issue": 94,
-      "tap_repository": "Jongtae/homebrew-agentos",
-      "formula_path": "Formula/agentos.rb",
-      "tests": [
-        "python3 -m unittest discover -s tests -q"
-      ]
+      "summary": "Provide trusted assistants and portable owner state."
     }
   ],
   "milestones": {
-    "M1": {
-      "title": "Personal AgentOS v1"
+    "H0": {
+      "title": "AgentOS Hub v2"
     },
-    "M2": {
-      "title": "Personal AgentOS v1"
+    "H1": {
+      "title": "AgentOS Hub v2"
     },
-    "M3": {
-      "title": "Personal AgentOS v1"
+    "H2": {
+      "title": "AgentOS Hub v2"
     },
-    "M4": {
-      "title": "Personal AgentOS v1"
+    "H3": {
+      "title": "AgentOS Hub v2"
     },
-    "M5": {
-      "title": "Personal AgentOS v1"
+    "H4": {
+      "title": "AgentOS Hub v2"
     },
-    "M6": {
-      "title": "Personal AgentOS Stage 2"
+    "H5": {
+      "title": "AgentOS Hub v2"
     },
-    "M7": {
-      "title": "Personal AgentOS Stage 2"
+    "H1.5": {
+      "title": "AgentOS Hub v2"
     }
+  },
+  "history": {
+    "archived_plan": "docs/archive/delivery-plan-v1.json",
+    "frozen_iterations": [
+      "P7-03a",
+      "P7-04"
+    ],
+    "reason": "Hub v2 replaces v1/P7 as the active delivery track; historical evidence is retained."
   }
 }

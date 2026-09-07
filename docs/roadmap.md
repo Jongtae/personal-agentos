@@ -1,93 +1,35 @@
-# Roadmap
+# AgentOS Hub v2 roadmap
 
-## M0 — product source and governance
+AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gateway. The Mac hosts the owner-controlled runtime; AgentOS owns personal state, assistants, permissions, tools, task lifecycle, and evidence; Codex or Claude Code performs bounded engine turns.
 
-Separate product development from the Homebrew tap, establish issue-first PR
-work, and preserve the validated 0.2.x baseline.
+## M0 — Product basis and delivery sequence
 
-Completed: `personal-agentos` preserves the product history; the v0.2.2
-release feeds the Formula-only Homebrew tap; governance documentation, labels,
-v1 milestone, issues, branches, PRs, and ledger records are present.
+[#103](https://github.com/Jongtae/personal-agentos/issues/103) records the current product contract, freezes legacy P7 work, and moves the delivery loop onto Hub v2.
 
-Remaining administration: the GitHub Project board awaits a token with Project
-write access. It does not block product source, release, or iteration work.
+## M1 — Subscription engine connection
 
-## M1 — reliable personal runtime
+[#104](https://github.com/Jongtae/personal-agentos/issues/104) delivers consumer onboarding that connects Codex or Claude Code without API-key setup. Homebrew remains a developer path.
 
-Make model-driven capability selection, tool execution, traces, recovery, and
-web/Telegram continuity dependable.
+## M1.5 — Personal runtime isolation
 
-Completed: P1-01 through P1-03 established live native-tool validation,
-traceable capability recovery, and web/Telegram continuity evidence.
+[#109](https://github.com/Jongtae/personal-agentos/issues/109) creates the user-scoped OCI container or managed lightweight VM, dedicated volume, mediated read-only file boundary, and hosted Kubernetes translation. The consumer never operates Docker or Kubernetes directly.
 
-## M2 — private documents and safety
+## M2 — AgentOS-owned execution boundary
 
-Completed: connected folders support local TXT, Markdown, PDF, DOCX, and XLSX
-extraction with file and line, page, paragraph, or sheet/cell evidence.
-External models are blocked from document search and reads until the owner
-explicitly approves the current model-and-folder scope; that approval resets
-when the model or connected folders change. Document-derived evidence cannot
-be used as a public web-search query.
+[#105](https://github.com/Jongtae/personal-agentos/issues/105) adds bounded execution adapters and AgentOS MCP tools inside the isolated owner runtime. Engines do not receive arbitrary host access or a route outside that runtime.
 
-## M3 — continuity and installation
+## M3 — Personal Telegram bot and first work
 
-Completed: P3-01 and P3-02 delivered Docker Compose, persistent data, health
-checks, backup/restore, and service-operation paths.
+[#106](https://github.com/Jongtae/personal-agentos/issues/106) creates a personal bot through the managed-bot flow and proves a real source-backed Telegram task through Codex.
 
-## M4 — extensibility
+## M4 — Personal context inbox
 
-P4-01 delivered declarative bounded tool and role manifests
-([#40](https://github.com/Jongtae/personal-agentos/issues/40)); P4-02 delivered
-the local plugin install, disable, validation, and removal lifecycle
-([#43](https://github.com/Jongtae/personal-agentos/issues/43)).
+[#107](https://github.com/Jongtae/personal-agentos/issues/107) adds opt-in local clipboard/URL capture, sensitive-data filtering, retention, and per-assistant sharing policy.
 
-The design draws publicly credited lessons from
-[b3rys/b3rys-team-os](https://github.com/b3rys/b3rys-team-os), without claiming
-an unagreed partnership or importing its code. See the
-[b3os design reference](b3os-design-reference.ko.md) for the adopted boundaries
-and a future interoperability proposal.
+## M5 — Trusted assistants and portability
 
-## M5 — v1 release
+[#108](https://github.com/Jongtae/personal-agentos/issues/108) exposes three official assistants and adds portable owner export/restore plus a managed-hosting migration design.
 
-Completed: P5-03 adds a reproducible product-validation gate and records
-Homebrew, Compose persistence, live model/document, and Telegram restart
-continuity evidence. Native clients, additional channels, and managed hosting
-remain separate future product-vision work.
+## Historical baseline
 
-## M6 — reviewed runtime extensions
-
-P6-01 makes the reviewed declaration-only package registry an enforced runtime
-configuration source. Built-in and installed roles follow the same bounded
-host-action declarations; disabled or invalid packages cannot be selected for
-delegation or expose tools. The authenticated runtime state shows package,
-role, tool, permission, and enabled-state declarations alongside tool traces.
-
-## M7 — safe Telegram task cards
-
-P7-01 creates one persisted, editable task card for each ordinary request from
-the paired private Telegram owner. Inline callbacks are bound to the owner,
-private chat, exact card, and active Telegram generation; they can cancel only
-jobs that remain queued. Card progress is best-effort and never retried after
-an ambiguous Telegram response, avoiding duplicate cards.
-
-P7-02 adds a separate durable notification outbox for Telegram terminal states
-and document-sharing approval. Approval buttons are bound to the paired owner,
-private chat, exact notification, active generation, and the current
-model-and-folder fingerprint. Cards and notifications contain only status text,
-never request text, secrets, or document contents; sends left ambiguous by a
-restart are retained as unknown rather than replayed.
-
-P7-03 provides the owner-run, redacted live-acceptance procedure and aggregate
-evidence check for one paired Telegram account. It requires observed card
-creation and cancellation, document approval, terminal notification, shared
-web history, and continuity after a normal restart; it does not treat mocked
-transport coverage as a real Telegram claim.
-
-## Stage 2 follow-up — user-approved context capture
-
-After M7 release acceptance, [#100](https://github.com/Jongtae/personal-agentos/issues/100)
-is the intake point for a local-first context inbox spanning deliberate clipboard,
-browser, and native-companion inputs. It is connected to the Native companion
-continuity Epic [#48](https://github.com/Jongtae/personal-agentos/issues/48). The
-source scopes, provenance, sensitive-data rejection, URL safety, retention, and
-explicit model-sharing boundaries are detailed in `docs/context-capture-idea.ko.md`.
+The v1 runtime and 1.0.3 release are retained as documented maintenance history. P7 Telegram task-card acceptance and release work are frozen rather than treated as Hub v2 prerequisites.

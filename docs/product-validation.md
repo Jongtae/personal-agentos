@@ -1,7 +1,7 @@
 # Product validation gate
 
 Run this gate from a clean product checkout before claiming that a release
-meets the Personal AgentOS v1 outcome:
+meets the maintained Personal AgentOS v1 baseline:
 
 ```sh
 python3 scripts/product_validate.py --unit --homebrew --compose \
@@ -25,9 +25,7 @@ maintainer sends a new Telegram request after restarting AgentOS and verifies
 the shared web history and the delivery trace; no bot token is printed or
 stored in the report.
 
-The gate is a release decision aid, not a substitute for product design. The
-native desktop and mobile apps, additional messaging channels, and
-multi-tenant hosting remain explicit future gaps in the current vision.
+The gate is a maintained v1 release decision aid, not the Hub v2 product gate. Hub v2 consumer installation, subscription engines, managed personal bots, and context capture each require their own named acceptance evidence.
 
 When Docker is available, `--compose` builds an isolated Compose project,
 waits for `/healthz`, writes an AgentOS note into its named volume, recreates
