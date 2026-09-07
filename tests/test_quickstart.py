@@ -353,6 +353,33 @@ class QuickstartTests(unittest.TestCase):
         self.service.ingest_callback({'id':'approve','from':{'id':42},'message':callback_message,'data':f"p7a:{approval_row['id']}:approve"},generation)
         self.assertFalse(self.service.document_boundary()['requires_approval'])
 
+    def test_telegram_context_is_explicit_source_evidenced_and_per_job_approved(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        while self.service.deliver_notification():pass
+        self.model('compatible','https://example.test/v1','private-api-key')
+        self.assertTrue(self.service.test_model()['ok'])
+        inbox=self.service.context_inbox()
+        inbox.configure({'sources':{'text':True}})
+        item=inbox.capture({'source_kind':'text','content':'Aurora launches on Friday','retention_seconds':60})
+        self.service.set_context_telegram_policy({'approved':True})
+        self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':f"/context {item['id']} -- 출시일을 알려줘"}},generation)
+        job=self.store.jobs()[0];self.make_due(job['id'])
+        self.service.run_one()
+        self.assertEqual(self.store.job(job['id'])['status'],'failed')
+        self.assertFalse(any('Aurora launches' in json.dumps(call[1]) for call in self.calls if call[0].endswith('/chat/completions')))
+        self.service.deliver_notification()
+        approval=[call for call in self.calls if call[0].endswith('/sendMessage') and call[1]['text'].startswith('개인 컨텍스트')][-1]
+        callback=approval[1]['reply_markup']['inline_keyboard'][0][0]['callback_data']
+        notification_id=callback.split(':')[1]
+        notification=self.store.notification(notification_id)
+        self.service.ingest_callback({'id':'context-approve','from':{'id':42},'message':{'chat':{'id':42,'type':'private'},'message_id':notification['message_id']},'data':callback},generation)
+        self.make_due(job['id']);self.service.run_one()
+        self.assertEqual(self.store.job(job['id'])['status'],'succeeded')
+        sent=[call[1] for call in self.calls if call[0].endswith('/chat/completions')]
+        self.assertTrue(any('Aurora launches on Friday' in json.dumps(body) for body in sent))
+        self.assertIn('컨텍스트:',self.store.job(job['id'])['response'])
+
     def test_task_card_progress_button_returns_safe_owner_bound_evidence(self):
         generation=self.pair()
         self.service.run_one();self.service.deliver_one()

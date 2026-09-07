@@ -59,6 +59,7 @@ function showContextInbox(inbox){
 }
 $('context-config').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{await api('/api/context-inbox/config',{sources:{text:$('context-text').checked,url:$('context-url').checked}});$('context-feedback').textContent='수집 설정을 저장했습니다.';await refresh();}catch(e){error('context-feedback',e);}});};
 $('context-capture').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{await api('/api/context-inbox/capture',{source_kind:$('context-kind').value,content:$('context-content').value});$('context-content').value='';$('context-feedback').textContent='이 컴퓨터의 인박스에만 저장했습니다.';await refresh();}catch(e){error('context-feedback',e);}});};
+$('context-telegram-policy').onclick=async()=>busy($('context-telegram-policy'),async()=>{try{await api('/api/context-inbox/telegram-policy',{approved:true});$('context-feedback').textContent='현재 모델의 Telegram 컨텍스트 공유 정책을 승인했습니다. 외부 모델 작업은 Telegram에서 다시 한 번 승인해야 합니다.';await refresh();}catch(e){error('context-feedback',e);}});
 function showSubscriptionEngines(subscription){
  let box=$('subscription-engines');if(!box){box=element('section');box.id='subscription-engines';box.className='subscription-engines';const title=element('h2','구독으로 연결하기');const help=element('p','Codex 또는 Claude Code의 공식 CLI에 먼저 로그인하세요. AgentOS는 API 키를 요구하거나 로그인 정보를 읽지 않습니다.');box.append(title,help);$('settings-panel').prepend(box);}
  for(const old of [...box.querySelectorAll('.subscription-engine')])old.remove();

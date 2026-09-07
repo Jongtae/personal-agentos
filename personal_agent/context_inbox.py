@@ -117,6 +117,11 @@ class ContextInbox:
             db.execute('INSERT INTO context_sharing_policies VALUES (?,?,?) ON CONFLICT(assistant_id) DO UPDATE SET approved=excluded.approved,approved_at=excluded.approved_at', (body['assistant_id'],1,time.time()))
         return {'assistant_id':body['assistant_id'],'approved':True}
 
+    def policy_approved(self, assistant_id):
+        with self.store.db() as db:
+            row=db.execute('SELECT approved FROM context_sharing_policies WHERE assistant_id=?',(assistant_id,)).fetchone()
+        return bool(row and row['approved'])
+
     def share(self, body):
         """Return payload only for an approved assistant and this approved request."""
         if not isinstance(body,dict) or body.get('approved') is not True: raise ValueError('각 공유 요청은 명시적으로 승인해야 합니다.')
