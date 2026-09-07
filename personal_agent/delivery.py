@@ -120,7 +120,9 @@ def classify_failure(text):
 class DeliveryController:
     def __init__(self, root=None, state_path=None, runner=None, now=None):
         self.root=Path(root or Path.cwd()).resolve()
-        self.plan=DeliveryPlan(self.root/'delivery-plan.yaml')
+        configured_plan=self.root/'delivery-plan.yaml'
+        packaged_plan=Path(__file__).with_name('delivery-plan.yaml')
+        self.plan=DeliveryPlan(configured_plan if configured_plan.exists() else packaged_plan)
         self.state_store=StateStore(state_path)
         self.runner=runner or CommandRunner()
         self.now=now or time.time
