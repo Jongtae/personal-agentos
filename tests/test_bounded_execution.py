@@ -61,6 +61,10 @@ class BoundedExecutionTests(unittest.TestCase):
         self.assertNotIn('GITHUB_TOKEN',env)
         self.assertNotIn('OPENAI_API_KEY',env)
 
+    def test_default_engine_run_directory_is_owner_local_and_private(self):
+        adapter=BoundedExecutionAdapter()
+        self.assertEqual(adapter.runtime_root, Path.home()/'.local/share/agentos/engine-runs')
+
     def test_rejects_unstructured_or_failed_engine_output(self):
         class Failed: returncode=1; stdout='{}'
         with tempfile.TemporaryDirectory() as folder:
