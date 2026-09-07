@@ -44,6 +44,7 @@ class QuickStore:
             ''')
             columns={row['name'] for row in db.execute('PRAGMA table_info(messages)')}
             if 'workspace_id' not in columns: db.execute('ALTER TABLE messages ADD COLUMN workspace_id TEXT')
+            if 'job_id' not in columns: db.execute('ALTER TABLE messages ADD COLUMN job_id TEXT')
             columns={row['name'] for row in db.execute('PRAGMA table_info(jobs)')}
             if 'workspace_id' not in columns: db.execute('ALTER TABLE jobs ADD COLUMN workspace_id TEXT')
         self.path.chmod(0o600)
@@ -222,7 +223,7 @@ class QuickStore:
         if not workspace:return None
         with self.db() as db:
             workspace['results']=[dict(row) for row in db.execute('SELECT id,job_id,content,created FROM workspace_results WHERE workspace_id=? ORDER BY created DESC LIMIT 30',(workspace_id,))]
-            workspace['messages']=[dict(row) for row in db.execute('SELECT id,role,content,channel,created,workspace_id FROM messages WHERE workspace_id=? ORDER BY id DESC LIMIT 100',(workspace_id,))][::-1]
+            workspace['messages']=[dict(row) for row in db.execute('SELECT id,role,content,channel,created,workspace_id,job_id FROM messages WHERE workspace_id=? ORDER BY id DESC LIMIT 100',(workspace_id,))][::-1]
         return workspace
 
     def attach_context(self, job_id, event_ids, assistant_id, db=None):
@@ -260,6 +261,21 @@ class QuickStore:
             except (TypeError,ValueError):trace={'error':'실행 근거를 읽을 수 없습니다.'}
             events.append({**row,'trace':trace if isinstance(trace,dict) else {'error':'실행 근거 형식이 올바르지 않습니다.'}})
         return events
+
+    def evidence_summary(self, job_id):
+        """Return categories and counts only; never expose tool payloads."""
+        with self.db() as db:
+            rows=db.execute("SELECT tool FROM tool_events WHERE job_id=? AND status='succeeded'",(job_id,)).fetchall()
+        counts={}
+        for row in rows:counts[row['tool']]=counts.get(row['tool'],0)+1
+        labels=[]
+        if counts.get('web_search'):labels.append(f"공개 웹 {counts['web_search']}곳 참고")
+        documents=counts.get('read_file',0)
+        if documents:labels.append(f'내 컴퓨터의 문서 {documents}개 사용')
+        elif counts.get('find_files'):labels.append('내 컴퓨터의 자료 확인')
+        notes=counts.get('list_notes',0)+counts.get('save_note',0)
+        if notes:labels.append(f'내 기록 {notes}개 사용')
+        return labels
 
     def task_card(self, job_id):
         with self.db() as db:
