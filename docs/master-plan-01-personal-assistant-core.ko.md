@@ -17,9 +17,9 @@
 
 ## 설계와 구현의 반복 규칙
 
-각 Phase는 `D-*` 설계 iteration과 `I-*` 구현 iteration으로 나뉜다. `D-*`는 사용자 결과, 데이터 흐름, 위협 모델, API/저장 contract, fixture, automated/live acceptance를 확정한다. 정상 PR 병합과 정의된 자동 검증을 통과하면 별도 제품 승인 없이 해당 `I-*` 구현 iteration을 활성화할 수 있다.
+각 Phase는 `D-*` 설계 iteration과 `I-*` 구현 iteration으로 나뉜다. `D-*`는 사용자 결과, 데이터 흐름, 위협 모델, API/저장 contract, fixture, automated acceptance를 확정한다. 정상 PR 병합과 정의된 자동 검증을 통과하면 해당 `I-*` 구현 iteration을 활성화할 수 있다.
 
-각 iteration은 GitHub 이슈, `codex/` 브랜치, 작은 의도적 커밋, PR, 자동 검증과 live evidence를 갖는다. 완료 작업은 `TASKS.md`, `docs/roadmap.md`, `docs/issue-branch-ledger.jsonl`에 함께 기록한다.
+각 iteration은 GitHub 이슈, `codex/` 브랜치, 작은 의도적 커밋, PR, 자동 검증을 갖는다. 완료 작업은 `TASKS.md`, `docs/roadmap.md`, `docs/issue-branch-ledger.jsonl`에 함께 기록한다.
 
 ## Phase sequence
 

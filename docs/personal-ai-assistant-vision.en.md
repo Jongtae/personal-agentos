@@ -44,4 +44,4 @@ This direction is considered only in a separate Master Plan after MP1. At minimu
 
 MP1 does not include an open marketplace, arbitrary code execution, unbounded automatic delegation, or a central control plane that copies personal data. Future capability acquisition cannot bypass a reviewed catalogue or owner approval, isolation, and validation. AgentOS does not make general claims of superior security over ChatGPT or enterprise agent platforms; it makes the location of personal state and trust boundaries explicit.
 
-No capability is claimed as supported until automated tests and named live acceptance exist for that exact connection. The long-term execution plan is managed in [Master Plan 1](master-plan-01-personal-assistant-core.en.md), and the next-plan selection process in [Master Plan 2](master-plan-02-proposal.en.md).
+No capability is claimed as supported until its declared automated tests pass; the long-term execution plan is managed in [Master Plan 1](master-plan-01-personal-assistant-core.en.md), and the next-plan selection process in [Master Plan 2](master-plan-02-proposal.en.md).

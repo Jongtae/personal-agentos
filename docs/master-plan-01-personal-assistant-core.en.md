@@ -17,9 +17,9 @@ The goal is to validate a personal-assistant core in which one owner asks for ou
 
 ## Design and implementation cadence
 
-Every phase has a `D-*` design iteration and an `I-*` implementation iteration. A `D-*` fixes the user outcome, data flow, threat model, API/storage contract, fixtures, and automated/live acceptance. A normal PR merge and the defined automated checks may activate its `I-*` implementation iteration without a separate product-approval gate.
+Every phase has a `D-*` design iteration and an `I-*` implementation iteration. A `D-*` fixes the user outcome, data flow, threat model, API/storage contract, fixtures, and automated acceptance. A normal PR merge and the defined automated checks may activate its `I-*` implementation iteration.
 
-Every iteration has a GitHub issue, a `codex/` branch, small intentional commits, a PR, automated validation, and live evidence. Completed work is recorded together in `TASKS.md`, `docs/roadmap.md`, and `docs/issue-branch-ledger.jsonl`.
+Every iteration has a GitHub issue, a `codex/` branch, small intentional commits, a PR, and automated validation. Completed work is recorded together in `TASKS.md`, `docs/roadmap.md`, and `docs/issue-branch-ledger.jsonl`.
 
 ## Phase sequence
 
