@@ -2,7 +2,7 @@
 
 ## Status and user outcome
 
-**Status: design pending completion.** This document is the decision record for MP1 I-01. A new owner starts with AgentOS Personal Space and one assistant instead of choosing an external second brain, and can understand and control what is memory, source material, and work evidence.
+**Status: design complete.** This document is the decision record for MP1 I-01. A new owner starts with AgentOS Personal Space and one assistant instead of choosing an external second brain, and can understand and control what is memory, source material, and work evidence.
 
 ## Current-state inventory
 

@@ -2,7 +2,7 @@
 
 ## Status and goal
 
-**Status: active — D-01.** The remaining manual Telegram observations from UX-05 were removed from the release gate by owner decision; that decision does not claim those observations passed. After UX-06 closed, the first design iteration is the [D-01 Personal Space Boundary Contract](mp1-d01-personal-space-contract.en.md).
+**Status: active — D-01 complete; I-01 not started.** The remaining manual Telegram observations from UX-05 were removed from the release gate by owner decision; that decision does not claim those observations passed. [D-01 Personal Space Boundary Contract](mp1-d01-personal-space-contract.en.md) merged with its automated design validation; I-01 requires its own scoped issue and implementation branch.
 
 The goal is to validate a personal-assistant core in which one owner asks for outcomes from AgentOS Personal Space and AgentOS coordinates only reviewed connections while retaining personal state, approvals, evidence, and recovery.
 
