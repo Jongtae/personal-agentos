@@ -1,129 +1,14 @@
 {
-  "version": 3,
+  "version": 4,
   "repository": "Jongtae/personal-agentos",
-  "retry": {
-    "seconds": 21600,
-    "daily_limit": 4
-  },
+  "retry": {"seconds": 21600, "daily_limit": 4},
   "iterations": [
-    {
-      "id": "H0-01",
-      "milestone": "H0",
-      "issue": 103,
-      "kind": "implementation",
-      "tests": [
-        "python3 -m unittest discover -s tests -q"
-      ],
-      "summary": "Record AgentOS Hub v2 direction and freeze superseded P7 delivery work."
-    },
-    {
-      "id": "H1-01",
-      "milestone": "H1",
-      "issue": 104,
-      "kind": "implementation",
-      "depends_on": [
-        "H0-01"
-      ],
-      "tests": [
-        "python3 -m unittest discover -s tests -q"
-      ],
-      "summary": "Connect Codex and Claude Code subscriptions without consumer API-key setup."
-    },
-    {
-      "id": "H1-02",
-      "milestone": "H1.5",
-      "issue": 109,
-      "kind": "implementation",
-      "depends_on": [
-        "H1-01"
-      ],
-      "tests": [
-        "python3 -m unittest discover -s tests -q"
-      ],
-      "summary": "Isolate each owner AgentOS runtime from the Mac host and prepare the Kubernetes hosting boundary."
-    },
-    {
-      "id": "H2-01",
-      "milestone": "H2",
-      "issue": 105,
-      "kind": "implementation",
-      "depends_on": [
-        "H1-02"
-      ],
-      "tests": [
-        "python3 -m unittest discover -s tests -q"
-      ],
-      "summary": "Run subscription engines through AgentOS-owned MCP tools and bounded execution adapters."
-    },
-    {
-      "id": "H3-01",
-      "milestone": "H3",
-      "issue": 106,
-      "kind": "implementation",
-      "depends_on": [
-        "H2-01"
-      ],
-      "tests": [
-        "python3 -m unittest discover -s tests -q"
-      ],
-      "summary": "Connect an owner-created BotFather Telegram bot locally and prove a live first-work acceptance."
-    },
-    {
-      "id": "H4-01",
-      "milestone": "H4",
-      "issue": 107,
-      "kind": "implementation",
-      "depends_on": [
-        "H3-01"
-      ],
-      "tests": [
-        "python3 -m unittest discover -s tests -q"
-      ],
-      "summary": "Build the opt-in local context inbox with safe sharing boundaries."
-    },
-    {
-      "id": "H5-01",
-      "milestone": "H5",
-      "issue": 108,
-      "kind": "implementation",
-      "depends_on": [
-        "H4-01"
-      ],
-      "tests": [
-        "python3 -m unittest discover -s tests -q"
-      ],
-      "summary": "Provide trusted assistants and portable owner state."
-    }
+    {"id":"V1-01","milestone":"Personal AgentOS v1 Release","issue":136,"kind":"implementation","tests":["python3 -m unittest discover -s tests -q"],"summary":"Guide first-time installation, Codex/model onboarding, update, and recovery without exposing credentials."},
+    {"id":"V1-02","milestone":"Personal AgentOS v1 Release","issue":137,"kind":"implementation","depends_on":["V1-01"],"tests":["python3 -m unittest discover -s tests -q"],"summary":"Make Telegram the natural daily-work interface with task progress, approvals, cancellation, and truthful recovery."},
+    {"id":"V1-03","milestone":"Personal AgentOS v1 Release","issue":138,"kind":"implementation","depends_on":["V1-02"],"tests":["python3 -m unittest discover -s tests -q"],"summary":"Connect opt-in local documents and context to Telegram work with source evidence and external-sharing approval."},
+    {"id":"V1-04","milestone":"Personal AgentOS v1 Release","issue":139,"kind":"implementation","depends_on":["V1-03"],"tests":["python3 -m unittest discover -s tests -q"],"summary":"Prove Docker Compose VPS operation, health, update, backup, restore, and Telegram continuity."},
+    {"id":"V1-05","milestone":"Personal AgentOS v1 Release","issue":140,"kind":"release","depends_on":["V1-04"],"tests":["python3 -m unittest discover -s tests -q"],"summary":"Run clean-environment release acceptance and publish only verified installation artifacts."}
   ],
-  "milestones": {
-    "H0": {
-      "title": "AgentOS Hub v2"
-    },
-    "H1": {
-      "title": "AgentOS Hub v2"
-    },
-    "H2": {
-      "title": "AgentOS Hub v2"
-    },
-    "H3": {
-      "title": "AgentOS Hub v2"
-    },
-    "H4": {
-      "title": "AgentOS Hub v2"
-    },
-    "H5": {
-      "title": "AgentOS Hub v2"
-    },
-    "H1.5": {
-      "title": "AgentOS Hub v2"
-    }
-  },
-  "history": {
-    "archived_plan": "docs/archive/delivery-plan-v1.json",
-    "frozen_iterations": [
-      "P7-03a",
-      "P7-04"
-    ],
-    "reason": "Hub v2 replaces v1/P7 as the active delivery track; historical evidence is retained."
-  }
+  "milestones":{"Personal AgentOS v1 Release":{"title":"Personal AgentOS v1 Release"}},
+  "history":{"archived_plan":"docs/archive/delivery-plan-hub-v2.json","completed_iterations":["H0-01","H1-01","H1-02","H2-01","H3-01","H4-01","H5-01"],"reason":"Hub v2 delivered the runtime foundation. Version 4 tracks the release-ready non-developer product path."}
 }
