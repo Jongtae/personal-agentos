@@ -56,18 +56,4 @@ The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) turns
 
 ## Proposed next Hub v2 phase — Personal capability connections
 
-This is the next proposed product phase, not an active delivery-plan item. It begins only after the active UX release path and its recorded prerequisites are complete.
-
-**Owner outcome:** an owner can connect a reviewed capability and ask one personal assistant for an outcome, while AgentOS retains ownership of the personal state, approval decision, execution evidence, and recovery record.
-
-The phase starts with a small, reviewed catalogue rather than arbitrary installation:
-
-- connect one read-first MCP capability through an explicit account-authorization flow;
-- connect one external A2A agent after discovering and reviewing its declared capabilities;
-- expose both through AgentOS-owned policy, task, approval, cancellation, and evidence contracts;
-- show the owner what data class and external action boundary each connection requests;
-- prove a connected capability can be disabled, removed, and recovered without deleting owner state.
-
-**Non-goals:** an open marketplace, arbitrary local code or shell execution, unrestricted community agents, automatic delegation chains, copying personal state to a control plane, or any claim that b3os, OpenClaw, or another runtime is already integrated.
-
-**Validation plan:** automated protocol and policy tests; a local test MCP server and A2A peer; a named live owner acceptance for one authorized read, one denied consequential action, evidence retention, disconnect, and owner-state export/restore. The live result must name the actual connected capability and must not generalize to untested agents or services.
+This is not an active delivery-plan item and begins only after the active UX release path and recorded prerequisites are complete. The detailed proposed sequence, fixed boundaries, and acceptance evidence are in bilingual [Master Plan 1](master-plan-01-personal-assistant-core.en.md). The long-term product north star is the [Personal AI Assistant Vision](personal-ai-assistant-vision.en.md); [Master Plan 2](master-plan-02-proposal.en.md) remains reserved until MP1 real-use evidence selects the next problem.
