@@ -215,3 +215,12 @@ class QuickStore:
             db.execute("UPDATE jobs SET status='interrupted',error='실행 중 재시작되었습니다. 자동으로 재호출하지 않습니다.' WHERE status='running'")
             db.execute("UPDATE jobs SET delivery='unknown' WHERE delivery='sending'")
             db.execute("UPDATE telegram_notifications SET state='unknown' WHERE state='sending'")
+
+    def recovery_summary(self):
+        """Return counts only; recovery guidance must never reveal task content."""
+        with self.db() as db:
+            interrupted=db.execute("SELECT count(*) FROM jobs WHERE status='interrupted'").fetchone()[0]
+            uncertain=db.execute("SELECT count(*) FROM jobs WHERE delivery='unknown'").fetchone()[0]
+            notifications=db.execute("SELECT count(*) FROM telegram_notifications WHERE state='unknown'").fetchone()[0]
+        return {'interrupted_jobs':interrupted, 'uncertain_deliveries':uncertain,
+                'uncertain_notifications':notifications}

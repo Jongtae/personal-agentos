@@ -2,4 +2,4 @@
 
 .workspace-grid:has(> aside[hidden]){grid-template-columns:1fr;max-width:850px;margin:auto}details summary{cursor:pointer;padding:15px 0;color:#527660}#connect-openrouter{margin:18px 0}#local-models button{display:block;margin-top:10px}hr{border:0;border-top:1px solid #e5ece5;margin:25px 0}.empty button{margin:15px 5px}#connections[hidden]{display:none}
 
-#tool-status{padding:8px 25px;color:#387455;font-size:12px}.bubble a{color:inherit;text-decoration:underline;overflow-wrap:anywhere}
+#tool-status{padding:8px 25px;color:#387455;font-size:12px}.bubble a{color:inherit;text-decoration:underline;overflow-wrap:anywhere}.onboarding-ready{color:#237650!important}.onboarding-attention{color:#9b6225!important}

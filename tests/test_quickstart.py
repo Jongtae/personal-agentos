@@ -61,6 +61,25 @@ class QuickstartTests(unittest.TestCase):
         self.store.logout(token)
         self.assertFalse(self.store.session(token))
 
+    def test_onboarding_http_api_requires_login_and_redacts_secrets(self):
+        self.store.claim(self.store.bootstrap.read_text(),'long-password-test')
+        self.model(key='private-api-key')
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(self.service))
+        thread=threading.Thread(target=server.serve_forever);thread.start()
+        client=build_opener(HTTPCookieProcessor(CookieJar()));url='http://127.0.0.1:'+str(server.server_port)
+        def request(path,body=None):
+            req=Request(url+path,data=json.dumps(body).encode() if body is not None else None,headers={'Content-Type':'application/json'} if body is not None else {})
+            with client.open(req,timeout=3) as response:return json.load(response)
+        try:
+            with self.assertRaises(HTTPError) as error:request('/api/onboarding')
+            self.assertEqual(error.exception.code,401)
+            request('/api/login',{'password':'long-password-test'})
+            guide=request('/api/onboarding')
+            self.assertNotIn('private-api-key',json.dumps(guide))
+            self.assertIn('recovery',guide)
+        finally:
+            server.shutdown();thread.join();server.server_close()
+
     def test_initial_claim_requires_local_code_and_is_single_use(self):
         code=self.store.bootstrap.read_text()
         with self.assertRaises(ValueError):self.store.claim('bad','long-test-password')

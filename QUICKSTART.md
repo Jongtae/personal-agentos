@@ -11,7 +11,9 @@ brew install jongtae/agentos/agentos
 agentos start
 ```
 
-The browser opens at `http://127.0.0.1:8787`. Click **바로 시작하기** (Start now). There is no setup code to enter. A login password is optional for local use; expand **비밀번호 설정 · 선택** to set one (12+ characters). Without a password, anyone using this computer can access the agent through its local address. Then choose a model provider, endpoint and model name, and use Save and Test connection. API keys stay in a private local file. Cloud requests send conversation content to your selected provider.
+The browser opens at `http://127.0.0.1:8787`. Click **바로 시작하기** (Start now). There is no setup code to enter. A login password is optional for local use; expand **비밀번호 설정 · 선택** to set one (12+ characters). Without a password, anyone using this computer can access the agent through its local address.
+
+For a ChatGPT/Codex subscription, install and log in to the official Codex CLI first (`codex login`), then select **Codex 로그인 완료 · 연결** in AgentOS. AgentOS records only your confirmation; it does not request, read, or store the Codex login. A connected subscription engine receives only the bounded AgentOS tools, not your local files, credentials, or arbitrary shell access. Alternatively, choose a model provider, endpoint and model name, then use Save and Test connection. API keys stay in a private local file. Cloud requests send conversation content to your selected provider.
 
 
 Supported connections: Ollama (an already running local model server), OpenAI-compatible Chat Completions endpoints, and Anthropic Messages. Bring your own model access; no paid model subscription is included.
@@ -34,11 +36,13 @@ agentos start
 brew update
 brew upgrade jongtae/agentos/agentos
 agentos start
+# View only credential-free setup and recovery state:
+agentos guide
 ```
 
 Data persists in `~/.local/share/agentos`; uninstalling the formula does not delete it. Back up the entire data directory while AgentOS is stopped. This directory contains your private conversations and credentials; credentials have filesystem permissions, not application-level encryption.
 
-If the browser does not open, use the link in `~/.local/share/agentos/private/setup-link.txt` locally. Do not share that file before setup. After setup, open `http://127.0.0.1:8787`; log in only if you chose a password. An occupied port can be changed using `agentos start --port 8788`.
+If the browser does not open, use the link in `~/.local/share/agentos/private/setup-link.txt` locally. Do not share that file before setup. After setup, open `http://127.0.0.1:8787`; log in only if you chose a password. An occupied port can be changed using `agentos start --port 8788`. After an unexpected stop, AgentOS marks in-progress work as interrupted and an in-flight Telegram send as unknown; it never silently repeats either. Review the web record and submit a new request if needed. `agentos guide` shows counts and next steps only, never task text or credentials.
 
 ## Remote host / source installation
 
@@ -54,7 +58,7 @@ On a remote host, keep the default loopback binding and connect through SSH forw
 
 Implemented: single owner, password login, model adapters, persistent chat and notes, queued requests, private Telegram pairing and deduplication, connected TXT/Markdown/PDF/DOCX/XLSX folders with source evidence, explicit external-model document sharing approval, Docker Compose, and backup/restore scripts. Interrupted model work and uncertain Telegram delivery are shown without automatic replay.
 
-Not yet implemented: arbitrary shell execution, calendar/email integrations, external agent-engine connections, native desktop/mobile applications, managed unattended installation, or multi-user hosting. This is the first installation-to-task slice, not the complete AgentOS ecosystem.
+Not yet implemented: arbitrary shell execution, calendar/email integrations, native desktop/mobile applications, managed unattended installation, or multi-user hosting. This is the first installation-to-task slice, not the complete AgentOS ecosystem.
 
 ## Advanced: local manifest plugins
 

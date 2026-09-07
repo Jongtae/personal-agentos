@@ -119,6 +119,33 @@ class AgentService:
             engines.append(item)
         return {'engines':engines, 'selected':connected.get('id','')}
 
+    def onboarding(self):
+        """Credential-free local readiness and recovery guidance for an owner."""
+        subscription=self.subscription_engine_status()
+        model=self.store.config('model',{})
+        model_ready=self.model_ready(model,self.store.config('model_test'))
+        selected=subscription['selected']
+        recovery=self.store.recovery_summary()
+        steps=[]
+        if not self.store.claimed():
+            steps.append({'id':'claim', 'state':'needed', 'message':'이 컴퓨터에서 초기 설정 링크를 열어 개인 환경을 만드세요.'})
+        if selected:
+            steps.append({'id':'engine', 'state':'ready', 'message':f'{selected}의 공식 로그인 연결이 선택되었습니다.'})
+        elif any(item['installed'] for item in subscription['engines']):
+            steps.append({'id':'engine', 'state':'needed', 'message':'Codex 또는 Claude Code에서 공식 로그인한 뒤 AgentOS에서 연결하세요.'})
+        else:
+            steps.append({'id':'engine', 'state':'needed', 'message':'Codex 또는 Claude Code CLI를 공식 안내로 설치·로그인하거나 모델을 연결하세요.'})
+        if model_ready:
+            steps.append({'id':'model', 'state':'ready', 'message':'모델과 도구 호출이 확인되었습니다.'})
+        elif not selected:
+            steps.append({'id':'model', 'state':'needed', 'message':'선택한 모델을 저장하고 연결 확인을 실행하세요.'})
+        if any(recovery.values()):
+            steps.append({'id':'recovery', 'state':'attention', 'message':'재시작 중이던 작업 또는 Telegram 전달은 자동 재시도하지 않았습니다. 웹 기록에서 결과를 확인하고 필요하면 새 요청으로 다시 시작하세요.'})
+        else:
+            steps.append({'id':'recovery', 'state':'ready', 'message':'자동 재시도하지 않은 중단 작업이나 불확실한 전달이 없습니다.'})
+        return {'steps':steps, 'subscription_engine':selected, 'model_ready':model_ready,
+                'recovery':recovery}
+
     def connect_subscription_engine(self, body):
         if not isinstance(body,dict):raise ValueError('연결 정보를 확인하세요.')
         record=self.subscription_engines.connect(body.get('engine',''),body.get('officially_authenticated'))

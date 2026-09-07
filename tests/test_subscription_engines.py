@@ -27,3 +27,21 @@ class SubscriptionEngineTests(unittest.TestCase):
         self.assertTrue(selected['connected']);self.assertEqual(selected['authentication'],'owner-confirmed-official-login')
         self.assertFalse(self.store.secret('model_key'))
         with self.assertRaises(ValueError):self.service.connect_subscription_engine({'engine':'claude-code','officially_authenticated':True})
+
+    def test_onboarding_reports_only_safe_connection_and_recovery_state(self):
+        self.store.secret('model_key','private-api-key')
+        self.store.enqueue('sensitive task body','recovery-test')
+        with self.store.db() as db:
+            db.execute("UPDATE jobs SET status='interrupted',delivery='unknown'")
+        guide=self.service.onboarding()
+        self.assertEqual(guide['recovery'],{'interrupted_jobs':1,'uncertain_deliveries':1,'uncertain_notifications':0})
+        self.assertTrue(any(step['id']=='recovery' and step['state']=='attention' for step in guide['steps']))
+        rendered=str(guide)
+        self.assertNotIn('private-api-key',rendered)
+        self.assertNotIn('sensitive task body',rendered)
+
+    def test_connected_codex_is_an_onboarding_ready_execution_choice(self):
+        self.service.connect_subscription_engine({'engine':'codex','officially_authenticated':True})
+        guide=self.service.onboarding()
+        self.assertEqual(guide['subscription_engine'],'codex')
+        self.assertTrue(any(step['id']=='engine' and step['state']=='ready' for step in guide['steps']))
