@@ -292,7 +292,7 @@ class DeliveryController:
         match=re.search(r'https://github\.com/[^\s]+/pull/\d+',opened.stdout or '')
         if opened.returncode or not match:return self._record_block(item,state,'delivery-failed',(opened.stdout or '')+'\n'+(opened.stderr or ''),False)
         state['pr']=match.group(0)
-        merged=self._gh('pr','merge',state['pr'],'--squash','--delete-branch')
+        merged=self._gh('pr','merge',state['pr'],'--repo',self.plan.data['repository'],'--squash','--delete-branch')
         if merged.returncode:return self._record_block(item,state,'delivery-failed',(merged.stdout or '')+'\n'+(merged.stderr or ''),False)
         return self._complete(item,state,dry_run=True)
 
