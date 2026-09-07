@@ -21,6 +21,8 @@
 
 각 iteration은 GitHub 이슈, `codex/` 브랜치, 작은 의도적 커밋, PR, 자동 검증을 갖는다. 완료 작업은 `TASKS.md`, `docs/roadmap.md`, `docs/issue-branch-ledger.jsonl`에 함께 기록한다.
 
+외부 연동과 Agent는 문서화된 contract, fixture, mock 기반 자동 검증으로 개발한다. OAuth client, provider credential, 외부 endpoint, 실제 활성화는 의도적으로 뒤로 미룬다. Master Plan 전체가 완료된 뒤 소유자가 AgentOS를 운영 모드로 배포하면서 한 번 설정한다. Mock 성공은 MP1 개발 작업을 완료하지만, 해당 외부 서비스가 이미 운영 중이라는 주장은 하지 않는다.
+
 ## Phase sequence
 
 | Phase | 설계 iteration | 구현 결과 |
@@ -58,6 +60,6 @@ D-06은 개인 공간, Drive 근거, 명시 A2A 검토, Calendar 초안을 조�
 
 ## 완료 증거
 
-MP1은 한 실제 사용자 흐름에서 개인 공간, Drive 근거, 명시 A2A 위임, Calendar 승인형 생성, 연결 pause/disconnect, export/restore가 각각 관찰되고 증거가 남을 때만 complete다. fixture나 mock은 실제 서비스 연결의 증거를 대체하지 않는다.
+MP1 개발은 문서화된 contract와 자동 fixture/mock acceptance가 개인 공간, Drive 근거, 명시 A2A 위임, Calendar 생성 승인, pause/disconnect, export/restore를 포괄할 때 완료된다. 이후 소유자는 별도의 운영 모드 배포에서 실제 OAuth client, credential, endpoint, connection을 설정한다. 그 배포는 자체 증거를 남기며 MP1 개발 완료 여부를 소급하여 바꾸지 않는다.
 
 MP1 완료 뒤의 다음 선택은 [Master Plan 2](master-plan-02-proposal.ko.md) 절차를 따른다.
