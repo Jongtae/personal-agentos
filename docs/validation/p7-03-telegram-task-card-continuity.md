@@ -34,9 +34,10 @@ copies into an issue, commit, or report.
    Developers can inspect the same read-only report manually:
 
    ```sh
-   python3 scripts/verify_telegram_task_card_acceptance.py \
-     --data-dir /path/to/agentos-data
+   python3 scripts/verify_telegram_task_card_acceptance.py
    ```
+
+   기본 경로는 `~/.local/share/agentos`이며, 다른 데이터 폴더를 검증할 때만 `--data-dir`를 지정합니다.
 
 The report passes only when it sees a paired owner, a cancelled card, a
 resolved document-approval notification, a sent terminal notification, both

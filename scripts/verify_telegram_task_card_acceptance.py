@@ -19,8 +19,8 @@ from personal_agent.telegram_task_card_acceptance import report
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--data-dir', type=Path, required=True,
-                        help='AgentOS data directory; it is read only.')
+    parser.add_argument('--data-dir', type=Path, default=Path.home()/'.local/share/agentos',
+                        help='AgentOS data directory; it is read only (default: ~/.local/share/agentos).')
     parser.add_argument('--web-confirmed', action='store_true',
                         help='Owner observed the shared Telegram and web history.')
     parser.add_argument('--restart-confirmed', action='store_true',

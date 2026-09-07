@@ -341,10 +341,20 @@ class DeliveryController:
         except OSError as exc:raise DeliveryError(f'Could not download release archive: {exc}') from exc
         return digest.hexdigest()
 
+    def _release_preflight(self, item, state):
+        """Require recorded release evidence before any mutable release action."""
+        for command in item.get('release_validation',[]):
+            checked=self._command(command.split(),cwd=self.root,timeout=900)
+            if checked.returncode:
+                return self._record_block(item,state,'validation-failed',(checked.stdout or '')+'\n'+(checked.stderr or ''),False)
+        return None
+
     def _run_release(self, item, state):
         """Publish a verified patch release and Formula update from controller-owned clones."""
         if not (self.root/'.git').exists():
             return self._record_block(item,state,'delivery-failed','Release requires a git checkout.',False)
+        blocked=self._release_preflight(item,state)
+        if blocked:return blocked
         fetched=self._command(['git','fetch','origin'],cwd=self.root,timeout=180)
         if fetched.returncode:return self._release_error(item,state,fetched,'Could not fetch the release source.')
         current=self._read_project_version(self.root/'pyproject.toml')
@@ -417,6 +427,8 @@ class DeliveryController:
         if installed.returncode:return self._release_error(item,state,installed,'Could not upgrade the Homebrew Formula.')
         verified=self._command(['brew','test','jongtae/agentos/agentos'],cwd=self.root,timeout=900)
         if verified.returncode:return self._release_error(item,state,verified,'Homebrew Formula verification failed.')
+        installed_acceptance=self._command(['python3','scripts/quickstart_install_check.py'],cwd=self.root,timeout=900)
+        if installed_acceptance.returncode:return self._release_error(item,state,installed_acceptance,'Installed Homebrew acceptance failed.')
         state['release']=release
         return self._complete(item,state,False)
 

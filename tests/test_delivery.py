@@ -192,6 +192,15 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(result['status'],'complete')
         self.assertNotIn('active',result)
 
+    def test_release_preflight_blocks_before_release_mutations(self):
+        plan={'repository':'Jongtae/personal-agentos','iterations':[{'id':'REL','milestone':'TEST','kind':'release','release_validation':['python3 verify.py'],'summary':'release'}]}
+        (self.root/'delivery-plan.yaml').write_text(json.dumps(plan));(self.root/'.git').mkdir()
+        runner=Runner([SimpleNamespace(returncode=1,stdout='',stderr='Telegram acceptance not complete')])
+        result=self.controller(runner)._run_release(DeliveryPlan(self.root/'delivery-plan.yaml').items['REL'],{})
+        self.assertEqual(result['status'],'blocked-validation-failed')
+        self.assertEqual(runner.calls[0][0],['python3','verify.py'])
+        self.assertEqual(len(runner.calls),1)
+
     def test_patch_release_version_helpers(self):
         self.assertEqual(DeliveryController._next_patch_version('1.0.3'),'1.0.4')
         with self.assertRaises(Exception):DeliveryController._next_patch_version('1.0')
