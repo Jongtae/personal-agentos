@@ -822,6 +822,13 @@ class AgentService:
                 prompt=job['message'].strip()
                 if prompt in ('/start','/help'):
                     response='개인 AgentOS에 연결되었습니다. 하고 싶은 일을 자연스럽게 적어 주세요. 웹과 Telegram은 같은 대화 기록을 사용합니다.'
+                elif prompt.startswith('/assistant '):
+                    # Web and paired Telegram jobs share this exact policy
+                    # path.  The command is intentionally explicit while the
+                    # MP1 vocabulary remains small and capability-specific.
+                    result=self.personal_assistant_request({'message':prompt[len('/assistant '):]}, owner_id=f"channel:{job['channel']}:{job.get('chat_id') or 'local'}")
+                    response=result['response']
+                    outcome='succeeded' if result['state'] in ('completed','requested','awaiting-approval','fallback') else 'failed'
                 elif prompt.startswith(('/note ','메모:','기록:')):
                     note=prompt[6:] if prompt.startswith('/note ') else prompt.split(':',1)[1].strip()
                     if not note.strip():raise ValueError('기록할 내용을 입력하세요.')

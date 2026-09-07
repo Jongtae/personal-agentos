@@ -72,3 +72,11 @@ class PersonalAssistantTests(unittest.TestCase):
         result = service.personal_assistant_request({'message': '일정 초안: 검토', 'event': {'summary': 'review', 'start': '2026-01-01T10:00', 'end': '2026-01-01T11:00', 'timezone': 'Asia/Seoul'}})
         self.assertEqual(result['state'], 'blocked')
         self.assertFalse(self.calls)
+
+    def test_telegram_job_uses_the_same_policy_path(self):
+        service = AgentService(self.store, assistant_orchestrator=self.assistant)
+        job = self.store.enqueue('/assistant A2A 위임: 조사해줘', 'telegram-policy', channel='telegram:test', chat_id=7)
+        self.assertTrue(service.run_one())
+        stored = self.store.job(job)
+        self.assertEqual(stored['status'], 'failed')
+        self.assertFalse(self.peer.requests)
