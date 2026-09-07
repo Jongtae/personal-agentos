@@ -8,6 +8,7 @@ import hashlib
 from urllib.parse import urlsplit
 from .local_tools import LocalTools
 from .agent_runtime import Capabilities, run_agent, AGENTS
+from .plugins import PluginRegistry
 from .providers import ModelAdapter, ProviderError, request_json, validate_model
 
 SYSTEM = ('You are the user’s personal AgentOS assistant. Respond in the user’s language. '
@@ -48,9 +49,14 @@ class AgentService:
             from .delivery import StateStore
             delivery=StateStore().read()
             boundary=self.document_boundary(model)
+            active_packages=self.runtime_packages()
+            packages=PluginRegistry(self.store.root).declared_packages()
             return {'model':model,'has_api_key':bool(self.store.secret('model_key')),
                     'telegram':{'enabled':tg.get('enabled',False),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
-                    'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'agents':[{'id':k,'name':v['name']} for k,v in AGENTS.items()], 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery}
+                    'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'agents':[{'id':role['id'],'name':role['name'],'permissions':role['permissions'],'package_id':package['id']} for package in active_packages for role in package['roles']], 'packages':packages, 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery}
+
+    def runtime_packages(self):
+        return PluginRegistry(self.store.root).runtime_packages()
 
     def document_fingerprint(self, model=None):
         model=self.store.config('model',{}) if model is None else model
@@ -310,7 +316,7 @@ class AgentService:
                             db.execute('INSERT INTO tool_events(job_id,tool,status,detail,created) VALUES (?,?,?,?,?)',(job['id'],tool,status,detail,time.time()))
                         if tool!='model':self.store.put('tool_run',{'job_id':job['id'],'tool':tool,'status':status,'detail':detail,'time':time.time()})
                     boundary=self.document_boundary(config)
-                    capabilities=Capabilities(self.store,self.adapter,runtime_config,key,job['id'],record,network=self.local_tools,document_access=not boundary['requires_approval'])
+                    capabilities=Capabilities(self.store,self.adapter,runtime_config,key,job['id'],record,network=self.local_tools,document_access=not boundary['requires_approval'],packages=self.runtime_packages())
                     result=run_agent(self.adapter,runtime_config,key,history,'',capabilities,record)
                     outcome=getattr(result,'outcome','succeeded')
                     response,provider,model=result.content,result.provider,result.model
