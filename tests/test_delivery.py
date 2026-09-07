@@ -133,6 +133,11 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(runner.calls[0][0][1],'bootout')
         self.assertEqual(runner.calls[-1][0][1],'print')
 
+    def test_p7_starts_after_completed_runtime_extensions(self):
+        plan=DeliveryPlan(self.root/'delivery-plan.yaml')
+        completed=[item['id'] for item in plan.data['iterations'] if item['id'] not in ('P7-01','P7-02','P7-03','P7-04')]
+        self.assertEqual(plan.select({'completed':completed})['id'],'P7-01')
+
     def test_completed_v1_state_selects_stage_two_without_stale_issue(self):
         completed=[item['id'] for item in DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations'] if item['id']!='P6-01']
         StateStore(self.state).write({'completed':completed,'status':'complete','milestone':'M1','issue':25})

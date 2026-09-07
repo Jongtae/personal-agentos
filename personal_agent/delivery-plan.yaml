@@ -165,6 +165,71 @@
         "python3 -m unittest discover -s tests -q"
       ],
       "summary": "Activate reviewed declaration-only role and tool packages at runtime."
+    },
+    {
+      "id": "P7-01",
+      "milestone": "M7",
+      "issue": 71,
+      "depends_on": [
+        "P6-01"
+      ],
+      "kind": "implementation",
+      "tests": [
+        "python3 -m unittest discover -s tests -q"
+      ],
+      "summary": "Create natural-language Telegram task cards with safe inline progress and queued-job cancellation.",
+      "acceptance": [
+        "paired owner gets one editable task card per natural-language request",
+        "callbacks are authorized and idempotent",
+        "only queued jobs can be cancelled",
+        "no default command-based guidance"
+      ]
+    },
+    {
+      "id": "P7-02",
+      "milestone": "M7",
+      "issue": 72,
+      "depends_on": [
+        "P7-01"
+      ],
+      "kind": "implementation",
+      "tests": [
+        "python3 -m unittest discover -s tests -q"
+      ],
+      "summary": "Add Telegram document-approval buttons and durable terminal notifications.",
+      "acceptance": [
+        "approve or deny document sharing from paired Telegram owner",
+        "completion, failure, and approval-needed notifications are restart-safe",
+        "no secrets or document contents in card or notification"
+      ]
+    },
+    {
+      "id": "P7-03",
+      "milestone": "M7",
+      "issue": 73,
+      "depends_on": [
+        "P7-02"
+      ],
+      "kind": "implementation",
+      "tests": [
+        "python3 -m unittest discover -s tests -q"
+      ],
+      "summary": "Verify live Telegram task-card continuity and shared web evidence.",
+      "acceptance": [
+        "actual paired Telegram account validates cards, cancellation, approval, notifications, and restart continuity"
+      ]
+    },
+    {
+      "id": "P7-04",
+      "milestone": "M7",
+      "depends_on": [
+        "P7-03"
+      ],
+      "kind": "release",
+      "summary": "Release verified Telegram task-card continuity through GitHub and Homebrew.",
+      "acceptance": [
+        "release only after M7 automated and live acceptance passes"
+      ]
     }
   ],
   "milestones": {
@@ -184,6 +249,9 @@
       "title": "Personal AgentOS v1"
     },
     "M6": {
+      "title": "Personal AgentOS Stage 2"
+    },
+    "M7": {
       "title": "Personal AgentOS Stage 2"
     }
   }

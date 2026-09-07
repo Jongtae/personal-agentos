@@ -278,7 +278,8 @@ class DeliveryController:
         if not worktree.exists():
             created=self._command(['git','worktree','add','-b',branch,str(worktree),'origin/main'],cwd=self.root,timeout=120)
             if created.returncode:return self._record_block(item,state,classify_failure((created.stdout or '')+'\n'+(created.stderr or '')),created.stderr or 'Could not create delivery worktree.',False)
-        prompt=(f'Implement {item["id"]}: {item["summary"]}\n'
+        definition=json.dumps(item,ensure_ascii=False,sort_keys=True)
+        prompt=(f'Implement this delivery iteration definition: {definition}\n'
                 'Work only in this worktree. Preserve product safety boundaries. Run listed tests and commit the finished change. Do not push, create a PR, merge, tag, or release; the delivery controller owns those actions.')
         result=self._command(['codex','exec','--approve-for-me',prompt],cwd=worktree,timeout=3600)
         output=(result.stdout or '')+'\n'+(result.stderr or '')
