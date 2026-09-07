@@ -178,6 +178,36 @@ class AgentService:
         if not request:return None
         return event_ids,request
 
+    @staticmethod
+    def requests_guided_context(text):
+        """Recognize an explicit natural-language request to use saved context.
+
+        The trigger never attaches anything by itself. It only opens an
+        owner-only choice message whose labels contain no captured content.
+        """
+        if not isinstance(text,str) or text.startswith('/'):return False
+        lowered=text.lower()
+        return ('컨텍스트' in lowered or '저장한 기록' in lowered or '저장된 기록' in lowered) and any(word in lowered for word in ('함께','참고','사용','포함'))
+
+    def offer_telegram_context_choices(self, job_id, chat_id, generation):
+        items=self.context_inbox().list()[:6]
+        if not items:return False
+        tokens=[]; buttons=[]
+        for index,item in enumerate(items,1):
+            token=self.store.create_telegram_context_choice(job_id,item['id'],chat_id,generation)
+            tokens.append(token)
+            kind='텍스트' if item['source_kind']=='text' else 'URL'
+            buttons.append([{'text':f'최근 {kind} {index}', 'callback_data':f'p7x:{token}'}])
+        buttons.append([{'text':'컨텍스트 없이 진행', 'callback_data':f'p7n:{job_id}'}])
+        try:
+            sent=self.telegram_method('sendMessage',{'chat_id':chat_id,
+                'text':'이번 요청에 참고할 개인 컨텍스트를 하나 선택하세요. 내용은 이 목록에 표시되지 않으며, 선택하지 않아도 요청은 그대로 진행할 수 있어요.',
+                'reply_markup':{'inline_keyboard':buttons}})
+            self.store.save_telegram_context_choice_message(tokens,sent.get('message_id') if isinstance(sent,dict) else None)
+            return True
+        except ProviderError:
+            return False
+
     def subscription_engine_status(self):
         connected=self.store.config('subscription_engine',{})
         engines=[]
@@ -600,6 +630,41 @@ class AgentService:
                         changed=db.total_changes==1
                         job=dict(job)
                 if changed:self.update_task_card(job,'cancelled')
+            elif authorized and isinstance(data,str) and data.startswith('p7x:'):
+                choice=self.store.telegram_context_choice(data[4:])
+                exact=(choice and choice['state']=='offered' and choice['generation']==generation
+                       and choice['chat_id']==sender and choice['message_id']==message.get('message_id'))
+                if exact:
+                    selected=self.store.select_telegram_context_choice(choice['token'])
+                    with self.store.db() as db:
+                        db.execute('BEGIN IMMEDIATE')
+                        job=db.execute('SELECT * FROM jobs WHERE id=?',(selected['job_id'],)).fetchone()
+                        if job and job['status']=='awaiting_context' and job['channel']==f"telegram:{generation}" and job['chat_id']==sender:
+                            self.store.attach_context(selected['job_id'],[selected['event_id']],self.context_assistant_id(),db)
+                            db.execute("UPDATE jobs SET status='queued',error=NULL WHERE id=?",(selected['job_id'],))
+                            job=dict(job)
+                        else: job=None
+                    if job:
+                        try:self.telegram_method('editMessageText',{'chat_id':sender,'message_id':message.get('message_id'),'text':'선택한 컨텍스트를 이 요청에만 연결했습니다. 작업을 시작할게요.','reply_markup':{'inline_keyboard':[]}})
+                        except ProviderError:pass
+                        self.create_task_card(job['id'],job['message'],sender)
+                        changed=True
+            elif authorized and isinstance(data,str) and data.startswith('p7n:'):
+                job_id=data[4:]
+                choice=self.store.telegram_context_choice_for_job(job_id)
+                exact=(choice and choice['generation']==generation and choice['chat_id']==sender and choice['message_id']==message.get('message_id'))
+                with self.store.db() as db:
+                    db.execute('BEGIN IMMEDIATE')
+                    job=db.execute('SELECT * FROM jobs WHERE id=?',(job_id,)).fetchone()
+                    if exact and job and job['status']=='awaiting_context' and job['channel']==f"telegram:{generation}" and job['chat_id']==sender:
+                        db.execute("UPDATE jobs SET status='queued',error=NULL WHERE id=?",(job_id,))
+                        job=dict(job)
+                    else:job=None
+                if job:
+                    try:self.telegram_method('editMessageText',{'chat_id':sender,'message_id':message.get('message_id'),'text':'컨텍스트 없이 이 요청을 시작할게요.','reply_markup':{'inline_keyboard':[]}})
+                    except ProviderError:pass
+                    self.create_task_card(job['id'],job['message'],sender)
+                    changed=True
             elif authorized and isinstance(data,str) and data.startswith('p7a:'):
                 parts=data.split(':')
                 if len(parts)==3 and parts[2] in ('approve','deny'):
@@ -676,8 +741,11 @@ class AgentService:
                     authorized=True
                     paired=True
                     text='/start'
+            guided_context_requested=(authorized and isinstance(text,str) and self.requests_guided_context(text)
+                                      and bool(self.context_inbox().list()))
             with self.store.db() as db:
                 db.execute('BEGIN IMMEDIATE')
+                guided_context=False
                 if authorized and isinstance(text,str) and 0<len(text)<=12000:
                     parsed=self.parse_context_request(text)
                     if parsed:
@@ -686,6 +754,9 @@ class AgentService:
                         self.store.attach_context(task_id,event_ids,self.context_assistant_id(),db)
                     else:
                         task_id=self.store.enqueue(text,f'tg:{generation}:{update_id}',f'telegram:{generation}',sender,db=db)
+                        if guided_context_requested:
+                            db.execute("UPDATE jobs SET status='awaiting_context' WHERE id=?",(task_id,))
+                            guided_context=True
                 else:
                     task_id=None
                 cfg['cursor']=update_id+1
@@ -694,7 +765,10 @@ class AgentService:
                 self.store.put('telegram_status',{'state':'connected','message':'개인 계정이 연결되었습니다. AgentOS가 연결을 자동으로 확인합니다.'})
                 self.queue_telegram_connection_verification()
             if authorized and self.is_natural_language(text) and task_id:
-                self.create_task_card(task_id,text,sender)
+                if guided_context:
+                    self.offer_telegram_context_choices(task_id,sender,generation)
+                else:
+                    self.create_task_card(task_id,text,sender)
 
     def poll_telegram(self):
         with self.lock:

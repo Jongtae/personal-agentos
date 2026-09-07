@@ -38,6 +38,7 @@ class QuickStore:
             CREATE INDEX IF NOT EXISTS context_events_expiry ON context_events(expires_at);
             CREATE TABLE IF NOT EXISTS context_sharing_policies(assistant_id TEXT PRIMARY KEY, approved INTEGER NOT NULL, approved_at REAL NOT NULL);
             CREATE TABLE IF NOT EXISTS context_job_attachments(job_id TEXT PRIMARY KEY, event_ids TEXT NOT NULL, assistant_id TEXT NOT NULL, approved INTEGER NOT NULL DEFAULT 0, created REAL NOT NULL);
+            CREATE TABLE IF NOT EXISTS telegram_context_choices(token TEXT PRIMARY KEY, job_id TEXT NOT NULL, event_id TEXT NOT NULL, chat_id INTEGER NOT NULL, generation TEXT NOT NULL, message_id INTEGER, state TEXT NOT NULL, created REAL NOT NULL);
             CREATE TABLE IF NOT EXISTS workspaces(id TEXT PRIMARY KEY, title TEXT NOT NULL, purpose TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'active', created REAL NOT NULL, updated REAL NOT NULL);
             CREATE TABLE IF NOT EXISTS workspace_results(id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, job_id TEXT NOT NULL, content TEXT NOT NULL, evidence TEXT NOT NULL DEFAULT '', created REAL NOT NULL, UNIQUE(workspace_id, job_id));
             CREATE INDEX IF NOT EXISTS workspace_results_workspace ON workspace_results(workspace_id, created DESC);
@@ -238,6 +239,34 @@ class QuickStore:
                 return self.attach_context(job_id,event_ids,assistant_id,conn)
         db.execute('INSERT INTO context_job_attachments VALUES (?,?,?,?,?) ON CONFLICT(job_id) DO NOTHING',
                    (job_id,encoded,assistant_id,0,time.time()))
+
+    def create_telegram_context_choice(self, job_id, event_id, chat_id, generation):
+        token=secrets.token_urlsafe(9)
+        with self.db() as db:
+            db.execute('INSERT INTO telegram_context_choices VALUES (?,?,?,?,?,?,?,?)',(token,job_id,event_id,chat_id,generation,None,'offered',time.time()))
+        return token
+
+    def save_telegram_context_choice_message(self, tokens, message_id):
+        if not isinstance(message_id,int):return
+        with self.db() as db:
+            marks=','.join('?' for _ in tokens)
+            if marks:db.execute(f"UPDATE telegram_context_choices SET message_id=? WHERE token IN ({marks})",(message_id,*tokens))
+
+    def telegram_context_choice(self, token):
+        with self.db() as db:
+            row=db.execute('SELECT * FROM telegram_context_choices WHERE token=?',(token,)).fetchone()
+        return dict(row) if row else None
+
+    def telegram_context_choice_for_job(self, job_id):
+        with self.db() as db:
+            row=db.execute("SELECT * FROM telegram_context_choices WHERE job_id=? AND state='offered' ORDER BY created LIMIT 1",(job_id,)).fetchone()
+        return dict(row) if row else None
+
+    def select_telegram_context_choice(self, token):
+        with self.db() as db:
+            db.execute("UPDATE telegram_context_choices SET state='selected' WHERE token=? AND state='offered'",(token,))
+            row=db.execute('SELECT * FROM telegram_context_choices WHERE token=?',(token,)).fetchone()
+        return dict(row) if row else None
 
     def context_attachment(self, job_id):
         with self.db() as db:
