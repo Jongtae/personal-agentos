@@ -1,13 +1,117 @@
-"""Read-only Google Drive adapter with a narrow, injectable transport."""
-from urllib.parse import urlencode
+"""Contract-first, read-only Google Drive adapter with injected transport."""
+import base64
+import hashlib
+import secrets
+import time
+from urllib.parse import quote, urlencode
 
-DRIVE_READONLY='https://www.googleapis.com/auth/drive.readonly'
+DRIVE_READONLY = "https://www.googleapis.com/auth/drive.readonly"
+AUTHORIZATION_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
+TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
+FILES_ENDPOINT = "https://www.googleapis.com/drive/v3/files"
+PENDING_SECRET = "google_drive_oauth_pending"
+TOKEN_SECRET = "google_drive_tokens"
+CONNECTION_CONFIG = "google_drive_connection"
+
+
+class DriveAuthorizationError(ValueError):
+    pass
+
+
+def _pkce_pair():
+    verifier = secrets.token_urlsafe(64)
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
+    return verifier, challenge
+
 
 class GoogleDrive:
- def __init__(self,transport,token): self.transport,self.token=transport,token
- def search(self,query):
-  data=self.transport('https://www.googleapis.com/drive/v3/files?'+urlencode({'q':"name contains '"+query.replace("'","\\'")+"'",'fields':'files(id,name,mimeType,modifiedTime)','pageSize':20}),None,{'Authorization':'Bearer '+self.token})
-  return [{'id':x['id'],'name':x.get('name',''),'mime_type':x.get('mimeType',''),'modified_time':x.get('modifiedTime','')} for x in data.get('files',[])]
- def read(self,file_id):
-  if not isinstance(file_id,str) or not file_id: raise ValueError('파일을 확인하세요.')
-  return self.transport('https://www.googleapis.com/drive/v3/files/'+file_id+'?alt=media',None,{'Authorization':'Bearer '+self.token})
+    def __init__(self, transport, token):
+        if not isinstance(token, str) or not token:
+            raise DriveAuthorizationError("Google Drive access token is required.")
+        self.transport, self.token = transport, token
+
+    def _request(self, url):
+        return self.transport(url, None, {"Authorization": "Bearer " + self.token})
+
+    def search(self, query):
+        if not isinstance(query, str) or not query.strip():
+            raise ValueError("Search text is required.")
+        escaped = query.strip().replace("'", "\\'")
+        url = FILES_ENDPOINT + "?" + urlencode({"q": "name contains '" + escaped + "'", "fields": "files(id,name,mimeType,modifiedTime)", "pageSize": 20})
+        return [{"id": item["id"], "name": item.get("name", ""), "mime_type": item.get("mimeType", ""), "modified_time": item.get("modifiedTime", "")} for item in self._request(url).get("files", [])]
+
+    def read(self, file_id):
+        if not isinstance(file_id, str) or not file_id:
+            raise ValueError("A Drive file ID is required.")
+        return self._request(FILES_ENDPOINT + "/" + quote(file_id, safe="") + "?alt=media")
+
+    def health(self):
+        try:
+            self._request(FILES_ENDPOINT + "?" + urlencode({"pageSize": 1, "fields": "files(id)"}))
+        except Exception as error:
+            return {"ok": False, "error": type(error).__name__}
+        return {"ok": True}
+
+
+class GoogleDriveConnection:
+    """Owns local OAuth state, private tokens, and redacted lifecycle metadata."""
+    def __init__(self, store, transport, client_id, redirect_uri):
+        if not all(isinstance(value, str) and value for value in (client_id, redirect_uri)):
+            raise ValueError("A deployment-owned OAuth client and redirect URI are required.")
+        self.store, self.transport = store, transport
+        self.client_id, self.redirect_uri = client_id, redirect_uri
+
+    def connect(self):
+        verifier, challenge = _pkce_pair()
+        state = secrets.token_urlsafe(32)
+        self.store.secret(PENDING_SECRET, {"state": state, "verifier": verifier, "created_at": time.time()})
+        query = urlencode({"client_id": self.client_id, "redirect_uri": self.redirect_uri, "response_type": "code", "scope": DRIVE_READONLY, "access_type": "offline", "code_challenge": challenge, "code_challenge_method": "S256", "state": state})
+        return {"authorization_url": AUTHORIZATION_ENDPOINT + "?" + query, "state": state}
+
+    def complete(self, callback):
+        pending = self.store.secret(PENDING_SECRET)
+        if not isinstance(callback, dict) or not isinstance(pending, dict):
+            raise DriveAuthorizationError("No pending Google Drive authorization exists.")
+        if not secrets.compare_digest(str(callback.get("state", "")), str(pending.get("state", ""))):
+            raise DriveAuthorizationError("Google Drive authorization state did not match.")
+        if callback.get("error"):
+            self._clear_pending()
+            raise DriveAuthorizationError("Google Drive access was not approved.")
+        if not isinstance(callback.get("code"), str) or not callback["code"]:
+            raise DriveAuthorizationError("Google Drive authorization code is missing.")
+        response = self.transport(TOKEN_ENDPOINT, urlencode({"client_id": self.client_id, "code": callback["code"], "code_verifier": pending["verifier"], "grant_type": "authorization_code", "redirect_uri": self.redirect_uri}), {"Content-Type": "application/x-www-form-urlencoded"})
+        if not isinstance(response, dict) or not isinstance(response.get("access_token"), str):
+            raise DriveAuthorizationError("Google Drive token exchange failed.")
+        tokens = {key: response[key] for key in ("access_token", "refresh_token", "expires_in", "scope") if key in response}
+        if DRIVE_READONLY not in str(tokens.get("scope", DRIVE_READONLY)):
+            raise DriveAuthorizationError("Google Drive read-only scope was not granted.")
+        self.store.secret(TOKEN_SECRET, tokens)
+        self._clear_pending()
+        self.store.put(CONNECTION_CONFIG, {"state": "connected", "connected_at": time.time(), "audit": ["connected"]})
+        return self.status()
+
+    def status(self):
+        value = self.store.config(CONNECTION_CONFIG, {"state": "disconnected", "audit": []})
+        return {"state": value.get("state", "disconnected"), "audit": list(value.get("audit", []))}
+
+    def health(self):
+        tokens = self.store.secret(TOKEN_SECRET)
+        if not isinstance(tokens, dict) or not tokens.get("access_token"):
+            return {"ok": False, "state": "disconnected"}
+        return {**GoogleDrive(self.transport, tokens["access_token"]).health(), "state": self.status()["state"]}
+
+    def disconnect(self):
+        prior = self.status()
+        self.store.secret(TOKEN_SECRET, "")
+        self._clear_pending()
+        self.store.put(CONNECTION_CONFIG, {"state": "disconnected", "audit": [*prior["audit"], "disconnected"][-50:]})
+        return self.status()
+
+    def adapter(self):
+        tokens = self.store.secret(TOKEN_SECRET)
+        if not isinstance(tokens, dict) or not tokens.get("access_token"):
+            raise DriveAuthorizationError("Google Drive is not connected.")
+        return GoogleDrive(self.transport, tokens["access_token"])
+
+    def _clear_pending(self):
+        self.store.secret(PENDING_SECRET, "")
