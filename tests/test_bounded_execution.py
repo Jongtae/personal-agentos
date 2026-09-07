@@ -40,6 +40,27 @@ class BoundedExecutionTests(unittest.TestCase):
         self.assertEqual(set(seen['kwargs']['env']), {'HOME','PATH','LANG'})
         self.assertNotIn('private', str(seen))
 
+    def test_codex_uses_only_its_existing_profile_and_cli_directory(self):
+        seen={}
+        class Done:
+            returncode=0
+            stdout=json.dumps({'item':{'text':'bounded result'}})
+        def runner(argv, **kwargs):
+            seen['kwargs']=kwargs
+            return Done()
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);profile=root/'official-codex-profile';profile.mkdir()
+            adapter=BoundedExecutionAdapter(finder=lambda _: '/opt/homebrew/bin/codex', runner=runner,
+                                            runtime_root=root/'turns', codex_home=profile)
+            result=adapter.execute('codex','hello',AgentOSMcpTools(_Capabilities()))
+        self.assertEqual(result.content,'bounded result')
+        env=seen['kwargs']['env']
+        self.assertEqual(env['CODEX_HOME'],str(profile))
+        self.assertTrue(Path(env['HOME']).name.startswith('turn-'))
+        self.assertEqual(env['PATH'],'/opt/homebrew/bin:/usr/bin:/bin')
+        self.assertNotIn('GITHUB_TOKEN',env)
+        self.assertNotIn('OPENAI_API_KEY',env)
+
     def test_rejects_unstructured_or_failed_engine_output(self):
         class Failed: returncode=1; stdout='{}'
         with tempfile.TemporaryDirectory() as folder:
