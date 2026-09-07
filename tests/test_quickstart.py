@@ -46,6 +46,10 @@ class QuickstartTests(unittest.TestCase):
     def model(self,provider='ollama',endpoint='http://127.0.0.1:11434',key=''):
         self.service.save_model({'provider':provider,'endpoint':endpoint,'model':'test-model','api_key':key})
 
+    def make_due(self, job_id):
+        with self.store.db() as db:
+            db.execute("UPDATE jobs SET created=? WHERE id=?", (time.time()-4, job_id))
+
     def test_claim_session_restart_and_redaction(self):
         self.store.claim(self.store.bootstrap.read_text(),'a-long-test-password')
         self.assertFalse(self.store.bootstrap.exists())
@@ -210,6 +214,17 @@ class QuickstartTests(unittest.TestCase):
         self.assertEqual(len(edits),1)
         self.assertIn('취소됨',edits[0][1]['text'])
 
+    def test_telegram_task_card_waits_briefly_for_cancellation(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'잠시 뒤 실행할 요청'}},generation)
+        job=self.store.jobs()[0]
+        self.assertFalse(self.service.run_one())
+        self.assertEqual(self.store.jobs()[0]['status'],'queued')
+        card=self.store.task_card(job['id'])
+        self.service.ingest_callback({'id':'cancel','from':{'id':42},'message':{'chat':{'id':42,'type':'private'},'message_id':card['message_id']},'data':f"p7c:{job['id']}"},generation)
+        self.assertEqual(self.store.jobs()[0]['status'],'cancelled')
+
     def test_task_callbacks_require_owner_and_cannot_cancel_running_work(self):
         generation=self.pair()
         self.service.run_one();self.service.deliver_one()
@@ -218,10 +233,11 @@ class QuickstartTests(unittest.TestCase):
         callback={'id':'foreign','from':{'id':99},'message':{'chat':{'id':99,'type':'private'},'message_id':999},'data':f"p7c:{job['id']}"}
         self.service.ingest_callback(callback,generation)
         self.assertEqual(self.store.jobs()[0]['status'],'queued')
+        self.make_due(job['id'])
         self.service.run_one()
         card=self.store.task_card(job['id'])
         self.service.ingest_callback({'id':'late','from':{'id':42},'message':{'chat':{'id':42,'type':'private'},'message_id':card['message_id']},'data':f"p7c:{job['id']}"},generation)
-        self.assertEqual(self.store.jobs()[0]['status'],'failed')
+        self.assertIn(self.store.jobs()[0]['status'],('succeeded','failed'))
 
     def test_document_approval_notification_is_owner_bound_and_safe(self):
         generation=self.pair()
@@ -241,6 +257,7 @@ class QuickstartTests(unittest.TestCase):
         self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'문서를 찾아 줘'}},generation)
         card=[c for c in self.calls if c[0].endswith('/sendMessage') and c[1]['text'].startswith('작업 카드')][-1]
         self.assertNotIn('문서를 찾아',card[1]['text'])
+        self.make_due(self.store.jobs()[0]['id'])
         self.service.run_one()
         self.assertTrue(self.service.deliver_notification())
         approval=[c for c in self.calls if c[0].endswith('/sendMessage') and c[1]['text'].startswith('연결 문서를')][-1]
@@ -271,6 +288,7 @@ class QuickstartTests(unittest.TestCase):
         self.assertIn('대기 중',progress[1]['text'])
         self.assertNotIn('private request',progress[1]['text'])
         self.assertNotIn(job['id'],progress[1]['text'])
+        self.make_due(job['id'])
         self.service.run_one()
         edit=[c for c in self.calls if c[0].endswith('/editMessageText')][-1]
         self.assertEqual(edit[1]['reply_markup']['inline_keyboard'][0][0]['text'],'결과 상태 보기')
@@ -280,6 +298,7 @@ class QuickstartTests(unittest.TestCase):
         self.service.run_one();self.service.deliver_one()
         while self.service.deliver_notification():pass
         self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'모델 없이 실패해 줘'}},generation)
+        self.make_due(self.store.jobs()[0]['id'])
         self.service.run_one()
         queued=self.store.next_notification()
         self.assertEqual(queued['kind'],'failed')

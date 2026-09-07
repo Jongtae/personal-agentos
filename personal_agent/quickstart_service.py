@@ -30,6 +30,9 @@ TOOL_PROBE = {
 }
 
 
+TELEGRAM_CARD_GRACE_SECONDS = 3
+
+
 class AgentService:
     def __init__(self, store, adapter=None, telegram_transport=None):
         self.store=store
@@ -466,7 +469,7 @@ class AgentService:
         with self.worker_lock:
             with self.store.db() as db:
                 db.execute('BEGIN IMMEDIATE')
-                row=db.execute("SELECT * FROM jobs WHERE status='queued' ORDER BY created LIMIT 1").fetchone()
+                row=db.execute("SELECT j.* FROM jobs j WHERE j.status='queued' AND (NOT EXISTS (SELECT 1 FROM telegram_task_cards c WHERE c.job_id=j.id) OR j.created<=?) ORDER BY j.created LIMIT 1",(time.time()-TELEGRAM_CARD_GRACE_SECONDS,)).fetchone()
                 if not row:return False
                 job=dict(row)
                 db.execute("UPDATE jobs SET status='running' WHERE id=?",(job['id'],))
