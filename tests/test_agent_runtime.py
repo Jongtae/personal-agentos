@@ -48,7 +48,8 @@ class GeneralRuntimeTests(unittest.TestCase):
     self.assertIn('October 12',b['messages'][-1]['content']);return {'choices':[{'message':{'content':'October 12'}}]}
    return {'choices':[{'message':{'tool_calls':[{'id':str(count),'function':{'name':name,'arguments':json.dumps(args)}}]}}]}
   result=run_agent(ModelAdapter(transport),CFG,'',[{'role':'user','content':'Aurora 출시일을 파일에서 찾아줘'}],'',self.caps,lambda *a:None)
-  self.assertEqual(result.content,'October 12')
+  self.assertIn('October 12',result.content)
+  self.assertIn('파일: launch.txt · 줄 1',result.content)
  def test_weather_falls_back_to_tool_result_when_model_returns_no_final_text(self):
   calls=[0]
   def transport(u,b,h):

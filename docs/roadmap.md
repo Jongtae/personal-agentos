@@ -28,6 +28,11 @@ being silently resent. The next iteration is P2-01.
 Add structured document reading, source evidence, data-boundary visibility,
 and explicit approval semantics.
 
+P2-01 is complete: connected folders support local TXT, Markdown, PDF, DOCX,
+and XLSX extraction with file and line, page, paragraph, or sheet/cell
+evidence. P2-02 will make the boundary for external model and web use visible
+and approval-gated.
+
 ## M3 — continuity and installation
 
 Provide supported Homebrew and Docker Compose installations, long-running
