@@ -39,4 +39,4 @@ The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) turns
 
 ### UX-06 — Telegram conversation bubbles
 
-[#162](https://github.com/Jongtae/personal-agentos/issues/162) is in progress. The first implementation keeps one status-card sequence and one terminal answer bubble for each Telegram request; long answers use a larger readable preview and direct the owner to the local web history. Paired mobile acceptance remains required before closeout.
+[#162](https://github.com/Jongtae/personal-agentos/issues/162) is complete. Each Telegram request now uses one status-card sequence and one terminal answer bubble; long answers use a larger readable preview and direct the owner to local web history. Automated root-suite coverage passed, and the deployed Telegram desktop flow was observed to edit the card to completion and show one terminal answer without a generic completion duplicate.

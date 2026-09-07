@@ -48,4 +48,4 @@ The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) turns
 
 ### UX-06 implementation status
 
-[#162](https://github.com/Jongtae/personal-agentos/issues/162) now has its owner-visible bubble contract in [UX-06 Telegram conversation](ux-06-telegram-conversation.ko.md). The first implementation preserves one status card and one terminal answer bubble, keeps approval/recovery controls separate, and expands the readable long-result preview. Automated coverage does not claim paired mobile acceptance.
+**Delivered.** [#162](https://github.com/Jongtae/personal-agentos/issues/162) records the owner-visible bubble contract in [UX-06 Telegram conversation](ux-06-telegram-conversation.ko.md). The implementation preserves one status card and one terminal answer bubble, keeps approval/recovery controls separate, and expands the readable long-result preview. The root suite passed and the deployed Telegram desktop flow was directly observed to edit a status card to completion followed by one terminal answer without a generic completion duplicate.
