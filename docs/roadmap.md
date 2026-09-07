@@ -41,3 +41,7 @@ The [V1-03 safe personal-context iteration](https://github.com/Jongtae/personal-
 ## Active — AgentOS UX v1.1
 
 The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) turns the delivered personal runtime into a minimal, text-first DM with one visible personal agent. [UX-01](https://github.com/Jongtae/personal-agentos/issues/150) makes the web home conversation-first and moves technical configuration into progressive management. Subsequent iterations add explicit workspaces and saved results, Telegram DM continuity, human-readable data-boundary and recovery language, then release acceptance. UX-04 displays only redacted source categories and counts beside completed results, with one clear recovery next action. UX-03a completes the missing natural-language Telegram context-selection flow before release acceptance. UX-05 blocks tag, GitHub Release, and Homebrew updates until redacted paired-owner Telegram evidence passes. The detailed product basis is in [UX v1.1 personal-agent DM](ux-v1.1-personal-agent-dm.ko.md).
+
+## Planned — Telegram Conversation UX v1.2
+
+[UX-06](https://github.com/Jongtae/personal-agentos/issues/162) begins only after UX-05 releases. It treats the Telegram bubble sequence as product UX: concise acknowledgement, only necessary progress, one scannable completion message, owner-requested detail, clearly distinct approval and recovery prompts, and safe idempotent owner-only controls.
