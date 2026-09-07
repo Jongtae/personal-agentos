@@ -95,3 +95,38 @@ class SubscriptionServiceTests(unittest.TestCase):
             self.assertEqual(adapter.call[2], ['list_notes','save_note','web_search'])
             self.assertEqual(store.job(job)['response'], 'engine answer')
 
+
+    def test_subscription_preflights_explicit_public_lookup_and_records_sources(self):
+        class Network:
+            def __init__(self): self.calls=[]
+            def execute(self, plan):
+                self.calls.append(plan)
+                return {'tool':'web_search','query':plan['query'],'retrieved_at':1,
+                        'results':[{'title':'Public result','url':'https://example.test/result','snippet':'public snippet'}],
+                        'sources':['https://example.test/result']}
+        class Adapter:
+            def __init__(self): self.prompt=''
+            def execute(self, engine, prompt, tools):
+                self.prompt=prompt
+                from personal_agent.bounded_execution import ExecutionResult
+                return ExecutionResult('source-backed answer',engine,0)
+        with tempfile.TemporaryDirectory() as folder:
+            store=QuickStore(Path(folder)/'data')
+            engines=SubscriptionEngines(finder=lambda _: '/runtime/codex', clock=lambda:1)
+            adapter=Adapter(); service=AgentService(store, subscription_engines=engines, execution_adapter=adapter)
+            network=Network(); service.local_tools=network
+            service.connect_subscription_engine({'engine':'codex','officially_authenticated':True})
+            job=store.enqueue('성남시 날씨를 찾아줘','subscription-preflight')
+            self.assertTrue(service.run_one())
+            self.assertEqual(network.calls,[{'tool':'web_search','query':'성남시 날씨'}])
+            self.assertIn('https://example.test/result',adapter.prompt)
+            with store.db() as db:
+                events=[dict(row) for row in db.execute('SELECT tool,status,detail FROM tool_events WHERE job_id=?',(job,))]
+            event=next(row for row in events if row['tool']=='web_search' and row['status']=='succeeded')
+            self.assertIn('https://example.test/result',event['detail'])
+
+    def test_subscription_lookup_never_derives_private_or_ordinary_prose(self):
+        from personal_agent.quickstart_service import subscription_public_lookup_query
+        self.assertEqual(subscription_public_lookup_query('/search AgentOS release'), 'AgentOS release')
+        self.assertIsNone(subscription_public_lookup_query('/search my api token is abc'))
+        self.assertIsNone(subscription_public_lookup_query('내 메모를 정리해줘'))
