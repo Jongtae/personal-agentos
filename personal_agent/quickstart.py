@@ -104,6 +104,9 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 return self.reply(200,{'claimed':store.claimed(),'authenticated':store.session(self.token()),'local_access':self.local_setup() and store.config('local_access',False)})
             if not self.auth():return
             if path=='/api/home':return self.reply(200,service.home())
+            if path=='/api/workspaces':return self.reply(200,{'workspaces':service.store.workspaces()})
+            if path.startswith('/api/workspaces/'):
+                return self.reply(200,service.workspace(path.rsplit('/',1)[-1]))
             if path=='/api/state':return self.reply(200,{'settings':service.settings(),'messages':store.history(),'jobs':store.jobs(),'notes':store.notes(),'tool_events':store.recent_tool_events(),'healthy':service.healthy()})
             if path=='/api/onboarding':return self.reply(200,service.onboarding())
             self.reply(404,{'error':'경로를 찾을 수 없습니다.'})
@@ -166,7 +169,12 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 if path=='/api/telegram/disconnect':return self.reply(200,service.disconnect_telegram())
                 if path=='/api/telegram/task-card-acceptance':return self.reply(200,service.attest_telegram_task_card_acceptance(body))
                 if path=='/api/telegram/first-work-acceptance':return self.reply(200,service.attest_telegram_first_work(body))
-                if path=='/api/chat':return self.reply(202,{'id':store.enqueue(body.get('message'),body.get('request_key'))})
+                if path=='/api/workspaces':return self.reply(201,service.create_workspace(body))
+                if path.startswith('/api/workspaces/') and path.endswith('/save-result'):
+                    return self.reply(200,service.save_workspace_result(path.split('/')[3],body))
+                if path.startswith('/api/workspaces/'):
+                    return self.reply(200,service.update_workspace(path.rsplit('/',1)[-1],body))
+                if path=='/api/chat':return self.reply(202,{'id':store.enqueue(body.get('message'),body.get('request_key'),workspace_id=body.get('workspace_id'))})
                 self.reply(404,{'error':'경로를 찾을 수 없습니다.'})
             except (ValueError,UnicodeDecodeError) as exc:self.reply(400,{'error':str(exc)})
             except ProviderError as exc:self.reply(502,{'error':str(exc)})

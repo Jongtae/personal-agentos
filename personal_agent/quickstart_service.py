@@ -122,9 +122,29 @@ class AgentService:
         else:
             state='ready';next_action='메모는 바로 남길 수 있어요. 대화가 필요할 때 AI를 연결하세요.'
         tg=self.store.config('telegram', {})
+        conversation=self.store.history()
+        workspaces=self.store.workspaces()
         return {'state':state,'next_action':next_action,'active_jobs':active,
-                'conversation':self.store.history(),'model_connected':bool(model_ready or subscription),
-                'telegram_paired':bool(tg.get('enabled') and tg.get('user_id')),'recovery':recovery}
+                'conversation':conversation,'model_connected':bool(model_ready or subscription),
+                'telegram_paired':bool(tg.get('enabled') and tg.get('user_id')),'recovery':recovery,
+                'workspaces':workspaces,'workspace_suggestion':len(conversation)>=4 and not workspaces}
+
+    def create_workspace(self, body):
+        if not isinstance(body,dict):raise ValueError('작업공간 정보를 확인하세요.')
+        return self.store.create_workspace(body.get('title',''),body.get('purpose',''))
+
+    def workspace(self, workspace_id):
+        item=self.store.workspace_detail(workspace_id)
+        if not item:raise ValueError('작업공간을 찾을 수 없습니다.')
+        return item
+
+    def update_workspace(self, workspace_id, body):
+        if not isinstance(body,dict):raise ValueError('작업공간 정보를 확인하세요.')
+        return self.store.update_workspace(workspace_id,body.get('title'),body.get('purpose'),body.get('archive'))
+
+    def save_workspace_result(self, workspace_id, body):
+        if not isinstance(body,dict):raise ValueError('저장할 결과를 확인하세요.')
+        return self.store.save_workspace_result(workspace_id,body.get('job_id',''))
 
     def context_inbox(self):
         from .context_inbox import ContextInbox
@@ -659,10 +679,10 @@ class AgentService:
                     parsed=self.parse_context_request(text)
                     if parsed:
                         event_ids,text=parsed
-                        task_id=self.store.enqueue(text,f'tg:{generation}:{update_id}',f'telegram:{generation}',sender,db)
+                        task_id=self.store.enqueue(text,f'tg:{generation}:{update_id}',f'telegram:{generation}',sender,db=db)
                         self.store.attach_context(task_id,event_ids,self.context_assistant_id(),db)
                     else:
-                        task_id=self.store.enqueue(text,f'tg:{generation}:{update_id}',f'telegram:{generation}',sender,db)
+                        task_id=self.store.enqueue(text,f'tg:{generation}:{update_id}',f'telegram:{generation}',sender,db=db)
                 else:
                     task_id=None
                 cfg['cursor']=update_id+1
@@ -700,7 +720,7 @@ class AgentService:
                 if not row:return False
                 job=dict(row)
                 db.execute("UPDATE jobs SET status='running' WHERE id=?",(job['id'],))
-                db.execute('INSERT INTO messages(role,content,channel,created) VALUES (?,?,?,?)',('user',job['message'],job['channel'],time.time()))
+                db.execute('INSERT INTO messages(role,content,channel,created,workspace_id) VALUES (?,?,?,?,?)',('user',job['message'],job['channel'],time.time(),job.get('workspace_id')))
             self.update_task_card(job,'running')
             response=''
             provider='builtin'
@@ -799,12 +819,12 @@ class AgentService:
                     if context_sources and '컨텍스트:' not in response:
                         response+='\n\n컨텍스트 출처:\n'+'\n'.join(context_sources)
                 with self.store.db() as db:
-                    db.execute('INSERT INTO messages(role,content,channel,created) VALUES (?,?,?,?)',('assistant',response,job['channel'],time.time()))
+                    db.execute('INSERT INTO messages(role,content,channel,created,workspace_id) VALUES (?,?,?,?,?)',('assistant',response,job['channel'],time.time(),job.get('workspace_id')))
                     db.execute("UPDATE jobs SET status=?,response=?,provider=?,model=?,delivery=? WHERE id=?",(outcome,response,provider,model,'pending' if job['chat_id'] else 'none',job['id']))
             except (ValueError,ProviderError,ExecutionError) as exc:
                 response=str(exc)
                 with self.store.db() as db:
-                    db.execute('INSERT INTO messages(role,content,channel,created) VALUES (?,?,?,?)',('assistant','이 요청은 완료하지 못했습니다: '+response,job['channel'],time.time()))
+                    db.execute('INSERT INTO messages(role,content,channel,created,workspace_id) VALUES (?,?,?,?,?)',('assistant','이 요청은 완료하지 못했습니다: '+response,job['channel'],time.time(),job.get('workspace_id')))
                     db.execute("UPDATE jobs SET status='failed',error=?,delivery=? WHERE id=?",(response,'pending' if job['chat_id'] else 'none',job['id']))
                 outcome='failed'
             self.update_task_card(job,outcome)
