@@ -12,6 +12,7 @@
 | Iteration | Goal | Status |
 | --- | --- | --- |
 | [V1-02 / #137](https://github.com/Jongtae/personal-agentos/issues/137) | Telegram daily-work task cards, approvals, cancellation, and truthful recovery | Implementation complete; delivery-controller validation and closeout pending |
+| [V1-03 / #138](https://github.com/Jongtae/personal-agentos/issues/138) | Opt-in local documents and context in Telegram work with source evidence and external-sharing approval | Implementation complete; delivery-controller validation and closeout pending |
 
 ## Active: AgentOS Hub v2
 

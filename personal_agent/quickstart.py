@@ -155,6 +155,7 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 if path=='/api/context-inbox/delete':return self.reply(200,service.context_inbox().delete(body.get('id')))
                 if path=='/api/context-inbox/share-policy':return self.reply(200,service.context_inbox().set_policy(body))
                 if path=='/api/context-inbox/share':return self.reply(200,service.context_inbox().share(body))
+                if path=='/api/context-inbox/telegram-policy':return self.reply(200,service.set_context_telegram_policy(body))
                 if path=='/api/documents/approval':return self.reply(200,service.set_document_approval(body))
                 if path=='/api/model':return self.reply(200,service.save_model(body))
                 if path=='/api/model/test':return self.reply(200,service.test_model())

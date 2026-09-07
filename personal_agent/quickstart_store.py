@@ -37,6 +37,7 @@ class QuickStore:
             CREATE TABLE IF NOT EXISTS context_events(id TEXT PRIMARY KEY, captured_at REAL NOT NULL, source_kind TEXT NOT NULL, content TEXT NOT NULL, content_hash TEXT NOT NULL, expires_at REAL NOT NULL, sharing_state TEXT NOT NULL, source_app TEXT NOT NULL, source_domain TEXT NOT NULL);
             CREATE INDEX IF NOT EXISTS context_events_expiry ON context_events(expires_at);
             CREATE TABLE IF NOT EXISTS context_sharing_policies(assistant_id TEXT PRIMARY KEY, approved INTEGER NOT NULL, approved_at REAL NOT NULL);
+            CREATE TABLE IF NOT EXISTS context_job_attachments(job_id TEXT PRIMARY KEY, event_ids TEXT NOT NULL, assistant_id TEXT NOT NULL, approved INTEGER NOT NULL DEFAULT 0, created REAL NOT NULL);
             ''')
         self.path.chmod(0o600)
         if not self.claimed() and not self.bootstrap.exists():
@@ -164,6 +165,32 @@ class QuickStore:
     def notes(self):
         with self.db() as db:
             return [dict(r) for r in db.execute('SELECT * FROM notes ORDER BY created DESC LIMIT 50')]
+
+    def attach_context(self, job_id, event_ids, assistant_id, db=None):
+        if (not isinstance(job_id,str) or not isinstance(event_ids,list) or not event_ids
+                or len(event_ids)>20 or any(not isinstance(item,str) or not item for item in event_ids)
+                or not isinstance(assistant_id,str) or not assistant_id):
+            raise ValueError('연결할 컨텍스트를 확인하세요.')
+        encoded=json.dumps(event_ids)
+        if db is None:
+            with self.db() as conn:
+                conn.execute('BEGIN IMMEDIATE')
+                return self.attach_context(job_id,event_ids,assistant_id,conn)
+        db.execute('INSERT INTO context_job_attachments VALUES (?,?,?,?,?) ON CONFLICT(job_id) DO NOTHING',
+                   (job_id,encoded,assistant_id,0,time.time()))
+
+    def context_attachment(self, job_id):
+        with self.db() as db:
+            row=db.execute('SELECT * FROM context_job_attachments WHERE job_id=?',(job_id,)).fetchone()
+        if not row:return None
+        item=dict(row)
+        try:item['event_ids']=json.loads(item['event_ids'])
+        except (TypeError,ValueError):return None
+        return item
+
+    def approve_context_attachment(self, job_id):
+        with self.db() as db:
+            db.execute('UPDATE context_job_attachments SET approved=1 WHERE job_id=?',(job_id,))
 
     def recent_tool_events(self):
         with self.db() as db:
