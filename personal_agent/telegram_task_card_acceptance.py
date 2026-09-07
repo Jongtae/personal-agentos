@@ -2,9 +2,12 @@
 from collections import Counter
 
 
-def report(store, web_confirmed=False, restart_confirmed=False):
+def report(store, web_confirmed=None, restart_confirmed=None):
     """Return only aggregate evidence; never return messages, ids, or secrets."""
     telegram=store.config('telegram', {})
+    attestation=store.config('telegram_task_card_acceptance', {})
+    if web_confirmed is None:web_confirmed=bool(attestation.get('web_confirmed'))
+    if restart_confirmed is None:restart_confirmed=bool(attestation.get('restart_confirmed'))
     with store.db() as db:
         cards=Counter(row['state'] for row in db.execute('SELECT state FROM telegram_task_cards'))
         notifications=Counter(

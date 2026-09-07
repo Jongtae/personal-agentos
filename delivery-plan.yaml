@@ -220,10 +220,24 @@
       ]
     },
     {
-      "id": "P7-04",
+      "id": "P7-03a",
       "milestone": "M7",
       "depends_on": [
         "P7-03"
+      ],
+      "kind": "live_validation",
+      "validation": "python3 scripts/verify_telegram_task_card_acceptance.py --data-dir ~/.local/share/agentos",
+      "summary": "Record and verify redacted paired Telegram task-card acceptance before release.",
+      "acceptance": [
+        "owner records web and restart observations only after durable card, cancellation, approval, and notification evidence exists",
+        "release remains unavailable until the local redacted verifier passes"
+      ]
+    },
+    {
+      "id": "P7-04",
+      "milestone": "M7",
+      "depends_on": [
+        "P7-03a"
       ],
       "kind": "release",
       "summary": "Release verified Telegram task-card continuity through GitHub and Homebrew.",

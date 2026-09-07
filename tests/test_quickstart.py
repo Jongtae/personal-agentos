@@ -282,6 +282,25 @@ class QuickstartTests(unittest.TestCase):
         restarted.store.recover()
         self.assertEqual(restarted.store.notification(queued['id'])['state'],'unknown')
 
+    def test_owner_can_record_live_task_card_attestation_only_after_durable_evidence(self):
+        generation=self.pair()
+        with self.assertRaises(ValueError):
+            self.service.attest_telegram_task_card_acceptance({'web_confirmed':True,'restart_confirmed':True})
+        self.service.run_one();self.service.deliver_one()
+        self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'safe request'}},generation)
+        job=self.store.jobs()[0];card=self.store.task_card(job['id'])
+        callback_message={'chat':{'id':42,'type':'private'},'message_id':card['message_id']}
+        self.service.ingest_callback({'id':'cancel','from':{'id':42},'message':callback_message,'data':f"p7c:{job['id']}"},generation)
+        approval=self.store.queue_notification(job['id'],42,generation,'approval_needed',self.service.document_fingerprint())
+        self.store.update_notification(approval['id'],'approved')
+        completed=self.store.queue_notification('other-job',42,generation,'completed')
+        self.store.update_notification(completed['id'],'sent',123)
+        self.store.enqueue('web evidence','web-evidence');self.service.run_one()
+        result=self.service.attest_telegram_task_card_acceptance({'web_confirmed':True,'restart_confirmed':True})
+        self.assertTrue(result['passed'])
+        settings=self.service.settings()
+        self.assertTrue(settings['telegram_task_card_acceptance']['passed'])
+
     def test_p7_live_acceptance_report_is_redacted_and_requires_observations(self):
         from personal_agent.telegram_task_card_acceptance import report
         generation=self.pair()

@@ -1,7 +1,8 @@
 # P7-03 paired Telegram task-card continuity acceptance
 
 Status: awaiting an owner-run live acceptance. This file is a procedure, not
-evidence that a Telegram account has been exercised.
+evidence that a Telegram account has been exercised. The release loop stays
+blocked until the authenticated owner records the completed observations.
 
 Run this only with the already paired private Telegram account and an existing
 verified model. Do not paste bot tokens, pairing links, task text, document
@@ -24,12 +25,17 @@ copies into an issue, commit, or report.
    harmless paired Telegram request and confirm its card, completion, and web
    history continue after restart. If a send was interrupted, leave its state
    as unknown; do not retry it automatically.
-5. From a shell that can read the owner data directory, create only the
-   redacted aggregate report:
+5. Return to the authenticated AgentOS web page. When its Telegram acceptance
+   panel offers **실제 Telegram 흐름 확인 기록**, click it only after completing
+   the observations above. It records no messages, tokens, IDs, document text,
+   or model output. The six-hour delivery loop then runs the local redacted
+   verifier; no shell command is required for the owner.
+
+   Developers can inspect the same read-only report manually:
 
    ```sh
    python3 scripts/verify_telegram_task_card_acceptance.py \
-     --data-dir /path/to/agentos-data --web-confirmed --restart-confirmed
+     --data-dir /path/to/agentos-data
    ```
 
 The report passes only when it sees a paired owner, a cancelled card, a
