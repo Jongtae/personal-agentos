@@ -104,7 +104,11 @@ class AgentService:
                     'subscription_engines':self.subscription_engine_status(),
                     'subscription_execution':{'mode':'bounded-agentos-mcp','tools':['list_notes','save_note','web_search']},
                     'telegram':{'enabled':tg.get('enabled',False),'mode':tg.get('mode','owner-token'),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
-                    'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'agents':[{'id':role['id'],'name':role['name'],'permissions':role['permissions'],'package_id':package['id']} for package in active_packages for role in package['roles']], 'packages':packages, 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery, 'telegram_task_card_acceptance':task_card_report(self.store), 'telegram_first_work_acceptance':__import__('personal_agent.telegram_first_work_acceptance',fromlist=['report']).report(self.store)}
+                    'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'context_inbox':__import__('personal_agent.context_inbox',fromlist=['ContextInbox']).ContextInbox(self.store).status(), 'agents':[{'id':role['id'],'name':role['name'],'permissions':role['permissions'],'package_id':package['id']} for package in active_packages for role in package['roles']], 'packages':packages, 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery, 'telegram_task_card_acceptance':task_card_report(self.store), 'telegram_first_work_acceptance':__import__('personal_agent.telegram_first_work_acceptance',fromlist=['report']).report(self.store)}
+
+    def context_inbox(self):
+        from .context_inbox import ContextInbox
+        return ContextInbox(self.store)
 
     def subscription_engine_status(self):
         connected=self.store.config('subscription_engine',{})
