@@ -2,7 +2,7 @@
 
 ## Scope
 
-I-03 connects one owner Google Drive with OAuth Authorization Code plus PKCE and the minimum read-only scope. The consumer only clicks Connect Google Drive and approves Google access; an AgentOS deployment operator registers the OAuth client, redirect URI, consent screen, and privacy policy once. It supports search then selected-file read; it never performs full sync, write, delete, share, or permission changes.
+I-03 connects one owner Google Drive with the standard installed-app OAuth Authorization Code flow, PKCE, and the minimum read-only scope. The consumer only clicks Connect Google Drive and approves Google access; they never create a Google Cloud project, client ID, or token manually. AgentOS ships the public OAuth client ID and uses a system browser plus a local redirect. The product publisher performs the one-time Google API enablement, OAuth client registration, consent-screen configuration, and privacy-policy setup for that distributed client. It supports search then selected-file read; it never performs full sync, write, delete, share, or permission changes.
 
 ## Data and security
 
