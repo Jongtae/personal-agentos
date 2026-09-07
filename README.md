@@ -15,7 +15,7 @@ The owner asks for an outcome, not a sequence of integrations. AgentOS can selec
 This is a different trust boundary from an enterprise platform. AgentOS keeps its personal state in the owner-controlled runtime and treats connected engines as bounded workers. Changing an engine must not discard the owner's memory, permissions, approval history, or recoverable work evidence.
 
 - The owner chooses which folders, services, tools, and assistants are connected.
-- External engines receive only approved, task-relevant context through AgentOS boundaries.
+- The current API-model preview can send recent conversation history under its configured provider policy; strict task-relevant context minimisation is a planned AgentOS boundary, not a current interoperability claim.
 - Sending externally, changing files or accounts, and other consequential actions require explicit approval.
 - Work state and evidence remain available for cancellation, retry, recovery, export, and restore.
 
