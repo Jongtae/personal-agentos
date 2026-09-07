@@ -182,11 +182,17 @@ class DeliveryTests(unittest.TestCase):
         completed.append('UX-03a')
         self.assertEqual(plan.select({'completed':completed})['id'],'UX-05')
         completed.append('UX-05')
+        self.assertEqual(plan.select({'completed':completed})['id'],'UX-06')
+        completed.append('UX-06')
         self.assertIsNone(plan.select({'completed':completed}))
 
-    def test_ux_plan_has_explicit_release_iteration(self):
-        self.assertEqual(DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations'][-1]['kind'],'release')
-        completed=[item['id'] for item in DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations']]
+    def test_ux_plan_keeps_release_before_post_release_conversation_iteration(self):
+        plan=DeliveryPlan(self.root/'delivery-plan.yaml')
+        release=plan.items['UX-05']
+        follow_up=plan.items['UX-06']
+        self.assertEqual(release['kind'],'release')
+        self.assertEqual(follow_up['depends_on'],['UX-05'])
+        completed=[item['id'] for item in plan.data['iterations']]
         StateStore(self.state).write({'completed':completed,'active':'P7-04','status':'running'})
         result=self.controller(Runner()).run_once(dry_run=True)
         self.assertEqual(result['status'],'complete')
