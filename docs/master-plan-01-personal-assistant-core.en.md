@@ -21,6 +21,8 @@ Every phase has a `D-*` design iteration and an `I-*` implementation iteration. 
 
 Every iteration has a GitHub issue, a `codex/` branch, small intentional commits, a PR, and automated validation. Completed work is recorded together in `TASKS.md`, `docs/roadmap.md`, and `docs/issue-branch-ledger.jsonl`.
 
+External integrations and agents are developed from their documented contracts with fixtures and mock-based automated validation. OAuth clients, provider credentials, external endpoints, and real activation are deliberately deferred: after the whole Master Plan is complete, the owner configures them once while deploying AgentOS in operating mode. Mock success completes MP1 delivery work; it never claims that the corresponding external service is already operating.
+
 ## Phase sequence
 
 | Phase | Design iteration | Implementation outcome |
@@ -58,6 +60,6 @@ D-06 decides the ReAct policy and fallback that coordinate Personal Space, Drive
 
 ## Completion evidence
 
-MP1 is complete only when one live owner flow observes and retains evidence for Personal Space, Drive sources, explicit A2A delegation, approved Calendar creation, pause/disconnect, and export/restore. Fixtures and mocks do not replace evidence from the real connected service.
+MP1 delivery is complete when its documented contracts and automated fixture/mock acceptance cover Personal Space, Drive sources, explicit A2A delegation, Calendar creation approval, pause/disconnect, and export/restore. The owner then performs a separate operating-mode deployment to configure real OAuth clients, credentials, endpoints, and connections. That deployment records its own evidence and does not retroactively change MP1 delivery completion.
 
 The next selection follows the process in [Master Plan 2](master-plan-02-proposal.en.md).

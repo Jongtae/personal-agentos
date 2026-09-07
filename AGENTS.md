@@ -33,13 +33,16 @@ The active delivery order is `delivery-plan.yaml`. Historical v1/P7 plans are ar
 
 ## Truthfulness and safety
 
-- A capability is complete when its declared automated validation passes; do not claim unimplemented external behavior.
-- Tests, mocks, connection checks, and live acceptance are different evidence and must be named separately.
+The canonical process is [development governance](docs/development-governance.en.md). It applies to all repository work; Master Plan delivery adds its own phase contracts on top of it.
+
+- During Master Plan delivery, every external integration and agent capability is completed against its documented contract, fixtures, and mock-based automated validation. Real provider credentials, OAuth clients, endpoints, and activation are deferred until the owner performs one operating-mode deployment after the entire Master Plan is complete.
+- A capability is complete for Master Plan delivery when its declared automated validation passes; do not claim that an external service has been connected or operated from mock evidence.
+- Tests, mocks, connection checks, and operating-mode observations are different evidence and must be named separately. Connection checks and operating-mode observations are deployment evidence, not a development gate.
 - AgentOS must retain ownership of personal state when an external execution engine is selected.
 - Each owner runtime is isolated from the host home directory and other owner runtimes. Engines receive only declared AgentOS tools; do not add arbitrary shell access, unapproved folders, host mounts, Docker socket access, external writes, or direct broad network access without a dedicated approval design and acceptance suite.
 - Context capture is opt-in, local-first, sensitive-data filtered, and shared externally only under the selected assistant's policy.
 - The managed control plane must not persist message bodies, personal history, documents, tool payloads, provider credentials, or Telegram bot tokens. Owners create dedicated Telegram bots in BotFather and enter the token only into their local AgentOS runtime.
-- Never claim a Codex, Claude Code, Telegram BotFather setup, consumer installer, or hosting path works unless that exact path has live evidence.
+- Never claim a Codex, Claude Code, Telegram BotFather setup, consumer installer, hosting path, or external connector works unless that exact operating deployment path has been configured and observed.
 
 ## Pull request closeout
 

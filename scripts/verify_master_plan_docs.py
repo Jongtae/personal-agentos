@@ -11,6 +11,7 @@ PAIRS = (
     ("master-plan-01-personal-assistant-core.ko.md", "master-plan-01-personal-assistant-core.en.md"),
     ("master-plan-02-proposal.ko.md", "master-plan-02-proposal.en.md"),
     ("mp1-d01-personal-space-contract.ko.md", "mp1-d01-personal-space-contract.en.md"),
+    ("development-governance.ko.md", "development-governance.en.md"),
 )
 PHASE_IDS = ("D-01", "I-01", "D-02", "I-02", "D-03", "I-03", "D-04", "I-04", "D-05", "I-05", "D-06", "I-06")
 
