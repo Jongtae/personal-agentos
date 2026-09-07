@@ -74,11 +74,28 @@ class BoundedExecutionAdapter:
     configuration parameters.  Expanding those is a security design change,
     not an engine prompt option.
     """
-    def __init__(self, finder=None, runner=subprocess.run, runtime_root='/data/engine-runs'):
+    def __init__(self, finder=None, runner=subprocess.run, runtime_root='/data/engine-runs', codex_home=None):
         from shutil import which
         self.finder = finder or which
         self.runner = runner
         self.runtime_root = Path(runtime_root)
+        self.codex_home = Path(codex_home).expanduser() if codex_home else None
+
+    def environment(self, engine_id, binary, run_dir):
+        env = {'HOME': str(run_dir), 'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8'}
+        if engine_id != 'codex':
+            return env
+        # Codex owns its official session under CODEX_HOME. AgentOS never
+        # reads, copies, logs, exports, or persists that profile; the CLI reads
+        # it directly while its working directory remains a fresh sandbox.
+        profile = self.codex_home or Path(os.environ.get('CODEX_HOME', Path.home()/'.codex')).expanduser()
+        if not profile.is_dir():
+            raise ExecutionError('Codex의 공식 로그인 프로필을 찾지 못했습니다. Codex에서 다시 로그인하세요.')
+        env['CODEX_HOME'] = str(profile)
+        binary_path = Path(binary)
+        if binary_path.is_absolute():
+            env['PATH'] = str(binary_path.parent) + ':' + env['PATH']
+        return env
 
     def command(self, engine_id, binary, prompt, mcp_config):
         if engine_id == 'codex':
@@ -131,7 +148,7 @@ class BoundedExecutionAdapter:
             run_dir = Path(folder)
             config = run_dir / 'agentos-mcp.json'
             config.write_text(json.dumps({'tools': tools.definitions()}, ensure_ascii=False), encoding='utf-8')
-            env = {'HOME': str(run_dir), 'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8'}
+            env = self.environment(engine_id, binary, run_dir)
             try:
                 completed = self.runner(self.command(engine_id, binary, prompt, config), cwd=run_dir,
                                         env=env, stdin=subprocess.DEVNULL, capture_output=True,
