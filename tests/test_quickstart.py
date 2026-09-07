@@ -146,32 +146,22 @@ class QuickstartTests(unittest.TestCase):
         self.service.ingest_update({'update_id':10,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'/start '+code}},cfg['generation'])
         return cfg['generation']
 
-    def test_managed_bot_never_stores_a_telegram_token_and_uses_relay(self):
-        class Managed:
-            def __init__(self):self.calls=[]
-            def provision(self):return {'username':'managed_test_bot','relay_capability':'r'*32}
-            def call(self, capability, method, body):
-                self.calls.append((capability,method,body))
-                if method=='getUpdates':return {'ok':True,'result':[]}
-                return {'ok':True,'result':{'message_id':1}}
-            def revoke(self, capability):self.calls.append((capability,'revoke',{}))
-        managed=Managed()
-        service=AgentService(self.store,ModelAdapter(self.transport),self.transport,managed_bot_provisioner=managed)
-        link=service.create_managed_telegram()['url']
-        code=parse_qs(urlsplit(link).query)['start'][0]
+    def test_botfather_token_is_local_only_and_never_appears_in_public_state(self):
+        token='123456:TEST_TOKEN'
+        link=self.service.connect_telegram({'token':token})['url']
         cfg=self.store.config('telegram')
-        self.assertEqual(cfg['mode'],'managed')
+        self.assertEqual(cfg['mode'],'owner-token')
+        self.assertEqual(self.store.secret('telegram_token'),token)
+        self.assertNotIn(token,json.dumps(self.service.settings()))
+        self.assertNotIn(token,json.dumps(self.store.recent_tool_events()))
+        self.assertNotIn('pair_code',json.dumps(self.service.settings()))
+        self.assertIn('start=',link)
+        self.service.disconnect_telegram()
         self.assertEqual(self.store.secret('telegram_token'),'')
-        self.assertEqual(self.store.secret('telegram_relay_capability'),'r'*32)
-        service.ingest_update({'update_id':10,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'/start '+code}},cfg['generation'])
-        service.poll_telegram()
-        self.assertTrue(any(call[1]=='getUpdates' for call in managed.calls))
-        self.assertNotIn('relay_capability',json.dumps(service.settings()))
-        service.disconnect_telegram()
-        self.assertEqual(self.store.secret('telegram_relay_capability'),'')
 
-    def test_managed_codex_first_work_acceptance_requires_source_and_owner_observation(self):
-        self.store.put('telegram',{'enabled':True,'mode':'managed','username':'managed_test_bot','generation':'safe','user_id':42})
+    def test_botfather_codex_first_work_acceptance_requires_source_and_owner_observation(self):
+        self.store.secret('telegram_token','123456:TEST_TOKEN')
+        self.store.put('telegram',{'enabled':True,'mode':'owner-token','username':'owner_test_bot','generation':'safe','user_id':42})
         with self.store.db() as db:
             db.execute("INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",('job','request','private request','telegram:safe',42,'succeeded','done',None,'sent','subscription','codex',time.time()))
             db.execute("INSERT INTO tool_events(job_id,tool,status,detail,created) VALUES (?,?,?,?,?)",('job','web_search','succeeded','{}',time.time()))
@@ -180,6 +170,21 @@ class QuickstartTests(unittest.TestCase):
         result=self.service.attest_telegram_first_work({'owner_confirmed':True})
         self.assertTrue(result['passed'])
         self.assertNotIn('private request',json.dumps(result))
+        self.assertNotIn('123456:TEST_TOKEN',json.dumps(result))
+
+    def test_botfather_connection_rejects_invalid_account_and_webhook(self):
+        def invalid_account(url,body,headers=None,timeout=60):
+            if url.endswith('/getMe'):return {'ok':True,'result':{'username':''}}
+            if url.endswith('/getWebhookInfo'):return {'ok':True,'result':{'url':''}}
+            raise AssertionError(url)
+        service=AgentService(self.store,ModelAdapter(invalid_account),invalid_account)
+        with self.assertRaises(ProviderError):service.connect_telegram({'token':'123456:TEST_TOKEN'})
+        def webhook(url,body,headers=None,timeout=60):
+            if url.endswith('/getMe'):return {'ok':True,'result':{'username':'owner_test_bot'}}
+            if url.endswith('/getWebhookInfo'):return {'ok':True,'result':{'url':'https://example.test/hook'}}
+            raise AssertionError(url)
+        service=AgentService(self.store,ModelAdapter(webhook),webhook)
+        with self.assertRaises(ValueError):service.connect_telegram({'token':'123456:TEST_TOKEN'})
 
     def test_successful_telegram_poll_clears_stale_connection_error(self):
         self.pair()
@@ -188,6 +193,13 @@ class QuickstartTests(unittest.TestCase):
         self.service.poll_telegram()
         self.service.mark_telegram_connected()
         self.assertEqual(self.store.config('telegram_status')['state'],'connected')
+
+    def test_botfather_restart_resumes_durable_poll_cursor(self):
+        self.pair()
+        restarted=AgentService(QuickStore(self.temp.name),ModelAdapter(self.transport),self.transport)
+        restarted.poll_telegram()
+        poll=[call for call in self.calls if call[0].endswith('/getUpdates')][-1]
+        self.assertEqual(poll[1]['offset'],11)
 
     def test_telegram_pairing_dedup_and_unauthorized_sender(self):
         generation=self.pair()

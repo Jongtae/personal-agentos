@@ -19,7 +19,7 @@ A non-developer Mac user who already uses a ChatGPT or Claude subscription and w
 
 ## Boundaries
 
-Included: local Mac runtime, subscription-engine connection, transient control-plane relay, personal-bot pairing, read-only research/document work, note writes, explicit approval, opt-in clipboard/URL context, export/restore.
+Included: local Mac runtime, subscription-engine connection, owner-created BotFather personal-bot pairing, read-only research/document work, note writes, explicit approval, opt-in clipboard/URL context, export/restore without connection secrets.
 
 Excluded: API key as a consumer prerequisite, arbitrary shell or file writes, automatic cloud failover, persistent relay content storage, unmanaged community assistants, user-managed Kubernetes installation, native mobile app, and additional messengers. Kubernetes remains an internal managed-hosting isolation option.
 

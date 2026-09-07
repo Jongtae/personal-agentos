@@ -35,7 +35,6 @@ $('model-form').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,asy
 $('test-model').onclick=async()=>busy($('test-model'),async()=>{try{const data=await api('/api/model/test',{});$('model-feedback').textContent=data.ok?'텍스트와 네이티브 도구 호출을 확인했습니다. 실제 모델 응답: '+data.response:(data.error||'도구 호출을 확인하지 못했습니다. 도구 지원 모델을 선택해 주세요.');await refresh();}catch(e){error('model-feedback',e);}});
 function showPair(data){$('pair-link').href=data.url;$('telegram-pair').hidden=false;$('telegram-token').value='';}
 $('telegram-form').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{showPair(await api('/api/telegram',{token:$('telegram-token').value}));await refresh();}catch(e){error('telegram-status',e);}});};
-$('create-managed-telegram')?.addEventListener('click',async()=>busy($('create-managed-telegram'),async()=>{try{showPair(await api('/api/telegram/managed',{}));await refresh();}catch(e){error('telegram-status',e);}}));
 $('new-pair').onclick=async()=>{try{showPair(await api('/api/telegram/pair',{}));}catch(e){error('telegram-status',e);}};
 $('disconnect').onclick=async()=>{try{await api('/api/telegram/disconnect',{});$('telegram-pair').hidden=true;await refresh();}catch(e){error('telegram-status',e);}};
 function openConnections(){ $('connections').hidden=false;$('settings-panel').scrollIntoView({behavior:'smooth',block:'start'});}

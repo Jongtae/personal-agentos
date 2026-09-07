@@ -12,7 +12,6 @@ from .plugins import PluginRegistry
 from .providers import ModelAdapter, ProviderError, request_json, validate_model
 from .subscription_engines import SubscriptionEngines
 from .bounded_execution import AgentOSMcpTools, BoundedExecutionAdapter, ExecutionError
-from .managed_telegram import ManagedBotProvisioner, provisioned_bot
 
 SYSTEM = ('You are the user’s personal AgentOS assistant. Respond in the user’s language. '
           'This preview supports conversation, notes, connected local documents, and local read-only web search and weather tools. '
@@ -37,13 +36,12 @@ TELEGRAM_CARD_GRACE_SECONDS = 3
 
 
 class AgentService:
-    def __init__(self, store, adapter=None, telegram_transport=None, subscription_engines=None, execution_adapter=None, managed_bot_provisioner=None):
+    def __init__(self, store, adapter=None, telegram_transport=None, subscription_engines=None, execution_adapter=None):
         self.store=store
         self.adapter=adapter or ModelAdapter()
         self.telegram_transport=telegram_transport or request_json
         self.subscription_engines=subscription_engines or SubscriptionEngines()
         self.execution_adapter=execution_adapter or BoundedExecutionAdapter()
-        self.managed_bot_provisioner=managed_bot_provisioner or ManagedBotProvisioner()
         self.lock=threading.RLock()
         self.worker_lock=threading.Lock()
         self.local_tools=LocalTools()
@@ -250,21 +248,7 @@ class AgentService:
         return result['result']
 
     def telegram_method(self, method, body):
-        cfg=self.store.config('telegram',{})
-        if cfg.get('mode')=='managed':
-            result=self.managed_bot_provisioner.call(self.store.secret('telegram_relay_capability'),method,body)
-            if not isinstance(result,dict) or result.get('ok') is not True:raise ProviderError('관리형 Telegram 봇 릴레이 요청이 실패했습니다.')
-            return result.get('result')
         return self.telegram_call(self.store.secret('telegram_token'),method,body)
-
-    def create_managed_telegram(self):
-        username, capability=provisioned_bot(self.managed_bot_provisioner.provision())
-        with self.lock:
-            self.store.secret('telegram_token','')
-            self.store.secret('telegram_relay_capability',capability)
-            self.store.put('telegram',{'enabled':True,'mode':'managed','username':username,'generation':secrets.token_hex(12),'cursor':0,'user_id':None})
-            self.store.put('telegram_status',{'state':'pairing','message':'관리형 개인 Telegram 봇이 생성되었습니다. 개인 계정을 연결하세요.'})
-        return self.pair_telegram()
 
     def connect_telegram(self, body):
         token=body.get('token','')
@@ -272,12 +256,16 @@ class AgentService:
             raise ValueError('BotFather에서 발급한 봇 토큰을 입력하세요.')
         me=self.telegram_call(token,'getMe',{})
         webhook=self.telegram_call(token,'getWebhookInfo',{})
+        username=me.get('username') if isinstance(me,dict) else None
+        if not isinstance(username,str) or not 5<=len(username)<=64 or not username.replace('_','').isalnum():
+            raise ProviderError('Telegram이 유효한 봇 계정을 반환하지 않았습니다.')
+        if not isinstance(webhook,dict):
+            raise ProviderError('Telegram webhook 설정을 확인하지 못했습니다.')
         if webhook.get('url'):
             raise ValueError('이 봇은 webhook을 사용 중입니다. 새 전용 봇을 연결하거나 기존 webhook을 먼저 해제하세요.')
         with self.lock:
             self.store.secret('telegram_token',token)
-            self.store.secret('telegram_relay_capability','')
-            self.store.put('telegram',{'enabled':True,'mode':'owner-token','username':me['username'],'generation':secrets.token_hex(12),'cursor':0,'user_id':None})
+            self.store.put('telegram',{'enabled':True,'mode':'owner-token','username':username,'generation':secrets.token_hex(12),'cursor':0,'user_id':None})
             self.store.put('telegram_status',{'state':'pairing','message':'개인 Telegram 계정을 연결하세요.'})
         return self.pair_telegram()
 
@@ -296,10 +284,7 @@ class AgentService:
             cfg=self.store.config('telegram',{})
             cfg.update(enabled=False,pair_code='',user_id=None)
             self.store.put('telegram',cfg)
-            if cfg.get('mode')=='managed':
-                try:self.managed_bot_provisioner.revoke(self.store.secret('telegram_relay_capability'))
-                except ProviderError:pass
-            self.store.secret('telegram_token','');self.store.secret('telegram_relay_capability','')
+            self.store.secret('telegram_token','')
             self.store.put('telegram_status',{'state':'disabled','message':'Telegram 연결을 해제했습니다.'})
         return {'ok':True}
 
@@ -504,7 +489,7 @@ class AgentService:
         with self.lock:
             cfg=self.store.config('telegram',{})
             token=self.store.secret('telegram_token')
-        if not cfg.get('enabled') or (cfg.get('mode')!='managed' and not token): return
+        if not cfg.get('enabled') or not token: return
         updates=self.telegram_method('getUpdates',{'offset':cfg.get('cursor',0),'timeout':5,'allowed_updates':['message','callback_query'],'limit':20})
         for update in sorted(updates,key=lambda u:u.get('update_id',0)):
             if isinstance(update.get('callback_query'),dict):
