@@ -33,7 +33,10 @@ TOOL_PROBE = {
 }
 
 
-TELEGRAM_CARD_GRACE_SECONDS = 3
+# The card must be visibly interactive on a phone before the single worker
+# starts.  The clock starts with durable enqueueing (not after a potentially
+# delayed Telegram response), so leave a full short interaction window.
+TELEGRAM_CARD_GRACE_SECONDS = 8
 TELEGRAM_VERIFICATION_QUERY = '/search AgentOS personal assistant verification'
 
 # Subscription CLIs do not receive AgentOS credentials, local paths, or an
@@ -480,7 +483,7 @@ class AgentService:
         labels={'queued':'대기 중','running':'진행 중','succeeded':'완료','failed':'완료하지 못함','cancelled':'취소됨','interrupted':'중단됨'}
         # A request can itself contain a secret or pasted document excerpt.
         # Cards are status controls, never a copy of user-provided content.
-        if state=='queued':return '요청을 받았습니다. 곧 시작할게요.'
+        if state=='queued':return '요청을 받았습니다. 곧 시작할게요. 잠시 이 카드에서 작업을 취소할 수 있어요.'
         if state=='running':return '요청을 처리하고 있어요.'
         if state in ('succeeded','partial'):return '처리가 끝났습니다. 아래 결과를 확인하세요.'
         if state=='interrupted':return '작업이 중단되었습니다. 자동으로 다시 실행하지 않았습니다.'

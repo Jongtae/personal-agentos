@@ -9,7 +9,7 @@ from urllib.request import Request, build_opener, HTTPCookieProcessor, HTTPRedir
 from urllib.error import HTTPError
 from urllib.parse import urlsplit, parse_qs
 from personal_agent.quickstart_store import QuickStore
-from personal_agent.quickstart_service import AgentService
+from personal_agent.quickstart_service import AgentService, TELEGRAM_CARD_GRACE_SECONDS
 from personal_agent.quickstart import make_handler
 from personal_agent.providers import ModelAdapter, ProviderError
 
@@ -48,7 +48,7 @@ class QuickstartTests(unittest.TestCase):
 
     def make_due(self, job_id):
         with self.store.db() as db:
-            db.execute("UPDATE jobs SET created=? WHERE id=?", (time.time()-4, job_id))
+            db.execute("UPDATE jobs SET created=? WHERE id=?", (time.time()-TELEGRAM_CARD_GRACE_SECONDS-1, job_id))
 
     def test_claim_session_restart_and_redaction(self):
         self.store.claim(self.store.bootstrap.read_text(),'a-long-test-password')
@@ -325,6 +325,7 @@ class QuickstartTests(unittest.TestCase):
         self.assertIsNotNone(card)
         create=[c for c in self.calls if c[0].endswith('/sendMessage')][-1]
         self.assertEqual(create[1]['reply_markup']['inline_keyboard'][0][1]['callback_data'],f"p7c:{job['id']}")
+        self.assertIn('잠시 이 카드에서 작업을 취소할 수 있어요.',create[1]['text'])
         callback_message={'chat':{'id':42,'type':'private'},'message_id':card['message_id']}
         self.service.ingest_callback({'id':'cancel-1','from':{'id':42},'message':callback_message,'data':f"p7c:{job['id']}"},generation)
         self.service.ingest_callback({'id':'cancel-2','from':{'id':42},'message':callback_message,'data':f"p7c:{job['id']}"},generation)
