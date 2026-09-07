@@ -177,6 +177,24 @@ class QuickStore:
         with self.db() as db:
             return [dict(r) for r in db.execute('SELECT * FROM notes ORDER BY created DESC LIMIT 50')]
 
+    def personal_space(self):
+        now=time.time()
+        with self.db() as db:
+            db.execute('DELETE FROM context_events WHERE expires_at<=?',(now,))
+            memories=[dict(r) for r in db.execute('SELECT id,content,created FROM notes ORDER BY created DESC LIMIT 50')]
+            results=[dict(r) for r in db.execute('SELECT id,workspace_id,job_id,content,created FROM workspace_results ORDER BY created DESC LIMIT 50')]
+            context=[dict(r) for r in db.execute('SELECT id,captured_at,source_kind,expires_at,sharing_state,source_app,source_domain FROM context_events ORDER BY captured_at DESC LIMIT 100')]
+            evidence=[dict(r) for r in db.execute("SELECT tool,status,COUNT(*) AS count FROM tool_events WHERE tool!='model' GROUP BY tool,status ORDER BY tool,status")]
+        return {'memories':memories,'memory_count':len(memories),'results':results,'result_count':len(results),'context':context,'context_count':len(context),'evidence':evidence}
+
+    def delete_personal_space_item(self, kind, item_id):
+        if kind not in ('memories','results') or not isinstance(item_id,str) or not item_id:
+            raise ValueError('삭제할 Personal Space 항목을 확인하세요.')
+        table={'memories':'notes','results':'workspace_results'}[kind]
+        with self.db() as db:
+            deleted=db.execute(f'DELETE FROM {table} WHERE id=?',(item_id,)).rowcount
+        return {'deleted':bool(deleted),'id':item_id,'kind':kind}
+
     def workspaces(self, include_archived=False):
         query='SELECT * FROM workspaces'+('' if include_archived else " WHERE status='active'")+' ORDER BY updated DESC LIMIT 100'
         with self.db() as db:return [dict(row) for row in db.execute(query)]

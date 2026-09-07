@@ -104,6 +104,21 @@ class QuickstartTests(unittest.TestCase):
         self.assertEqual(restarted['messages'][0]['workspace_id'] if 'workspace_id' in restarted['messages'][0] else workspace['id'],workspace['id'])
         self.assertEqual(restarted['results'][0]['content'],'메모를 저장했습니다. /notes로 확인하거나 /summarize로 정리할 수 있습니다.')
 
+    def test_personal_space_redacts_context_and_deletes_only_owner_items(self):
+        self.store.enqueue('/note private memory','space-note');self.service.run_one()
+        workspace=self.service.create_workspace({'title':'space'})
+        job=self.store.enqueue('/note saved result','space-result',workspace_id=workspace['id']);self.service.run_one()
+        self.service.save_workspace_result(workspace['id'],{'job_id':job})
+        inbox=self.service.context_inbox();inbox.configure({'sources':{'text':True,'url':False}})
+        inbox.capture({'source_kind':'text','content':'private context content'})
+        with self.store.db() as db: db.execute('INSERT INTO tool_events(job_id,tool,status,detail,created) VALUES (?,?,?,?,?)',(job,'web_search','succeeded','{"query":"private"}',time.time()))
+        space=self.store.personal_space()
+        self.assertEqual(space['memory_count'],2);self.assertEqual(space['result_count'],1);self.assertNotIn('private context content',json.dumps(space))
+        evidence_before=len(space['evidence']);result=space['results'][0]
+        self.assertTrue(self.store.delete_personal_space_item('results',result['id'])['deleted'])
+        self.assertFalse(self.store.delete_personal_space_item('results',result['id'])['deleted'])
+        self.assertEqual(len(self.store.personal_space()['evidence']),evidence_before)
+
     def test_result_evidence_is_category_only_and_messages_link_to_its_job(self):
         job=self.store.enqueue('/note private planning detail','evidence-link')
         self.service.run_one()
