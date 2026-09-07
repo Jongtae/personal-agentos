@@ -85,11 +85,27 @@
         "python3 scripts/verify_telegram_task_card_acceptance.py"
       ],
       "summary": "Run responsive web, paired Telegram, Homebrew, and Compose acceptance before publishing the UX release. A failed redacted Telegram acceptance blocks all release, tag, and Formula mutations."
+    },
+    {
+      "id": "UX-06",
+      "milestone": "AgentOS Telegram Conversation UX v1.2",
+      "issue": 162,
+      "kind": "implementation",
+      "depends_on": [
+        "UX-05"
+      ],
+      "tests": [
+        "python3 -m pytest -q"
+      ],
+      "summary": "Make paired Telegram a deliberate native conversation: concise acknowledgement, optional progress, one readable terminal answer, safe on-demand detail, and owner-bound recovery and action bubbles."
     }
   ],
   "milestones": {
     "AgentOS UX v1.1": {
       "title": "AgentOS UX v1.1"
+    },
+    "AgentOS Telegram Conversation UX v1.2": {
+      "title": "AgentOS Telegram Conversation UX v1.2"
     }
   },
   "history": {

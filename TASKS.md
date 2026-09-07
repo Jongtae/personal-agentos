@@ -32,3 +32,7 @@ The Hub v2 Epic is [#102](https://github.com/Jongtae/personal-agentos/issues/102
 ## Active: AgentOS UX v1.1
 
 The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) turns the delivered runtime into a minimalist personal-agent DM. Delivery follows [UX-01](https://github.com/Jongtae/personal-agentos/issues/150) through [UX-05](https://github.com/Jongtae/personal-agentos/issues/154): DM home, opt-in workspaces, Telegram continuity, human-readable safety and recovery, a guided Telegram context-selection repair, then release acceptance. UX-04 now adds redacted result-source labels and user-facing recovery next actions. UX-05 cannot tag, release, or update Homebrew until the redacted paired-Telegram acceptance also passes. See [the UX product basis](docs/ux-v1.1-personal-agent-dm.ko.md).
+
+## Planned: Telegram Conversation UX v1.2
+
+[UX-06 / #162](https://github.com/Jongtae/personal-agentos/issues/162) follows UX-05 acceptance. It makes the paired Telegram chat a deliberate assistant conversation: a concise acknowledgement, progress only when needed, one readable terminal answer, optional detail, and private owner-bound actions with truthful recovery.
