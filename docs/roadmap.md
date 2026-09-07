@@ -20,15 +20,15 @@ AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gate
 
 ## M3 — Personal Telegram bot and first work
 
-[#106](https://github.com/Jongtae/personal-agentos/issues/106) uses an owner-created BotFather bot: the owner pastes its token once into authenticated local AgentOS, which validates it locally, creates a one-time private pairing link, and owns polling, recovery, and delivery. The token remains only in the local private connection store and is excluded from settings, logs, events, exports, and the redacted [live acceptance procedure](validation/h3-01-botfather-telegram-first-work.md).
+**delivered.** [#106](https://github.com/Jongtae/personal-agentos/issues/106) uses an owner-created BotFather bot: the owner pastes its token once into authenticated local AgentOS, which validates it locally, creates a one-time private pairing link, and owns polling, recovery, and delivery. The token remains only in the local private connection store and is excluded from settings, logs, events, exports, and the redacted [live acceptance procedure](validation/h3-01-botfather-telegram-first-work.md).
 
 ## M4 — Personal context inbox
 
-[#107](https://github.com/Jongtae/personal-agentos/issues/107) adds opt-in local clipboard/URL capture, sensitive-data filtering, retention, and per-assistant sharing policy.
+**delivered.** [#107](https://github.com/Jongtae/personal-agentos/issues/107) adds opt-in local clipboard/URL capture, sensitive-data filtering, retention, and per-assistant sharing policy.
 
 ## M5 — Trusted assistants and portability
 
-[#108](https://github.com/Jongtae/personal-agentos/issues/108) exposes three official assistants and adds portable owner export/restore plus a managed-hosting migration design. The built-ins are researcher, reviewer, and planner; each is an explicit bounded, read-only role. `scripts/agentos-backup.py` exports owner state and reviewed plugin declarations only. It excludes connection secrets, login/session material, local folder grants, selected engines/models, and Telegram pairing; restoring requires a new local claim and explicit reconnection.
+**delivered.** [#108](https://github.com/Jongtae/personal-agentos/issues/108) exposes three official assistants and adds portable owner export/restore plus a managed-hosting migration design. The built-ins are researcher, reviewer, and planner; each is an explicit bounded, read-only role. `scripts/agentos-backup.py` exports owner state and reviewed plugin declarations only. It excludes connection secrets, login/session material, local folder grants, selected engines/models, and Telegram pairing; restoring requires a new local claim and explicit reconnection.
 
 ## Historical baseline
 

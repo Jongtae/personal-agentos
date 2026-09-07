@@ -54,11 +54,20 @@ class ProductValidator:
         for phrase in ("| M3 | Persistent runtime and official server install | Planned |", "| M4 | Role and tool extension contract | Planned |", "| M5 | v1 release acceptance | Planned |", "PDF/Office extraction is not implemented"):
             if phrase in task or phrase in quickstart:
                 stale.append(phrase)
-        for heading in ("## M3 — continuity and installation", "## M4 — extensibility", "## M5 — v1 release"):
+        delivered = (
+            ("## M3 — Personal Telegram bot and first work", "## M3 — continuity and installation"),
+            ("## M4 — Personal context inbox", "## M4 — extensibility"),
+            ("## M5 — Trusted assistants and portability", "## M5 — v1 release"),
+        )
+        for headings in delivered:
+            heading = next((candidate for candidate in headings if candidate in roadmap), headings[0])
             start = roadmap.find(heading)
-            section = roadmap[start: roadmap.find("\n## ", start + 1) if roadmap.find("\n## ", start + 1) >= 0 else len(roadmap)]
-            complete_markers = ("Completed", "delivered")
-            if not any(marker in section for marker in complete_markers):
+            if start < 0:
+                stale.append(heading + " is missing")
+                continue
+            end = roadmap.find("\n## ", start + 1)
+            section = roadmap[start: end if end >= 0 else len(roadmap)]
+            if not any(marker in section.casefold() for marker in ("completed", "delivered")):
                 stale.append(heading + " has no completion record")
         if stale:
             self.add("DOC-001", "Published documents match v1 capability", "v1", "failed", "; ".join(stale), "Update user and delivery documents with the current supported scope and evidence.")
