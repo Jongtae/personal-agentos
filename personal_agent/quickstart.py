@@ -104,6 +104,7 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 return self.reply(200,{'claimed':store.claimed(),'authenticated':store.session(self.token()),'local_access':self.local_setup() and store.config('local_access',False)})
             if not self.auth():return
             if path=='/api/home':return self.reply(200,service.home())
+            if path=='/api/personal-space':return self.reply(200,store.personal_space())
             if path=='/api/workspaces':return self.reply(200,{'workspaces':service.store.workspaces()})
             if path.startswith('/api/workspaces/'):
                 return self.reply(200,service.workspace(path.rsplit('/',1)[-1]))
@@ -111,6 +112,14 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 jobs=store.jobs()
                 return self.reply(200,{'settings':service.settings(),'messages':store.history(),'jobs':jobs,'notes':store.notes(),'tool_events':store.recent_tool_events(),'evidence':{job['id']:store.evidence_summary(job['id']) for job in jobs if job['status'] in ('succeeded','partial')},'healthy':service.healthy()})
             if path=='/api/onboarding':return self.reply(200,service.onboarding())
+            self.reply(404,{'error':'경로를 찾을 수 없습니다.'})
+
+        def do_DELETE(self):
+            if not self.valid_host() or not self.auth():return
+            path=urlsplit(self.path).path
+            parts=path.split('/')
+            if len(parts)==5 and parts[:3]==['','api','personal-space'] and parts[3] in ('memories','results'):
+                return self.reply(200,store.delete_personal_space_item(parts[3],parts[4]))
             self.reply(404,{'error':'경로를 찾을 수 없습니다.'})
 
         def do_POST(self):
