@@ -82,3 +82,12 @@ evidence check for one paired Telegram account. It requires observed card
 creation and cancellation, document approval, terminal notification, shared
 web history, and continuity after a normal restart; it does not treat mocked
 transport coverage as a real Telegram claim.
+
+## Stage 2 follow-up — user-approved context capture
+
+After M7 release acceptance, [#100](https://github.com/Jongtae/personal-agentos/issues/100)
+is the intake point for a local-first context inbox spanning deliberate clipboard,
+browser, and native-companion inputs. It is connected to the Native companion
+continuity Epic [#48](https://github.com/Jongtae/personal-agentos/issues/48). The
+source scopes, provenance, sensitive-data rejection, URL safety, retention, and
+explicit model-sharing boundaries are detailed in `docs/context-capture-idea.ko.md`.
