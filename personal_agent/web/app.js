@@ -51,7 +51,7 @@ async function refresh(){
  $('actual-model').textContent=latest?'최근 응답 모델: '+latest.model:(model.model==='openrouter/free'?'도구 지원 무료 모델을 선택해 연결을 확인해 주세요.':'');
  const currentTool=(state.tool_events||[]).find(e=>e.job_id===state.jobs[0]?.id);
  $('tool-status').textContent=currentTool?({running:'실행 중',succeeded:'실행 완료',failed:'실행 실패'}[currentTool.status]+' · '+currentTool.tool+' · 내 AgentOS에서 실행'):'';
- $('tool-history').replaceChildren();for(const e of state.tool_events||[])$('tool-history').append(element('div',new Date(e.created*1000).toLocaleTimeString()+' · '+e.tool+' · '+({running:'실행 중',succeeded:'완료',failed:'실패'}[e.status]||e.status)));
+ $('tool-history').replaceChildren();for(const e of state.tool_events||[]){const trace=e.trace||{};const attempt=trace.attempt?' · '+trace.attempt+'회차':'';const error=trace.error?' · '+trace.error:'';$('tool-history').append(element('div',new Date(e.created*1000).toLocaleTimeString()+' · '+e.tool+' · '+({running:'실행 중',succeeded:'완료',failed:'실패'}[e.status]||e.status)+attempt+error));}
  $('runtime-badge').textContent=state.healthy?'● 개인 환경 실행 중':'실행 상태 확인 필요';
  if(!modelLoaded){if(model.provider){$('provider').value=model.provider;$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;$('root-paths').value=(settings.file_roots||[]).map(r=>r.path).join('\n');modelLoaded=true;}
  const tested=settings.model_test;

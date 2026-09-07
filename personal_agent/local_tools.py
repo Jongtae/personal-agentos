@@ -34,8 +34,9 @@ class LocalTools:
                 link=item.findtext('link','')
                 if urlsplit(link).scheme not in ('https','http'):continue
                 results.append({'title':item.findtext('title','')[:300],'url':link,'snippet':item.findtext('description','')[:1800]})
-            terms=[t.casefold() for t in re.findall(r'[\w-]+',query) if len(t)>2 and t.casefold() not in {'search','please','official','documentation','weather','api','the','검색','알려줘'}]
-            if terms:results=[r for r in results if any(t in (r['title']+' '+r['snippet']+' '+r['url']).casefold() for t in terms)]
+            # Bing's RSS titles are localized and often omit the exact query
+            # token. Returning its bounded result set is more reliable than
+            # silently discarding valid results with a second text filter.
             if not results:raise ValueError()
             return {'tool':'web_search','query':query,'retrieved_at':time.time(),'results':results,'sources':[r['url'] for r in results], 'scope':'Search snippets only; full pages have not been read.'}
         except (OSError,ValueError,ET.ParseError):

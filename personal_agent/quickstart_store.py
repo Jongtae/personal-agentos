@@ -162,4 +162,10 @@ class QuickStore:
 
     def recent_tool_events(self):
         with self.db() as db:
-            return [dict(r) for r in db.execute("SELECT id,job_id,tool,status,created FROM tool_events WHERE tool!='model' ORDER BY id DESC LIMIT 30")]
+            rows=[dict(r) for r in db.execute("SELECT id,job_id,tool,status,detail,created FROM tool_events WHERE tool!='model' ORDER BY id DESC LIMIT 30")]
+        events=[]
+        for row in rows:
+            try:trace=json.loads(row.pop('detail'))
+            except (TypeError,ValueError):trace={'error':'실행 근거를 읽을 수 없습니다.'}
+            events.append({**row,'trace':trace if isinstance(trace,dict) else {'error':'실행 근거 형식이 올바르지 않습니다.'}})
+        return events

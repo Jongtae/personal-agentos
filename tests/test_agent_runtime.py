@@ -115,3 +115,36 @@ class ProviderToolProtocolTests(unittest.TestCase):
    result=run_agent(adapter,CFG,'',[{'role':'user','content':'list agents'}],'',caps,lambda *a:events.append(a))
    self.assertEqual(result.outcome,'succeeded')
    self.assertIn(('list_agents','failed'),[(e[0],e[1]) for e in events])
+ def test_failed_capability_is_not_repeated_for_the_same_arguments(self):
+  from personal_agent.providers import ProviderError
+  calls=[];events=[];turn=[0]
+  def transport(url,body,headers):
+   turn[0]+=1
+   if turn[0]<3:return {'choices':[{'message':{'tool_calls':[{'id':str(turn[0]),'function':{'name':'web_search','arguments':'{"query":"same query"}'}}]}}]}
+   return {'choices':[{'message':{'content':'search failed'}}]}
+  class BrokenNetwork:
+   def execute(self,plan):calls.append(plan);raise ProviderError('offline')
+  with tempfile.TemporaryDirectory() as folder:
+   store=QuickStore(Path(folder));adapter=ModelAdapter(transport)
+   caps=Capabilities(store,adapter,CFG,'','job',lambda *a:None,network=BrokenNetwork())
+   result=run_agent(adapter,CFG,'',[{'role':'user','content':'search'}],'',caps,lambda *a:events.append(a))
+  self.assertEqual(result.outcome,'failed')
+  self.assertEqual(len(calls),1)
+  failed=[json.loads(e[2]) for e in events if e[0]=='web_search' and e[1]=='failed']
+  self.assertEqual([e['attempt'] for e in failed],[1,2])
+  self.assertIn('한 번만 실행',failed[-1]['error'])
+ def test_trace_evidence_keeps_file_content_out_of_event_store(self):
+  events=[];count=[0]
+  def transport(url,body,headers):
+   count[0]+=1
+   if count[0]==1:return {'choices':[{'message':{'tool_calls':[{'id':'read','function':{'name':'read_file','arguments':'{"root_id":"root","path":"launch.txt"}'}}]}}]}
+   return {'choices':[{'message':{'content':'done'}}]}
+  with tempfile.TemporaryDirectory() as folder:
+   root=Path(folder)/'docs';root.mkdir();(root/'launch.txt').write_text('secret Aurora release detail')
+   store=QuickStore(Path(folder)/'data');store.put('file_roots',[{'id':'root','path':str(root)}])
+   caps=Capabilities(store,ModelAdapter(transport),CFG,'','job',lambda *a:None)
+   run_agent(caps.adapter,CFG,'',[{'role':'user','content':'read'}],'',caps,lambda *a:events.append(a))
+  trace=json.loads([e[2] for e in events if e[0]=='read_file' and e[1]=='succeeded'][0])
+  self.assertEqual(trace['attempt'],1)
+  self.assertEqual(trace['evidence']['path'],'launch.txt')
+  self.assertNotIn('secret Aurora release detail',json.dumps(trace))
