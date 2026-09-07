@@ -150,6 +150,18 @@ class DeliveryTests(unittest.TestCase):
         completed.append('P7-03a')
         self.assertEqual(plan.select({'completed':completed})['id'],'P7-04')
 
+    def test_release_iteration_is_ready_for_controller_release_not_codex(self):
+        plan=DeliveryPlan(self.root/'delivery-plan.yaml')
+        completed=[item['id'] for item in plan.data['iterations'] if item['id']!='P7-04']
+        StateStore(self.state).write({'completed':completed})
+        result=self.controller(Runner()).run_once(dry_run=True)
+        self.assertEqual(result['active'],'P7-04')
+        self.assertEqual(result['status'],'ready-for-release')
+
+    def test_patch_release_version_helpers(self):
+        self.assertEqual(DeliveryController._next_patch_version('1.0.3'),'1.0.4')
+        with self.assertRaises(Exception):DeliveryController._next_patch_version('1.0')
+
     def test_completed_v1_state_selects_stage_two_without_stale_issue(self):
         completed=[item['id'] for item in DeliveryPlan(self.root/'delivery-plan.yaml').data['iterations'] if item['id']!='P6-01']
         StateStore(self.state).write({'completed':completed,'status':'complete','milestone':'M1','issue':25})

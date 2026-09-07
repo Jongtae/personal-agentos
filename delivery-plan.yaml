@@ -244,6 +244,12 @@
       "summary": "Release verified Telegram task-card continuity through GitHub and Homebrew.",
       "acceptance": [
         "release only after M7 automated and live acceptance passes"
+      ],
+      "issue": 94,
+      "tap_repository": "Jongtae/homebrew-agentos",
+      "formula_path": "Formula/agentos.rb",
+      "tests": [
+        "python3 -m unittest discover -s tests -q"
       ]
     }
   ],
