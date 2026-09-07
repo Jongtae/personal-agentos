@@ -32,6 +32,7 @@ class QuickStore:
             CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY, request_key TEXT UNIQUE, message TEXT, channel TEXT, chat_id INTEGER, status TEXT, response TEXT, error TEXT, delivery TEXT, provider TEXT, model TEXT, created REAL);
             CREATE TABLE IF NOT EXISTS tool_events(id INTEGER PRIMARY KEY AUTOINCREMENT, job_id TEXT, tool TEXT, status TEXT, detail TEXT, created REAL);
             CREATE TABLE IF NOT EXISTS notes(id TEXT PRIMARY KEY, content TEXT, created REAL);
+            CREATE TABLE IF NOT EXISTS telegram_task_cards(job_id TEXT PRIMARY KEY, chat_id INTEGER NOT NULL, message_id INTEGER NOT NULL, state TEXT NOT NULL, created REAL NOT NULL);
             ''')
         self.path.chmod(0o600)
         if not self.claimed() and not self.bootstrap.exists():
@@ -169,3 +170,13 @@ class QuickStore:
             except (TypeError,ValueError):trace={'error':'실행 근거를 읽을 수 없습니다.'}
             events.append({**row,'trace':trace if isinstance(trace,dict) else {'error':'실행 근거 형식이 올바르지 않습니다.'}})
         return events
+
+    def task_card(self, job_id):
+        with self.db() as db:
+            row=db.execute('SELECT * FROM telegram_task_cards WHERE job_id=?',(job_id,)).fetchone()
+            return dict(row) if row else None
+
+    def save_task_card(self, job_id, chat_id, message_id, state):
+        with self.db() as db:
+            db.execute('INSERT INTO telegram_task_cards VALUES (?,?,?,?,?) ON CONFLICT(job_id) DO UPDATE SET state=excluded.state',
+                       (job_id,chat_id,message_id,state,time.time()))

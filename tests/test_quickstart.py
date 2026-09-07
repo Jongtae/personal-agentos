@@ -34,7 +34,9 @@ class QuickstartTests(unittest.TestCase):
             if url.endswith('/getMe'):return {'ok':True,'result':{'username':'test_bot'}}
             if url.endswith('/getWebhookInfo'):return {'ok':True,'result':{'url':''}}
             if url.endswith('/getUpdates'):return {'ok':True,'result':[]}
-            if url.endswith('/sendMessage'):return {'ok':True,'result':{'message_id':1}}
+            if url.endswith('/sendMessage'):return {'ok':True,'result':{'message_id':len([c for c in self.calls if c[0].endswith('/sendMessage')])}}
+            if url.endswith('/editMessageText'):return {'ok':True,'result':True}
+            if url.endswith('/answerCallbackQuery'):return {'ok':True,'result':True}
             raise AssertionError(url)
         self.transport=transport
         self.service=AgentService(self.store,ModelAdapter(transport),transport)
@@ -180,6 +182,45 @@ class QuickstartTests(unittest.TestCase):
         self.service.ingest_update({'update_id':1,'message':{'from':{'id':42},'chat':{'id':-42,'type':'group'},'text':'/start '+cfg['pair_code']}},cfg['generation'])
         self.assertIsNone(self.store.config('telegram')['user_id'])
         self.assertEqual(self.store.jobs(),[])
+
+    def test_natural_language_task_card_has_safe_progress_and_queued_cancellation(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        request={'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'내일 회의 준비를 정리해 줘'}}
+        self.service.ingest_update(request,generation)
+        job=self.store.jobs()[0]
+        card=self.store.task_card(job['id'])
+        self.assertIsNotNone(card)
+        create=[c for c in self.calls if c[0].endswith('/sendMessage')][-1]
+        self.assertEqual(create[1]['reply_markup']['inline_keyboard'][0][0]['callback_data'],f"p7c:{job['id']}")
+        callback_message={'chat':{'id':42,'type':'private'},'message_id':card['message_id']}
+        self.service.ingest_callback({'id':'cancel-1','from':{'id':42},'message':callback_message,'data':f"p7c:{job['id']}"},generation)
+        self.service.ingest_callback({'id':'cancel-2','from':{'id':42},'message':callback_message,'data':f"p7c:{job['id']}"},generation)
+        self.assertEqual(self.store.jobs()[0]['status'],'cancelled')
+        self.assertFalse(self.service.run_one())
+        edits=[c for c in self.calls if c[0].endswith('/editMessageText')]
+        self.assertEqual(len(edits),1)
+        self.assertIn('취소됨',edits[0][1]['text'])
+
+    def test_task_callbacks_require_owner_and_cannot_cancel_running_work(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'작업 시작해 줘'}},generation)
+        job=self.store.jobs()[0]
+        callback={'id':'foreign','from':{'id':99},'message':{'chat':{'id':99,'type':'private'},'message_id':999},'data':f"p7c:{job['id']}"}
+        self.service.ingest_callback(callback,generation)
+        self.assertEqual(self.store.jobs()[0]['status'],'queued')
+        self.service.run_one()
+        card=self.store.task_card(job['id'])
+        self.service.ingest_callback({'id':'late','from':{'id':42},'message':{'chat':{'id':42,'type':'private'},'message_id':card['message_id']},'data':f"p7c:{job['id']}"},generation)
+        self.assertEqual(self.store.jobs()[0]['status'],'failed')
+
+    def test_start_response_does_not_default_to_command_guidance(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'/start'}},generation)
+        self.service.run_one()
+        self.assertNotIn('/note',self.store.jobs()[0]['response'])
 
     def test_actual_router_model_and_free_catalog(self):
         from unittest.mock import patch
