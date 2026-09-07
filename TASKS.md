@@ -36,3 +36,7 @@ The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) turns
 ## Planned: Telegram Conversation UX v1.2
 
 [UX-06 / #162](https://github.com/Jongtae/personal-agentos/issues/162) follows UX-05 acceptance. It makes the paired Telegram chat a deliberate assistant conversation: a concise acknowledgement, progress only when needed, one readable terminal answer, optional detail, and private owner-bound actions with truthful recovery.
+
+### UX-06 — Telegram conversation bubbles
+
+[#162](https://github.com/Jongtae/personal-agentos/issues/162) is in progress. The first implementation keeps one status-card sequence and one terminal answer bubble for each Telegram request; long answers use a larger readable preview and direct the owner to the local web history. Paired mobile acceptance remains required before closeout.
