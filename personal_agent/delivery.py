@@ -130,8 +130,26 @@ class DeliveryController:
         self.runner=runner or CommandRunner()
         self.now=now or time.time
 
+    def _migrate_stale_state(self, state):
+        """Drop control metadata for iterations absent from the active plan."""
+        state=dict(state)
+        stale=False
+        for key in ('active','blocked'):
+            value=state.get(key)
+            if value and value not in self.plan.items:
+                state.pop(key,None)
+                stale=True
+        if stale and not state.get('active') and not state.get('blocked'):
+            for key in ('milestone','issue','pr','release','next_retry_at','last_error'):
+                state.pop(key,None)
+            state.update(status='ready-to-run',last_validation='migrated-plan',updated_at=self.now())
+        return state
+
     def status(self):
-        state=self.state_store.read();item=self.plan.select(state)
+        previous=self.state_store.read()
+        state=self._migrate_stale_state(previous)
+        if state != previous:self.state_store.write(state)
+        item=self.plan.select(state)
         return {**state,'active':item and item['id'],'milestone':item and item['milestone'],
                 'issue':item and self._issue_number(item,state),'summary':item and item['summary'],
                 'next_action':'wait for retry' if state.get('status','').startswith('blocked') else ('run current iteration' if item else 'delivery plan complete')}
@@ -217,7 +235,7 @@ class DeliveryController:
         """Adopt a GitHub-closed active iteration without starting new work."""
         lock=self.state_store.locked()
         try:
-            state=self.state_store.read();item=self.plan.select(state)
+            state=self._migrate_stale_state(self.state_store.read());item=self.plan.select(state)
             if not item:return self.state_store.write(self._complete_plan(state,self.now()))
             issue=self._issue_number(item,state)
             if not issue:
@@ -234,7 +252,7 @@ class DeliveryController:
     def run_once(self, dry_run=False, scheduled=False):
         lock=self.state_store.locked()
         try:
-            state=self.state_store.read();item=self.plan.select(state)
+            state=self._migrate_stale_state(self.state_store.read());item=self.plan.select(state)
             if not item:return self.state_store.write(self._complete_plan(state,self.now()))
             # A local validation can establish its evidence without GitHub.
             # This is essential for launchd's intentionally minimal runtime

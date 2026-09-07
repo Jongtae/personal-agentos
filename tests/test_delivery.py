@@ -37,6 +37,24 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(plan.select({'completed':['H0-01','H1-01','H1-02']})['id'],'H2-01')
         self.assertEqual(plan.select({'active':'P7-03a','blocked':'P7-03a'})['id'],'H0-01')
 
+    def test_stale_frozen_delivery_state_is_migrated_without_waiting_for_retry(self):
+        StateStore(self.state).write({'active':'P7-03a','blocked':'P7-03a','milestone':'M7','issue':94,'pr':'https://example.test/pr','release':'v1.0.4','next_retry_at':self.clock[0]+21600,'last_error':'old model content','status':'blocked-validation-failed'})
+        result=self.controller(Runner()).status()
+        self.assertEqual(result['active'],'H0-01')
+        self.assertEqual(result['status'],'ready-to-run')
+        self.assertNotIn('next_retry_at',result)
+        self.assertNotIn('last_error',result)
+        self.assertEqual(result['last_validation'],'migrated-plan')
+        persisted=StateStore(self.state).read()
+        self.assertEqual(persisted['status'],'ready-to-run')
+        self.assertNotIn('next_retry_at',persisted)
+
+    def test_valid_hub_block_is_not_migrated(self):
+        StateStore(self.state).write({'active':'H1-01','blocked':'H1-01','status':'blocked-validation-failed','next_retry_at':self.clock[0]+21600})
+        result=self.controller(Runner()).status()
+        self.assertEqual(result['active'],'H1-01')
+        self.assertEqual(result['next_action'],'wait for retry')
+
     def test_authenticated_git_push_uses_login_shell_credentials(self):
         completed=SimpleNamespace(returncode=0,stdout='',stderr='')
         with patch('personal_agent.delivery.subprocess.run',return_value=completed) as run:
