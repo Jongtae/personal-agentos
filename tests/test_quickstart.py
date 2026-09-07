@@ -186,6 +186,11 @@ class QuickstartTests(unittest.TestCase):
         service=AgentService(self.store,ModelAdapter(webhook),webhook)
         with self.assertRaises(ValueError):service.connect_telegram({'token':'123456:TEST_TOKEN'})
 
+    def test_legacy_personal_bot_config_is_recognized_as_botfather_setup(self):
+        self.store.put('telegram',{'enabled':True,'username':'legacy_personal_bot','generation':'legacy','user_id':42})
+        from personal_agent.telegram_first_work_acceptance import report
+        self.assertTrue(report(self.store)['checks']['owner_botfather_bot'])
+
     def test_successful_telegram_poll_clears_stale_connection_error(self):
         self.pair()
         self.store.put('telegram_status',{'state':'error','message':'stale'})

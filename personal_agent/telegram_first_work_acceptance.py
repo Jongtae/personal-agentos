@@ -22,7 +22,7 @@ def report(store, owner_confirmed=None):
                     detail = {}
                 source = source or isinstance(detail, dict)
     checks = {
-        'owner_botfather_bot': config.get('mode') == 'owner-token' and config.get('enabled') is True,
+        'owner_botfather_bot': config.get('mode', 'owner-token') == 'owner-token' and config.get('enabled') is True,
         'paired_private_owner': isinstance(config.get('user_id'), int),
         'codex_first_work_delivered': bool(job),
         'source_backed_evidence': bool(source),
