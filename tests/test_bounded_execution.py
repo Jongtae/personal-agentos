@@ -44,7 +44,7 @@ class BoundedExecutionTests(unittest.TestCase):
         seen={}
         class Done:
             returncode=0
-            stdout=json.dumps({'item':{'text':'bounded result'}})
+            stdout=json.dumps({'item':{'type':'agent_message','text':'bounded result'}})
         def runner(argv, **kwargs):
             seen['kwargs']=kwargs
             return Done()
@@ -64,6 +64,10 @@ class BoundedExecutionTests(unittest.TestCase):
     def test_default_engine_run_directory_is_owner_local_and_private(self):
         adapter=BoundedExecutionAdapter()
         self.assertEqual(adapter.runtime_root, Path.home()/'.local/share/agentos/engine-runs')
+
+    def test_codex_uses_last_agent_message_not_terminal_usage_event(self):
+        raw='\n'.join([json.dumps({'type':'thread.started'}),json.dumps({'type':'item.completed','item':{'type':'agent_message','text':'final answer'}}),json.dumps({'type':'turn.completed','usage':{'input_tokens':1}})])
+        self.assertEqual(BoundedExecutionAdapter._content('codex',raw),'final answer')
 
     def test_rejects_unstructured_or_failed_engine_output(self):
         class Failed: returncode=1; stdout='{}'
