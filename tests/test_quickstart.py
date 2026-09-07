@@ -93,6 +93,20 @@ class QuickstartTests(unittest.TestCase):
         self.assertEqual(home['state'],'working')
         self.assertEqual(home['active_jobs'],1)
 
+    def test_workspace_is_opt_in_and_saved_results_survive_restart(self):
+        workspace=self.service.create_workspace({'title':'UX 개선','purpose':'대화 경험 정리'})
+        self.assertEqual(self.store.workspaces()[0]['id'],workspace['id'])
+        job=self.store.enqueue('/note 작업공간 메모','workspace-note',workspace_id=workspace['id'])
+        self.service.run_one()
+        saved=self.service.save_workspace_result(workspace['id'],{'job_id':job})
+        self.assertEqual(saved['results'][0]['job_id'],job)
+        restarted=QuickStore(self.temp.name).workspace_detail(workspace['id'])
+        self.assertEqual(restarted['messages'][0]['workspace_id'] if 'workspace_id' in restarted['messages'][0] else workspace['id'],workspace['id'])
+        self.assertEqual(restarted['results'][0]['content'],'메모를 저장했습니다. /notes로 확인하거나 /summarize로 정리할 수 있습니다.')
+
+    def test_workspace_requires_explicit_selection(self):
+        with self.assertRaises(ValueError):self.store.enqueue('hello','missing-workspace',workspace_id='missing')
+
     def test_initial_claim_requires_local_code_and_is_single_use(self):
         code=self.store.bootstrap.read_text()
         with self.assertRaises(ValueError):self.store.claim('bad','long-test-password')
@@ -195,7 +209,7 @@ class QuickstartTests(unittest.TestCase):
         self.store.secret('telegram_token','123456:TEST_TOKEN')
         self.store.put('telegram',{'enabled':True,'mode':'owner-token','username':'owner_test_bot','generation':'safe','user_id':42})
         with self.store.db() as db:
-            db.execute("INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",('job','telegram-verify:safe','/search AgentOS personal assistant verification','telegram:safe',42,'succeeded','done',None,'sent','subscription','codex',time.time()))
+            db.execute("INSERT INTO jobs(id,request_key,message,channel,chat_id,status,response,error,delivery,provider,model,created,workspace_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",('job','telegram-verify:safe','/search AgentOS personal assistant verification','telegram:safe',42,'succeeded','done',None,'sent','subscription','codex',time.time(),None))
             db.execute("INSERT INTO tool_events(job_id,tool,status,detail,created) VALUES (?,?,?,?,?)",('job','web_search','succeeded','{}',time.time()))
         from personal_agent.telegram_first_work_acceptance import report
         result=report(self.store)

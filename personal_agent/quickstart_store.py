@@ -38,7 +38,14 @@ class QuickStore:
             CREATE INDEX IF NOT EXISTS context_events_expiry ON context_events(expires_at);
             CREATE TABLE IF NOT EXISTS context_sharing_policies(assistant_id TEXT PRIMARY KEY, approved INTEGER NOT NULL, approved_at REAL NOT NULL);
             CREATE TABLE IF NOT EXISTS context_job_attachments(job_id TEXT PRIMARY KEY, event_ids TEXT NOT NULL, assistant_id TEXT NOT NULL, approved INTEGER NOT NULL DEFAULT 0, created REAL NOT NULL);
+            CREATE TABLE IF NOT EXISTS workspaces(id TEXT PRIMARY KEY, title TEXT NOT NULL, purpose TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'active', created REAL NOT NULL, updated REAL NOT NULL);
+            CREATE TABLE IF NOT EXISTS workspace_results(id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL, job_id TEXT NOT NULL, content TEXT NOT NULL, evidence TEXT NOT NULL DEFAULT '', created REAL NOT NULL, UNIQUE(workspace_id, job_id));
+            CREATE INDEX IF NOT EXISTS workspace_results_workspace ON workspace_results(workspace_id, created DESC);
             ''')
+            columns={row['name'] for row in db.execute('PRAGMA table_info(messages)')}
+            if 'workspace_id' not in columns: db.execute('ALTER TABLE messages ADD COLUMN workspace_id TEXT')
+            columns={row['name'] for row in db.execute('PRAGMA table_info(jobs)')}
+            if 'workspace_id' not in columns: db.execute('ALTER TABLE jobs ADD COLUMN workspace_id TEXT')
         self.path.chmod(0o600)
         if not self.claimed() and not self.bootstrap.exists():
             self.write_private(self.bootstrap, secrets.token_urlsafe(32))
@@ -129,7 +136,7 @@ class QuickStore:
                 self.write_private(self.secret_path, json.dumps(values))
             return values.get(key,'')
 
-    def enqueue(self, message, request_key, channel='web', chat_id=None, db=None):
+    def enqueue(self, message, request_key, channel='web', chat_id=None, workspace_id=None, db=None):
         if not isinstance(message,str) or not message.strip() or len(message)>12000:
             raise ValueError('메시지는 1~12,000자로 입력하세요.')
         if not isinstance(request_key,str) or not 1<=len(request_key)<=160:
@@ -137,16 +144,18 @@ class QuickStore:
         if db is None:
             with self.db() as conn:
                 conn.execute('BEGIN IMMEDIATE')
-                return self.enqueue(message,request_key,channel,chat_id,conn)
+                return self.enqueue(message,request_key,channel,chat_id,workspace_id,conn)
+        if workspace_id is not None and not self.workspace(workspace_id, db=db):
+            raise ValueError('작업공간을 찾을 수 없습니다.')
         old=db.execute('SELECT * FROM jobs WHERE request_key=?',(request_key,)).fetchone()
         if old:
-            if old['message']!=message or old['channel']!=channel or old['chat_id']!=chat_id:
+            if old['message']!=message or old['channel']!=channel or old['chat_id']!=chat_id or old['workspace_id']!=workspace_id:
                 raise ValueError('같은 요청 식별자를 다른 메시지에 사용할 수 없습니다.')
             return old['id']
         if db.execute("SELECT count(*) FROM jobs WHERE status IN ('queued','running')").fetchone()[0]>=100:
             raise ValueError('대기 중인 작업이 많습니다. 잠시 후 다시 시도하세요.')
         task_id=str(uuid.uuid4())
-        db.execute('INSERT INTO jobs VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',(task_id,request_key,message,channel,chat_id,'queued',None,None,'none',None,None,time.time()))
+        db.execute('INSERT INTO jobs(id,request_key,message,channel,chat_id,status,response,error,delivery,provider,model,created,workspace_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)',(task_id,request_key,message,channel,chat_id,'queued',None,None,'none',None,None,time.time(),workspace_id))
         return task_id
 
     def history(self):
@@ -165,6 +174,56 @@ class QuickStore:
     def notes(self):
         with self.db() as db:
             return [dict(r) for r in db.execute('SELECT * FROM notes ORDER BY created DESC LIMIT 50')]
+
+    def workspaces(self, include_archived=False):
+        query='SELECT * FROM workspaces'+('' if include_archived else " WHERE status='active'")+' ORDER BY updated DESC LIMIT 100'
+        with self.db() as db:return [dict(row) for row in db.execute(query)]
+
+    def workspace(self, workspace_id, db=None):
+        if not isinstance(workspace_id,str) or not workspace_id:return None
+        if db is None:
+            with self.db() as conn:return self.workspace(workspace_id, conn)
+        row=db.execute('SELECT * FROM workspaces WHERE id=?',(workspace_id,)).fetchone()
+        return dict(row) if row else None
+
+    def create_workspace(self, title, purpose=''):
+        if not isinstance(title,str) or not 1<=len(title.strip())<=120:raise ValueError('작업공간 이름은 1~120자로 입력하세요.')
+        if not isinstance(purpose,str) or len(purpose)>1000:raise ValueError('작업공간 설명을 확인하세요.')
+        now=time.time();workspace_id=str(uuid.uuid4())
+        with self.db() as db:
+            db.execute('INSERT INTO workspaces VALUES (?,?,?,?,?,?)',(workspace_id,title.strip(),purpose.strip(),'active',now,now))
+        return self.workspace(workspace_id)
+
+    def update_workspace(self, workspace_id, title=None, purpose=None, archive=None):
+        current=self.workspace(workspace_id)
+        if not current:raise ValueError('작업공간을 찾을 수 없습니다.')
+        next_title=current['title'] if title is None else title
+        next_purpose=current['purpose'] if purpose is None else purpose
+        next_status=current['status'] if archive is None else ('archived' if archive else 'active')
+        if not isinstance(next_title,str) or not 1<=len(next_title.strip())<=120:raise ValueError('작업공간 이름은 1~120자로 입력하세요.')
+        if not isinstance(next_purpose,str) or len(next_purpose)>1000:raise ValueError('작업공간 설명을 확인하세요.')
+        with self.db() as db:db.execute('UPDATE workspaces SET title=?,purpose=?,status=?,updated=? WHERE id=?',(next_title.strip(),next_purpose.strip(),next_status,time.time(),workspace_id))
+        return self.workspace(workspace_id)
+
+    def save_workspace_result(self, workspace_id, job_id):
+        workspace=self.workspace(workspace_id)
+        if not workspace:raise ValueError('작업공간을 찾을 수 없습니다.')
+        with self.db() as db:
+            job=db.execute("SELECT * FROM jobs WHERE id=? AND status IN ('succeeded','partial')",(job_id,)).fetchone()
+            if not job:raise ValueError('저장할 완료 결과를 찾을 수 없습니다.')
+            detail=db.execute("SELECT detail FROM tool_events WHERE job_id=? AND tool!='model' AND status='succeeded' ORDER BY id DESC LIMIT 8",(job_id,)).fetchall()
+            evidence=json.dumps([row['detail'][:500] for row in detail],ensure_ascii=False)
+            db.execute('INSERT INTO workspace_results VALUES (?,?,?,?,?,?) ON CONFLICT(workspace_id,job_id) DO NOTHING',(str(uuid.uuid4()),workspace_id,job_id,job['response'] or '',evidence,time.time()))
+            db.execute('UPDATE workspaces SET updated=? WHERE id=?',(time.time(),workspace_id))
+        return self.workspace_detail(workspace_id)
+
+    def workspace_detail(self, workspace_id):
+        workspace=self.workspace(workspace_id)
+        if not workspace:return None
+        with self.db() as db:
+            workspace['results']=[dict(row) for row in db.execute('SELECT id,job_id,content,created FROM workspace_results WHERE workspace_id=? ORDER BY created DESC LIMIT 30',(workspace_id,))]
+            workspace['messages']=[dict(row) for row in db.execute('SELECT id,role,content,channel,created,workspace_id FROM messages WHERE workspace_id=? ORDER BY id DESC LIMIT 100',(workspace_id,))][::-1]
+        return workspace
 
     def attach_context(self, job_id, event_ids, assistant_id, db=None):
         if (not isinstance(job_id,str) or not isinstance(event_ids,list) or not event_ids
