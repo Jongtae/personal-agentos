@@ -215,6 +215,53 @@ class QuickstartTests(unittest.TestCase):
         self.service.ingest_callback({'id':'late','from':{'id':42},'message':{'chat':{'id':42,'type':'private'},'message_id':card['message_id']},'data':f"p7c:{job['id']}"},generation)
         self.assertEqual(self.store.jobs()[0]['status'],'failed')
 
+    def test_document_approval_notification_is_owner_bound_and_safe(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        while self.service.deliver_notification():pass
+        def document_model(url,body,headers=None,timeout=60):
+            if body.get('tools') and any((tool.get('function',{}).get('name') or tool.get('name'))=='agentos_connection_probe' for tool in body['tools']):
+                return {'choices':[{'message':{'tool_calls':[{'id':'probe','function':{'name':'agentos_connection_probe','arguments':'{}'}}]}}]}
+            if any(message.get('role')=='tool' for message in body.get('messages',[])):
+                return {'choices':[{'message':{'content':'I need approval.'}}]}
+            if body.get('tools'):
+                return {'choices':[{'message':{'tool_calls':[{'id':'files','function':{'name':'find_files','arguments':'{"query":"confidential document"}'}}]}}]}
+            return {'choices':[{'message':{'content':'I need approval.'}}]}
+        self.service.adapter=ModelAdapter(document_model)
+        self.model('compatible','https://example.test/v1','private-api-key')
+        self.assertTrue(self.service.test_model()['ok'])
+        self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'문서를 찾아 줘'}},generation)
+        card=[c for c in self.calls if c[0].endswith('/sendMessage') and c[1]['text'].startswith('작업 카드')][-1]
+        self.assertNotIn('문서를 찾아',card[1]['text'])
+        self.service.run_one()
+        self.assertTrue(self.service.deliver_notification())
+        approval=[c for c in self.calls if c[0].endswith('/sendMessage') and c[1]['text'].startswith('연결 문서를')][-1]
+        self.assertNotIn('private-api-key',json.dumps(approval[1]))
+        self.assertNotIn('confidential document',json.dumps(approval[1]))
+        notification=self.store.next_notification()
+        self.assertEqual(notification['kind'],'failed')
+        approval_row=self.store.notification(approval[1]['reply_markup']['inline_keyboard'][0][0]['callback_data'].split(':')[1])
+        callback_message={'chat':{'id':42,'type':'private'},'message_id':approval_row['message_id']}
+        self.service.ingest_callback({'id':'foreign-approval','from':{'id':99},'message':{'chat':{'id':99,'type':'private'},'message_id':approval_row['message_id']},'data':f"p7a:{approval_row['id']}:approve"},generation)
+        self.assertTrue(self.service.document_boundary()['requires_approval'])
+        self.service.ingest_callback({'id':'approve','from':{'id':42},'message':callback_message,'data':f"p7a:{approval_row['id']}:approve"},generation)
+        self.assertFalse(self.service.document_boundary()['requires_approval'])
+
+    def test_terminal_notifications_survive_restart_without_ambiguous_retry(self):
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        while self.service.deliver_notification():pass
+        self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'모델 없이 실패해 줘'}},generation)
+        self.service.run_one()
+        queued=self.store.next_notification()
+        self.assertEqual(queued['kind'],'failed')
+        restarted=AgentService(QuickStore(self.temp.name),ModelAdapter(self.transport),self.transport)
+        self.assertTrue(restarted.deliver_notification())
+        self.assertIsNone(restarted.store.next_notification())
+        with restarted.store.db() as db:db.execute("UPDATE telegram_notifications SET state='sending' WHERE id=?",(queued['id'],))
+        restarted.store.recover()
+        self.assertEqual(restarted.store.notification(queued['id'])['state'],'unknown')
+
     def test_start_response_does_not_default_to_command_guidance(self):
         generation=self.pair()
         self.service.run_one();self.service.deliver_one()

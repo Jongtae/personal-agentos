@@ -240,8 +240,48 @@ class AgentService:
     @staticmethod
     def task_card_text(message, state):
         labels={'queued':'대기 중','running':'진행 중','succeeded':'완료','failed':'완료하지 못함','cancelled':'취소됨','interrupted':'중단됨'}
-        excerpt=' '.join(message.split())[:500]
-        return f'작업 카드\n요청: {excerpt}\n상태: {labels.get(state,state)}'
+        # A request can itself contain a secret or pasted document excerpt.
+        # Cards are status controls, never a copy of user-provided content.
+        return f'작업 카드\n상태: {labels.get(state,state)}'
+
+    @staticmethod
+    def notification_text(kind):
+        return {'completed':'작업이 완료되었습니다. 전체 결과는 AgentOS 웹에서 확인하세요.',
+                'failed':'작업을 완료하지 못했습니다. 자세한 내용은 AgentOS 웹에서 확인하세요.',
+                'approval_needed':'연결 문서를 외부 모델에 전달하려면 승인이 필요합니다. 문서 내용은 전송되지 않았습니다.',
+                'approved':'문서 공유를 승인했습니다. 같은 요청을 다시 보내 주세요.',
+                'denied':'문서 공유를 허용하지 않았습니다.'}.get(kind,'AgentOS 상태 알림')
+
+    def queue_notification(self, job, kind):
+        cfg=self.store.config('telegram',{})
+        if not (cfg.get('enabled') and job.get('channel')==f"telegram:{cfg.get('generation')}" and job.get('chat_id')==cfg.get('user_id')):return
+        fingerprint=self.document_fingerprint() if kind=='approval_needed' else None
+        self.store.queue_notification(job['id'],job['chat_id'],cfg['generation'],kind,fingerprint)
+
+    def deliver_notification(self):
+        # Persist the send intent first. An uncertain Telegram response is never
+        # replayed after a restart because it might already have been delivered.
+        notification=self.store.next_notification()
+        if not notification:return False
+        with self.lock:
+            cfg=self.store.config('telegram',{})
+            allowed=(cfg.get('enabled') and notification['generation']==cfg.get('generation')
+                     and notification['chat_id']==cfg.get('user_id'))
+            self.store.update_notification(notification['id'],'sending' if allowed else 'cancelled')
+            if not allowed:return True
+            body={'chat_id':notification['chat_id'],'text':self.notification_text(notification['kind'])}
+            if notification['kind']=='approval_needed':
+                body['reply_markup']={'inline_keyboard':[[
+                    {'text':'문서 공유 승인','callback_data':f"p7a:{notification['id']}:approve"},
+                    {'text':'허용 안 함','callback_data':f"p7a:{notification['id']}:deny"},
+                ]]}
+            try:
+                result=self.telegram_call(self.store.secret('telegram_token'),'sendMessage',body)
+                message_id=result.get('message_id') if isinstance(result,dict) else None
+                self.store.update_notification(notification['id'],'sent',message_id if isinstance(message_id,int) else None)
+            except ProviderError:
+                self.store.update_notification(notification['id'],'unknown')
+        return True
 
     def create_task_card(self, job_id, message, chat_id):
         # This is deliberately a single best-effort send.  Retrying after an
@@ -272,7 +312,7 @@ class AgentService:
             pass
 
     def ingest_callback(self, callback, generation):
-        """Accept only the paired owner's private-card cancellation once."""
+        """Accept only paired-owner, exact-message task and approval callbacks."""
         with self.lock:
             cfg=self.store.config('telegram',{})
             sender=callback.get('from',{}).get('id')
@@ -295,8 +335,31 @@ class AgentService:
                         changed=db.total_changes==1
                         job=dict(job)
                 if changed:self.update_task_card(job,'cancelled')
+            elif authorized and isinstance(data,str) and data.startswith('p7a:'):
+                parts=data.split(':')
+                if len(parts)==3 and parts[2] in ('approve','deny'):
+                    notification=self.store.notification(parts[1])
+                    current=self.document_boundary()
+                    exact=(notification and notification['kind']=='approval_needed' and notification['state']=='sent'
+                           and notification['generation']==generation and notification['chat_id']==sender
+                           and notification['message_id']==message.get('message_id')
+                           and notification['fingerprint']==self.document_fingerprint()
+                           and current['requires_approval'])
+                    if exact:
+                        if parts[2]=='approve':
+                            self.set_document_approval({'approved':True})
+                            result_kind='approved'
+                        else:
+                            self.store.put('document_sharing',{})
+                            result_kind='denied'
+                        self.store.update_notification(notification['id'],result_kind)
+                        try:self.telegram_call(self.store.secret('telegram_token'),'editMessageText',{
+                            'chat_id':sender,'message_id':notification['message_id'],'text':self.notification_text(result_kind),'reply_markup':{'inline_keyboard':[]},
+                        })
+                        except ProviderError:pass
+                        changed=True
             if authorized and isinstance(callback_id,str):
-                try:self.telegram_call(self.store.secret('telegram_token'),'answerCallbackQuery',{'callback_query_id':callback_id,'text':'작업을 취소했습니다.' if changed else '취소할 수 있는 대기 작업이 아닙니다.'})
+                try:self.telegram_call(self.store.secret('telegram_token'),'answerCallbackQuery',{'callback_query_id':callback_id,'text':'처리했습니다.' if changed else '처리할 수 있는 요청이 아닙니다.'})
                 except ProviderError:pass
 
     def ingest_update(self, update, generation):
@@ -363,6 +426,7 @@ class AgentService:
             provider='builtin'
             model='notes'
             outcome='succeeded'
+            approval_needed=[False]
             try:
                 prompt=job['message'].strip()
                 if prompt in ('/start','/help'):
@@ -396,6 +460,10 @@ class AgentService:
                             db.execute('INSERT INTO tool_events(job_id,tool,status,detail,created) VALUES (?,?,?,?,?)',(job['id'],tool,status,detail,time.time()))
                         if tool!='model':self.store.put('tool_run',{'job_id':job['id'],'tool':tool,'status':status,'detail':detail,'time':time.time()})
                     boundary=self.document_boundary(config)
+                    original_record=record
+                    def record(tool,status,detail):
+                        if (tool in ('find_files','read_file') and status=='failed' and boundary['requires_approval']):approval_needed[0]=True
+                        original_record(tool,status,detail)
                     capabilities=Capabilities(self.store,self.adapter,runtime_config,key,job['id'],record,network=self.local_tools,document_access=not boundary['requires_approval'],packages=self.runtime_packages())
                     result=run_agent(self.adapter,runtime_config,key,history,'',capabilities,record)
                     outcome=getattr(result,'outcome','succeeded')
@@ -410,6 +478,9 @@ class AgentService:
                     db.execute("UPDATE jobs SET status='failed',error=?,delivery=? WHERE id=?",(response,'pending' if job['chat_id'] else 'none',job['id']))
                 outcome='failed'
             self.update_task_card(job,outcome)
+            if approval_needed[0]:self.queue_notification(job,'approval_needed')
+            if outcome in ('succeeded','partial'):self.queue_notification(job,'completed')
+            elif outcome=='failed':self.queue_notification(job,'failed')
             return True
 
     def deliver_one(self):
@@ -440,6 +511,7 @@ class AgentService:
             while not self.stop.is_set():
                 self.run_one()
                 self.deliver_one()
+                self.deliver_notification()
                 self.stop.wait(.3)
         def poll():
             while not self.stop.is_set():
