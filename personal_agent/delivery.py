@@ -91,6 +91,8 @@ class CommandRunner:
             stdout=exc.stdout.decode() if isinstance(exc.stdout,bytes) else (exc.stdout or '')
             stderr=exc.stderr.decode() if isinstance(exc.stderr,bytes) else (exc.stderr or '')
             return SimpleNamespace(returncode=124,stdout=stdout,stderr=f'{stderr}\nTimed out after {timeout} seconds.')
+        except OSError as exc:
+            return SimpleNamespace(returncode=127,stdout='',stderr=f'Could not start {args[0]}: {exc}')
 
 
 def classify_failure(text):
@@ -134,6 +136,8 @@ class DeliveryController:
             stdout=exc.stdout.decode() if isinstance(exc.stdout,bytes) else (exc.stdout or '')
             stderr=exc.stderr.decode() if isinstance(exc.stderr,bytes) else (exc.stderr or '')
             return SimpleNamespace(returncode=124,stdout=stdout,stderr=f'{stderr}\nTimed out after {timeout} seconds.')
+        except OSError as exc:
+            return SimpleNamespace(returncode=127,stdout='',stderr=f'Could not start {args[0]}: {exc}')
 
     @staticmethod
     def _issue_number(item, state):
@@ -201,10 +205,15 @@ class DeliveryController:
         try:
             state=self.state_store.read();item=self.plan.select(state)
             if not item:return self.state_store.write({**state,'status':'complete','updated_at':self.now()})
-            try:
-                issue=self._ensure_issue(item,state,dry_run)
-            except DeliveryError as exc:
-                return self._record_block(item,state,classify_failure(str(exc)),str(exc),dry_run)
+            # A local validation can establish its evidence without GitHub.
+            # This is essential for launchd's intentionally minimal runtime
+            # environment and makes local acceptance usable offline.
+            issue=self._issue_number(item,state)
+            if issue or item['kind']!='live_validation':
+                try:
+                    issue=self._ensure_issue(item,state,dry_run)
+                except DeliveryError as exc:
+                    return self._record_block(item,state,classify_failure(str(exc)),str(exc),dry_run)
             if issue:state['issues']=dict(state.get('issues',{}),**{item['id']:issue})
             # Launchd has no interactive GitHub credential context. A live
             # validation must record its local evidence before any optional

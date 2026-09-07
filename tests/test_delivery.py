@@ -76,6 +76,16 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(result['active'],'P1-01b')
         self.assertFalse((self.root/'worktrees').exists())
 
+    def test_local_live_validation_does_not_require_github(self):
+        plan=json.loads((self.root/'delivery-plan.yaml').read_text())
+        plan['iterations']=[{'id':'LOCAL','milestone':'TEST','kind':'live_validation','validation':'python3 verify.py','summary':'local proof'}]
+        (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
+        (self.root/'verify.py').write_text('print("ok")\n')
+        runner=Runner([SimpleNamespace(returncode=0,stdout='ok\n',stderr='')])
+        result=self.controller(runner).run_once()
+        self.assertEqual(result['completed'],['LOCAL'])
+        self.assertEqual(runner.calls[0][0],['python3','verify.py'])
+
     def test_state_persists_only_delivery_metadata(self):
         saved=StateStore(self.state).write({'active':'P1-01','completed':['P0-01'],'status':'blocked','api_key':'secret','model_response':'private'})
         self.assertEqual(saved,{'active':'P1-01','completed':['P0-01'],'status':'blocked'})
