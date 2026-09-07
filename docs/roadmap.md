@@ -49,6 +49,7 @@ and a future interoperability proposal.
 
 ## M5 — v1 release
 
-v1.0.0 and P5-01 installation acceptance are recorded. P5-03 is adding a
-reproducible product-validation gate that distinguishes release evidence from
-future product-vision work.
+Completed: P5-03 adds a reproducible product-validation gate and records
+Homebrew, Compose persistence, live model/document, and Telegram restart
+continuity evidence. Native clients, additional channels, and managed hosting
+remain separate future product-vision work.

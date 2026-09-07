@@ -77,7 +77,7 @@ class QuickstartTests(unittest.TestCase):
         self.assertEqual(self.store.jobs()[0]['provider'],'compatible')
 
     def test_all_model_protocols(self):
-        for provider,endpoint in [('ollama','http://localhost:11434'),('compatible','https://example.test/v1'),('anthropic','https://api.anthropic.com')]:
+        for provider,endpoint in [('ollama','http://localhost:11434'),('compatible','https://example.test/v1'),('openai','https://api.openai.com/v1'),('anthropic','https://api.anthropic.com')]:
             self.model(provider,endpoint,'test-key')
             self.assertTrue(self.service.test_model()['ok'])
             self.assertTrue(self.service.settings()['model_test']['ok'])

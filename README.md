@@ -66,3 +66,6 @@ python3 scripts/verify_general_agent.py --installed --model minimax/minimax-m2.7
 ```
 
 The final command needs a configured model key and uses a temporary test store.
+For a release-level cross-check of product requirements, documentation,
+installation, Compose persistence, and optional live evidence, see
+[Product validation](docs/product-validation.md).

@@ -52,9 +52,22 @@ On a remote host, keep the default loopback binding and connect through SSH forw
 
 ## Preview scope
 
-Implemented: single owner, password login, model adapters, persistent chat and notes, queued requests, private Telegram pairing and deduplication. Interrupted model work and uncertain Telegram delivery are shown without automatic replay.
+Implemented: single owner, password login, model adapters, persistent chat and notes, queued requests, private Telegram pairing and deduplication, connected TXT/Markdown/PDF/DOCX/XLSX folders with source evidence, explicit external-model document sharing approval, Docker Compose, and backup/restore scripts. Interrupted model work and uncertain Telegram delivery are shown without automatic replay.
 
-Not yet implemented: arbitrary shell execution, calendar/email integrations, plugin installation, external agent-engine connections, desktop/mobile applications, unattended service management, or multi-user hosting. This is the first installation-to-task slice, not the complete AgentOS ecosystem.
+Not yet implemented: arbitrary shell execution, calendar/email integrations, external agent-engine connections, native desktop/mobile applications, managed unattended installation, or multi-user hosting. This is the first installation-to-task slice, not the complete AgentOS ecosystem.
+
+## Advanced: local manifest plugins
+
+Declaration-only plugins can add only the bounded host actions AgentOS already
+supports; they never execute third-party code. Install a reviewed manifest and
+manage it from the same local data directory:
+
+```sh
+agentos plugins install /path/to/manifest.json
+agentos plugins list
+agentos plugins disable example-plugin
+agentos plugins remove example-plugin
+```
 
 Tests use simulated provider and Telegram responses, plus a real local HTTP server for setup/chat/authentication. Live provider and Telegram testing requires your credentials.
 
@@ -69,9 +82,10 @@ model for each request; that model is kept for the remainder of the tool loop.
 Free-provider availability and quotas can still interrupt a request; failures are shown.
 
 Under **연결 설정 → 내 파일 연결**, register specific folders on the AgentOS host.
-Only connected UTF-8 text files up to 1 MB are supported (16,000 characters per read).
-PDF/Office extraction is not implemented. When using a cloud model, requested file
-contents are sent to that model. Mobile clients access the host's connected folders.
+Connected UTF-8 TXT/Markdown, PDF, DOCX, and XLSX files up to 1 MB are supported
+(16,000 characters per read). For cloud models, document search and excerpts are
+blocked until the owner approves the current model-and-folder scope; the approval
+is cleared when either changes. Mobile clients access the host's connected folders.
 
 Try these in the same conversation:
 - “Kubernetes 공식 문서를 검색해 줘.”
