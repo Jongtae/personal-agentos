@@ -310,11 +310,16 @@ class DeliveryController:
     def install_schedule(self):
         label='com.jongtae.personal-agentos.delivery';folder=Path.home()/'Library'/'LaunchAgents';path=folder/(label+'.plist')
         folder.mkdir(parents=True,exist_ok=True)
+        source_mode=(self.root/'personal_agent'/'quickstart.py').is_file()
         args=[*self._schedule_program(),'delivery','run','--once','--scheduled','--root',str(self.root),'--state',str(self.state_store.path)]
         rendered=''.join(f'<string>{xml_escape(str(arg))}</string>' for arg in args)
+        # launchd can stall Python while resolving a cloud-synchronised project
+        # directory. Source mode imports through PYTHONPATH from a stable cwd.
+        working_directory='/' if source_mode else str(self.root)
+        environment=(f'<key>EnvironmentVariables</key><dict><key>PYTHONPATH</key><string>{xml_escape(str(self.root))}</string></dict>' if source_mode else '')
         payload=(f'<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict>'
-                 f'<key>Label</key><string>{label}</string><key>ProgramArguments</key><array>{rendered}</array>'
-                 f'<key>WorkingDirectory</key><string>{xml_escape(str(self.root))}</string>'
+                 f'<key>Label</key><string>{label}</string><key>ProgramArguments</key><array>{rendered}</array>{environment}'
+                 f'<key>WorkingDirectory</key><string>{xml_escape(working_directory)}</string>'
                  f'<key>StartInterval</key><integer>{RETRY_SECONDS}</integer><key>RunAtLoad</key><true/>'
                  f'<key>StandardOutPath</key><string>{xml_escape(str(Path.home()/"Library/Logs/personal-agentos-delivery.log"))}</string>'
                  f'<key>StandardErrorPath</key><string>{xml_escape(str(Path.home()/"Library/Logs/personal-agentos-delivery.error.log"))}</string></dict></plist>')
