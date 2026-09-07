@@ -723,7 +723,7 @@ class AgentService:
                 if not row:return False
                 job=dict(row)
                 db.execute("UPDATE jobs SET status='running' WHERE id=?",(job['id'],))
-                db.execute('INSERT INTO messages(role,content,channel,created,workspace_id) VALUES (?,?,?,?,?)',('user',job['message'],job['channel'],time.time(),job.get('workspace_id')))
+                db.execute('INSERT INTO messages(role,content,channel,created,workspace_id,job_id) VALUES (?,?,?,?,?,?)',('user',job['message'],job['channel'],time.time(),job.get('workspace_id'),job['id']))
             self.update_task_card(job,'running')
             response=''
             provider='builtin'
@@ -822,12 +822,12 @@ class AgentService:
                     if context_sources and '컨텍스트:' not in response:
                         response+='\n\n컨텍스트 출처:\n'+'\n'.join(context_sources)
                 with self.store.db() as db:
-                    db.execute('INSERT INTO messages(role,content,channel,created,workspace_id) VALUES (?,?,?,?,?)',('assistant',response,job['channel'],time.time(),job.get('workspace_id')))
+                    db.execute('INSERT INTO messages(role,content,channel,created,workspace_id,job_id) VALUES (?,?,?,?,?,?)',('assistant',response,job['channel'],time.time(),job.get('workspace_id'),job['id']))
                     db.execute("UPDATE jobs SET status=?,response=?,provider=?,model=?,delivery=? WHERE id=?",(outcome,response,provider,model,'pending' if job['chat_id'] else 'none',job['id']))
             except (ValueError,ProviderError,ExecutionError) as exc:
                 response=str(exc)
                 with self.store.db() as db:
-                    db.execute('INSERT INTO messages(role,content,channel,created,workspace_id) VALUES (?,?,?,?,?)',('assistant','이 요청은 완료하지 못했습니다: '+response,job['channel'],time.time(),job.get('workspace_id')))
+                    db.execute('INSERT INTO messages(role,content,channel,created,workspace_id,job_id) VALUES (?,?,?,?,?,?)',('assistant','이 요청은 완료하지 못했습니다: '+response,job['channel'],time.time(),job.get('workspace_id'),job['id']))
                     db.execute("UPDATE jobs SET status='failed',error=?,delivery=? WHERE id=?",(response,'pending' if job['chat_id'] else 'none',job['id']))
                 outcome='failed'
             self.update_task_card(job,outcome)

@@ -104,6 +104,18 @@ class QuickstartTests(unittest.TestCase):
         self.assertEqual(restarted['messages'][0]['workspace_id'] if 'workspace_id' in restarted['messages'][0] else workspace['id'],workspace['id'])
         self.assertEqual(restarted['results'][0]['content'],'메모를 저장했습니다. /notes로 확인하거나 /summarize로 정리할 수 있습니다.')
 
+    def test_result_evidence_is_category_only_and_messages_link_to_its_job(self):
+        job=self.store.enqueue('/note private planning detail','evidence-link')
+        self.service.run_one()
+        with self.store.db() as db:
+            db.execute('INSERT INTO tool_events(job_id,tool,status,detail,created) VALUES (?,?,?,?,?)',(job,'web_search','succeeded',json.dumps({'query':'private search phrase','url':'https://private.example'}),time.time()))
+            db.execute('INSERT INTO tool_events(job_id,tool,status,detail,created) VALUES (?,?,?,?,?)',(job,'read_file','succeeded',json.dumps({'path':'/Users/private/plan.md','content':'private document'}),time.time()))
+        result=self.store.evidence_summary(job)
+        self.assertEqual(result,['공개 웹 1곳 참고','내 컴퓨터의 문서 1개 사용'])
+        self.assertNotIn('private',json.dumps(result))
+        messages=self.store.history()
+        self.assertEqual([message['job_id'] for message in messages], [job,job])
+
     def test_workspace_requires_explicit_selection(self):
         with self.assertRaises(ValueError):self.store.enqueue('hello','missing-workspace',workspace_id='missing')
 

@@ -36,7 +36,7 @@ Telegram은 단순 알림 채널이 아니라 같은 개인 에이전트 DM의 �
 | UX-01 | [#150](https://github.com/Jongtae/personal-agentos/issues/150) | 대화 중심 웹 홈과 점진적 관리 화면 |
 | UX-02 | [#151](https://github.com/Jongtae/personal-agentos/issues/151) | 사용자 수락형 작업공간과 저장 결과 |
 | UX-03 | [#152](https://github.com/Jongtae/personal-agentos/issues/152) | 같은 대화로 느껴지는 Telegram DM |
-| UX-04 | [#153](https://github.com/Jongtae/personal-agentos/issues/153) | 사람의 언어로 표현한 정보 경계와 복구 |
+| UX-04 | [#153](https://github.com/Jongtae/personal-agentos/issues/153) | 사람의 언어로 표현한 정보 경계와 복구 · 완료 |
 | UX-05 | [#154](https://github.com/Jongtae/personal-agentos/issues/154) | 웹·Telegram 인수 검증과 릴리스 |
 
 ## 참고 기준
