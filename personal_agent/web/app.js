@@ -51,6 +51,14 @@ function showDocumentBoundary(boundary){
  if(boundary.approved){box.append(element('p','문서 공유 승인됨 · 현재 선택 모델과 연결한 폴더의 필요한 발췌문만 외부 AI에 전달됩니다. 모델이나 폴더를 바꾸면 다시 승인해야 합니다.'));return;}
  box.append(element('p','문서는 이 컴퓨터에서 읽습니다. 외부 AI가 문서 검색 결과나 발췌문을 받기 전에는 명시적 승인이 필요합니다.'));const button=element('button','문서 발췌문 전송 승인');button.type='button';button.onclick=()=>busy(button,async()=>{try{await api('/api/documents/approval',{approved:true});await refresh();}catch(e){error('roots-feedback',e);}});box.append(button);
 }
+function showContextInbox(inbox){
+ if(!inbox)return;$('context-text').checked=!!inbox.sources?.text;$('context-url').checked=!!inbox.sources?.url;
+ const list=$('context-items');list.replaceChildren();const items=inbox.items||[];
+ if(!items.length){list.append(element('p','저장된 컨텍스트가 없습니다.'));return;}
+ for(const item of items){const row=element('div');row.append(element('span',`${item.source_kind} · ${new Date(item.captured_at*1000).toLocaleString()} · ${new Date(item.expires_at*1000).toLocaleDateString()} 만료 `));const remove=element('button','삭제');remove.type='button';remove.onclick=()=>busy(remove,async()=>{try{await api('/api/context-inbox/delete',{id:item.id});await refresh();}catch(e){error('context-feedback',e);}});row.append(remove);list.append(row);}
+}
+$('context-config').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{await api('/api/context-inbox/config',{sources:{text:$('context-text').checked,url:$('context-url').checked}});$('context-feedback').textContent='수집 설정을 저장했습니다.';await refresh();}catch(e){error('context-feedback',e);}});};
+$('context-capture').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{await api('/api/context-inbox/capture',{source_kind:$('context-kind').value,content:$('context-content').value});$('context-content').value='';$('context-feedback').textContent='이 컴퓨터의 인박스에만 저장했습니다.';await refresh();}catch(e){error('context-feedback',e);}});};
 function showSubscriptionEngines(subscription){
  let box=$('subscription-engines');if(!box){box=element('section');box.id='subscription-engines';box.className='subscription-engines';const title=element('h2','구독으로 연결하기');const help=element('p','Codex 또는 Claude Code의 공식 CLI에 먼저 로그인하세요. AgentOS는 API 키를 요구하거나 로그인 정보를 읽지 않습니다.');box.append(title,help);$('settings-panel').prepend(box);}
  for(const old of [...box.querySelectorAll('.subscription-engine')])old.remove();
@@ -68,7 +76,7 @@ async function refresh(){
  $('tool-status').textContent=currentTool?({running:'실행 중',succeeded:'실행 완료',failed:'실행 실패'}[currentTool.status]+' · '+currentTool.tool+' · 내 AgentOS에서 실행'):'';
  $('tool-history').replaceChildren();for(const e of state.tool_events||[]){const trace=e.trace||{};const attempt=trace.attempt?' · '+trace.attempt+'회차':'';const error=trace.error?' · '+trace.error:'';$('tool-history').append(element('div',new Date(e.created*1000).toLocaleTimeString()+' · '+e.tool+' · '+({running:'실행 중',succeeded:'완료',failed:'실패'}[e.status]||e.status)+attempt+error));}
  $('runtime-badge').textContent=state.healthy?'● 개인 환경 실행 중':'실행 상태 확인 필요';
- if(!modelLoaded){if(model.provider){$('provider').value=displayProvider(model);$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;$('root-paths').value=(settings.file_roots||[]).map(r=>r.path).join('\n');modelLoaded=true;}showDocumentBoundary(settings.document_boundary);
+ if(!modelLoaded){if(model.provider){$('provider').value=displayProvider(model);$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;$('root-paths').value=(settings.file_roots||[]).map(r=>r.path).join('\n');modelLoaded=true;}showDocumentBoundary(settings.document_boundary);showContextInbox(settings.context_inbox);
  const tested=settings.model_test;
  $('model-label').textContent=model.model?(providerNames[shownProvider]||shownProvider)+' · '+model.model+' · '+(settings.model_ready?'도구 호출 확인됨':tested?.text_ok?'텍스트만 확인됨 · 도구 호출 필요':'저장됨 · 확인 전'):'메모 기능 준비됨';
  $('model-step').textContent=settings.model_ready?'✓ 모델과 도구 연결 확인':'② 모델과 도구 연결';$('model-step').classList.toggle('done',!!settings.model_ready);
