@@ -130,7 +130,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertIn(f'<string>{controller.root}</string>',content)
         self.assertIn('<key>WorkingDirectory</key><string>/</string>',content)
         self.assertIn(f'<key>PYTHONPATH</key><string>{controller.root}</string>',content)
-        self.assertIn(f'<string>{__import__("sys").executable}</string>',content)
+        self.assertIn('<string>/usr/bin/python3</string>',content)
         self.assertIn('<string>-m</string><string>personal_agent.quickstart</string>',content)
         self.assertIn('<string>--scheduled</string>',content)
         self.assertIn(f'<string>{controller.state_store.path}</string>',content)

@@ -303,7 +303,11 @@ class DeliveryController:
     def _schedule_program(self):
         """Select the same runtime as the selected delivery-plan checkout."""
         if (self.root/'personal_agent'/'quickstart.py').is_file():
-            return [sys.executable,'-m','personal_agent.quickstart']
+            # pyenv interpreters can hang before importing codecs under launchd.
+            # The delivery controller path is standard-library-only, so the
+            # macOS runtime is a safe source-schedule fallback.
+            system_python=Path('/usr/bin/python3')
+            return [str(system_python if system_python.is_file() else Path(sys.executable)),'-m','personal_agent.quickstart']
         command=shutil.which('agentos')
         return [command] if command else [sys.executable,'-m','personal_agent.quickstart']
 
