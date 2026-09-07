@@ -262,6 +262,26 @@ class QuickstartTests(unittest.TestCase):
         restarted.store.recover()
         self.assertEqual(restarted.store.notification(queued['id'])['state'],'unknown')
 
+    def test_p7_live_acceptance_report_is_redacted_and_requires_observations(self):
+        from personal_agent.telegram_task_card_acceptance import report
+        generation=self.pair()
+        self.service.run_one();self.service.deliver_one()
+        self.service.ingest_update({'update_id':11,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'secret request'}},generation)
+        job=self.store.jobs()[0];card=self.store.task_card(job['id'])
+        self.service.ingest_callback({'id':'cancel','from':{'id':42},'message':{'chat':{'id':42,'type':'private'},'message_id':card['message_id']},'data':f"p7c:{job['id']}"},generation)
+        approval=self.store.queue_notification(job['id'],42,generation,'approval_needed',self.service.document_fingerprint())
+        self.store.update_notification(approval['id'],'approved')
+        completed=self.store.queue_notification('another-job',42,generation,'completed')
+        self.store.update_notification(completed['id'],'sent',123)
+        self.store.enqueue('web evidence','web-evidence')
+        self.service.run_one()
+        result=report(self.store,web_confirmed=True,restart_confirmed=True)
+        self.assertTrue(result['passed'])
+        encoded=json.dumps(result)
+        self.assertNotIn('secret request',encoded)
+        self.assertNotIn(job['id'],encoded)
+        self.assertNotIn('message_id',encoded)
+
     def test_start_response_does_not_default_to_command_guidance(self):
         generation=self.pair()
         self.service.run_one();self.service.deliver_one()
