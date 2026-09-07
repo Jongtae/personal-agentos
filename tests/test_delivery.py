@@ -104,6 +104,8 @@ class DeliveryTests(unittest.TestCase):
         runner=Runner([SimpleNamespace(returncode=0,stdout='CLOSED\n',stderr='')])
         result=self.controller(runner).reconcile()
         self.assertEqual(result['completed'],['H0-01'])
+        self.assertEqual(result['active'],'H1-01')
+        self.assertEqual(result['status'],'ready-to-run')
         self.assertEqual(self.controller(Runner()).status()['active'],'H1-01')
 
     def test_timeout_is_recorded_and_never_leaves_running_state(self):
