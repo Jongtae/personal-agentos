@@ -186,6 +186,10 @@ class DeliveryTests(unittest.TestCase):
         completed.append('UX-06')
         self.assertEqual(plan.select({'completed':completed})['id'],'MP1-D-01')
         completed.append('MP1-D-01')
+        expected=('MP1-I-01','MP1-D-02','MP1-I-02','MP1-D-03','MP1-I-03','MP1-D-04','MP1-I-04','MP1-D-05','MP1-I-05','MP1-D-06','MP1-I-06')
+        for iteration in expected:
+            self.assertEqual(plan.select({'completed':completed})['id'],iteration)
+            completed.append(iteration)
         self.assertIsNone(plan.select({'completed':completed}))
 
     def test_ux_plan_keeps_release_before_post_release_conversation_iteration(self):
