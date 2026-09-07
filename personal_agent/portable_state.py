@@ -78,6 +78,10 @@ def restore_owner_state(archive, data):
             if name.startswith("plugins/"): validate(json.loads(path.read_text()))
         with sqlite3.connect(staged / DB_RELATIVE) as db:
             if not db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='config'").fetchone(): raise ValueError("Invalid owner-state database.")
-        data.parent.mkdir(parents=True, exist_ok=True);staged.replace(data)
+        # The archive staging directory may be on a different filesystem from
+        # the owner-selected data volume (notably a Docker named volume).
+        # shutil.move falls back to a copy in that case while preserving the
+        # validated, secret-free staged contents.
+        data.parent.mkdir(parents=True, exist_ok=True);shutil.move(str(staged), str(data))
     (data / "private").chmod(0o700);(data / DB_RELATIVE).chmod(0o600)
     return data
