@@ -72,7 +72,7 @@ class DeliveryPlan:
         active=state.get('active')
         if active in self.items:return self.items[active]
         blocked=state.get('blocked')
-        if blocked in self.items:
+        if blocked in self.items and blocked not in completed:
             repair=next((item for item in self.items.values() if item.get('repair_of')==blocked and item['id'] not in completed),None)
             if repair:return repair
             return self.items[blocked]
@@ -86,6 +86,11 @@ class DeliveryPlan:
 class CommandRunner:
     def run(self, args, cwd=None, timeout=900):
         try:
+            # launchd and GUI-launched Python do not inherit the interactive
+            # shell credentials.  Let gh load the user's normal shell setup
+            # while every other delivery command stays non-interactive.
+            if args and args[0]=='gh':
+                args=['zsh','-ic','source "$HOME/.zshrc" >/dev/null 2>&1; command "$@"','agentos-gh',*args]
             return subprocess.run(args,cwd=cwd,text=True,capture_output=True,timeout=timeout)
         except subprocess.TimeoutExpired as exc:
             stdout=exc.stdout.decode() if isinstance(exc.stdout,bytes) else (exc.stdout or '')
@@ -169,6 +174,7 @@ class DeliveryController:
     def _complete(self, item, state, dry_run=False):
         completed=set(state.get('completed',[]));completed.add(item['id'])
         state.update(completed=sorted(completed),active=None,status='completed',last_validation='passed',last_error='',next_retry_at=None,updated_at=self.now())
+        if state.get('blocked')==item['id']:state.pop('blocked',None)
         issue=self._issue_number(item,state)
         if issue and not dry_run:
             self._gh('issue','close',str(issue),'--repo',self.plan.data['repository'],'--comment',f'Delivery loop completed `{item["id"]}` with recorded validation evidence.')

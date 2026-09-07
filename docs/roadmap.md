@@ -17,10 +17,11 @@ write access. It does not block product source, release, or iteration work.
 Make model-driven capability selection, tool execution, traces, recovery, and
 web/Telegram continuity dependable.
 
-Current delivery: P1-01 through P1-01b have live validation and bounded
-delivery recovery evidence. P1-02 is making capability traces safe and
-inspectable while verifying search, files, notes, and delegation under a live
-tool-capable model.
+Completed: P1-01 through P1-02 established live tool-capable model evidence,
+safe capability traces, and bounded retry behavior. P1-03 verified a paired
+Telegram request after restart against the same persisted conversation used by
+the web client; uncertain deliveries remain explicitly `unknown` rather than
+being silently resent. The next iteration is P2-01.
 
 ## M2 — private documents and safety
 

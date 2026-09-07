@@ -29,6 +29,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(plan.select({'blocked':'P1-01'})['id'],'P1-01a')
         self.assertEqual(plan.select({'completed':['P1-01','P1-01a']})['id'],'P1-01b')
         self.assertEqual(plan.select({'completed':['P1-01','P1-01a','P1-01b']})['id'],'P1-02')
+        self.assertEqual(plan.select({'completed':['P1-01','P1-01a','P1-01b','P1-02'],'blocked':'P1-02'})['id'],'P1-03')
 
     def test_rate_limit_is_blocked_with_six_hour_retry_and_no_secret(self):
         runner=Runner([SimpleNamespace(returncode=1,stdout='',stderr='HTTP 429 rate limit')])

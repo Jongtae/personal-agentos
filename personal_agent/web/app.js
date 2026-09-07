@@ -98,7 +98,7 @@ async function finishOpenRouter(){
  try{
  const flow=JSON.parse(localStorage.getItem('openrouter-flow')||'null');
  if(!flow||flow.state!==returnedState||Date.now()>flow.expires)throw new Error('연결 시간이 지났습니다. 계정 연결을 다시 눌러 주세요.');
- await api('/api/openrouter/connect',{code,verifier:flow.verifier});localStorage.removeItem('openrouter-flow');localStorage.setItem('openrouter-connected',String(Date.now()));modelLoaded=false;await refresh();
+ const connected=await api('/api/openrouter/connect',{code,verifier:flow.verifier});localStorage.removeItem('openrouter-flow');localStorage.setItem('openrouter-connected',String(Date.now()));modelLoaded=false;await refresh();$('easy-feedback').textContent=connected.model_test?.ok?'OpenRouter 무료 모델과 도구 호출을 확인했습니다. 이제 Telegram과 웹에서 바로 대화할 수 있습니다.':(connected.model_test?.error||'OpenRouter는 연결됐지만 도구 호출 모델을 확인하지 못했습니다. 아래 목록에서 다른 무료 모델을 선택해 주세요.');
  $('easy-feedback').textContent='계정이 연결됐습니다. “도구 지원 무료 모델 보기”에서 모델 하나를 선택해 확인해 주세요.';$('message').focus();if(window.opener)window.close();
  }catch(e){error('easy-feedback',e);$('resume-openrouter').hidden=false;}
 }

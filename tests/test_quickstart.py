@@ -5,7 +5,7 @@ import time
 import unittest
 from http.cookiejar import CookieJar
 from http.server import ThreadingHTTPServer
-from urllib.request import Request, build_opener, HTTPCookieProcessor
+from urllib.request import Request, build_opener, HTTPCookieProcessor, HTTPRedirectHandler
 from urllib.error import HTTPError
 from urllib.parse import urlsplit, parse_qs
 from personal_agent.quickstart_store import QuickStore
@@ -197,7 +197,8 @@ class QuickstartTests(unittest.TestCase):
     def test_easy_model_connections(self):
         from unittest.mock import patch
         with patch('personal_agent.quickstart_service.request_json',return_value={'key':'test-only-key'}) as transport:
-            self.service.connect_openrouter({'code':'test-code','verifier':'a'*64})
+            connected=self.service.connect_openrouter({'code':'test-code','verifier':'a'*64})
+            self.assertTrue(connected['model_test']['ok'])
             self.assertEqual(self.store.config('model')['model'],'openrouter/free')
             self.assertEqual(self.store.secret('model_key'),'test-only-key')
             self.assertNotIn('test-only-key',str(self.service.settings()))
@@ -225,6 +226,28 @@ class QuickstartTests(unittest.TestCase):
         finally:
             self.service.stop.set();server.shutdown();thread.join();server.server_close()
             for worker in self.service.threads:worker.join(timeout=2)
+
+    def test_exact_public_tunnel_host_accepts_one_time_mobile_pairing(self):
+        self.store.claim(self.store.bootstrap.read_text(),'long-password-test')
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(self.service,['mobile.example.test'],'one-time-token'))
+        thread=threading.Thread(target=server.serve_forever);thread.start()
+        url='http://127.0.0.1:'+str(server.server_port)
+        class NoRedirect(HTTPRedirectHandler):
+            def redirect_request(self,*args,**kwargs):return None
+        client=build_opener(HTTPCookieProcessor(CookieJar()),NoRedirect())
+        def request(path):
+            return client.open(Request(url+path,headers={'Host':'mobile.example.test'}),timeout=3)
+        try:
+            with self.assertRaises(HTTPError) as paired:
+                request('/?access=one-time-token')
+            self.assertEqual(paired.exception.code,303)
+            cookie=paired.exception.headers['Set-Cookie'].split(';',1)[0]
+            with client.open(Request(url+'/api/status',headers={'Host':'mobile.example.test','Cookie':cookie}),timeout=3) as response:
+                self.assertTrue(json.load(response)['authenticated'])
+            with request('/?access=one-time-token') as reused:
+                self.assertEqual(reused.status,200)
+        finally:
+            server.shutdown();thread.join();server.server_close()
 
     def test_http_setup_chat_csrf_and_logout(self):
         self.service.start()
