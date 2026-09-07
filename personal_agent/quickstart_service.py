@@ -555,6 +555,11 @@ class AgentService:
             with self.store.db() as db:
                 db.execute('UPDATE jobs SET delivery=? WHERE id=?',(status,job['id']))
 
+    def mark_telegram_connected(self):
+        cfg=self.store.config('telegram',{})
+        if cfg.get('enabled') and isinstance(cfg.get('user_id'),int):
+            self.store.put('telegram_status',{'state':'connected','message':'개인 Telegram 계정이 연결되어 있습니다.'})
+
     def start(self):
         self.store.recover()
         def work():
@@ -565,7 +570,9 @@ class AgentService:
                 self.stop.wait(.3)
         def poll():
             while not self.stop.is_set():
-                try:self.poll_telegram()
+                try:
+                    self.poll_telegram()
+                    self.mark_telegram_connected()
                 except (ProviderError,ValueError):
                     self.store.put('telegram_status',{'state':'error','message':'Telegram 연결을 확인하세요. 수신을 다시 시도합니다.'})
                 self.stop.wait(2)
