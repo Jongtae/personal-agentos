@@ -17,10 +17,10 @@ write access. It does not block product source, release, or iteration work.
 Make model-driven capability selection, tool execution, traces, recovery, and
 web/Telegram continuity dependable.
 
-Current delivery: P1-01 has live tool-call evidence and P1-01a has delivered
-the first bounded controller. P1-01b makes its local state reconciliation,
-timeouts, and launchd execution recoverable before P1-02 verifies each built-in
-capability.
+Current delivery: P1-01 through P1-01b have live validation and bounded
+delivery recovery evidence. P1-02 is making capability traces safe and
+inspectable while verifying search, files, notes, and delegation under a live
+tool-capable model.
 
 ## M2 — private documents and safety
 
