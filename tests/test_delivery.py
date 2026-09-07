@@ -29,6 +29,10 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(controller.status()['active'],'UX-01')
         self.assertEqual(controller.plan.data['repository'],'Jongtae/personal-agentos')
 
+    def test_packaged_delivery_plan_matches_the_repository_plan(self):
+        root = Path(__file__).parents[1]
+        self.assertEqual(json.loads((root/'personal_agent'/'delivery-plan.yaml').read_text()), json.loads((root/'delivery-plan.yaml').read_text()))
+
     def test_ux_plan_is_ordered_and_ignores_frozen_legacy_state(self):
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')
         self.assertEqual(plan.select({})['id'],'UX-01')

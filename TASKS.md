@@ -32,6 +32,8 @@
 
 The original MP1 D/I iterations remain merged historical work, but their direct adapters and release fixture do not prove the policy-owned product flow. [#214](https://github.com/Jongtae/personal-agentos/issues/214) records the remediation plan: R-01 ReAct orchestration, R-02 A2A completion, R-03 Calendar completion, R-04 Drive completion, then R-05 end-to-end release acceptance. MP1 is implementation incomplete until that sequence closes.
 
+| [MP1-R-01 / #216](https://github.com/Jongtae/personal-agentos/issues/216) | Deliver policy-owned ReAct orchestration, lifecycle invocation gate, redacted evidence, deterministic recovery, and shared HTTP/Telegram entry point | Complete; awaiting PR merge and automated validation record |
+
 ## Personal AgentOS v1 release delivery
 
 | Iteration | Goal | Status |
