@@ -28,6 +28,10 @@
 | [MP1-I-06 / #208](https://github.com/Jongtae/personal-agentos/issues/208) | Release Personal Assistant Core | Complete; merged in #209 with automated integrated acceptance |
 | [#192](https://github.com/Jongtae/personal-agentos/issues/192) | Adopt contract-first, mock-driven, CI-gated delivery governance | Complete; merged in #193, documentation and verification policy only |
 
+## Active: MP1 remediation
+
+The original MP1 D/I iterations remain merged historical work, but their direct adapters and release fixture do not prove the policy-owned product flow. [#214](https://github.com/Jongtae/personal-agentos/issues/214) records the remediation plan: R-01 ReAct orchestration, R-02 A2A completion, R-03 Calendar completion, R-04 Drive completion, then R-05 end-to-end release acceptance. MP1 is implementation incomplete until that sequence closes.
+
 ## Personal AgentOS v1 release delivery
 
 | Iteration | Goal | Status |

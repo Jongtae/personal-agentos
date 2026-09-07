@@ -204,6 +204,46 @@
       "depends_on": ["MP1-D-06"],
       "release_validation": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Release the Personal Assistant Core through automated integrated acceptance."
+    },
+    {
+      "id": "MP1-R-01",
+      "milestone": "AgentOS Personal Assistant Core",
+      "kind": "implementation",
+      "depends_on": ["MP1-I-06"],
+      "tests": ["python3 -m pytest -q tests"],
+      "summary": "Implement the policy-owned ReAct orchestrator and deterministic fallback/recovery path."
+    },
+    {
+      "id": "MP1-R-02",
+      "milestone": "AgentOS Personal Assistant Core",
+      "kind": "implementation",
+      "depends_on": ["MP1-R-01"],
+      "tests": ["python3 -m pytest -q tests"],
+      "summary": "Complete A2A Card, progress, timeout, cancellation, artifact, and evidence contracts through the orchestrator."
+    },
+    {
+      "id": "MP1-R-03",
+      "milestone": "AgentOS Personal Assistant Core",
+      "kind": "implementation",
+      "depends_on": ["MP1-R-02"],
+      "tests": ["python3 -m pytest -q tests"],
+      "summary": "Complete Calendar approval, failure, recovery, and assistant-wiring contracts."
+    },
+    {
+      "id": "MP1-R-04",
+      "milestone": "AgentOS Personal Assistant Core",
+      "kind": "implementation",
+      "depends_on": ["MP1-R-03"],
+      "tests": ["python3 -m pytest -q tests"],
+      "summary": "Complete Drive approval-bound evidence, auth recovery, and assistant-wiring contracts."
+    },
+    {
+      "id": "MP1-R-05",
+      "milestone": "AgentOS Personal Assistant Core",
+      "kind": "release",
+      "depends_on": ["MP1-R-04"],
+      "release_validation": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
+      "summary": "Release the policy-owned Personal Assistant Core with end-to-end automated acceptance."
     }
   ],
   "milestones": {

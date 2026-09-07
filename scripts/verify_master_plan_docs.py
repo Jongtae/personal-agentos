@@ -15,6 +15,7 @@ PAIRS = (
     ("mp1-d04-a2a-delegation-contract.ko.md", "mp1-d04-a2a-delegation-contract.en.md"),
     ("mp1-d05-calendar-contract.ko.md", "mp1-d05-calendar-contract.en.md"),
     ("mp1-d06-react-release-contract.ko.md", "mp1-d06-react-release-contract.en.md"),
+    ("mp1-remediation.ko.md", "mp1-remediation.en.md"),
 )
 PHASE_IDS = ("D-01", "I-01", "D-02", "I-02", "D-03", "I-03", "D-04", "I-04", "D-05", "I-05", "D-06", "I-06")
 
