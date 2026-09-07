@@ -142,6 +142,14 @@ class QuickstartTests(unittest.TestCase):
         self.service.ingest_update({'update_id':10,'message':{'from':{'id':42},'chat':{'id':42,'type':'private'},'text':'/start '+code}},cfg['generation'])
         return cfg['generation']
 
+    def test_successful_telegram_poll_clears_stale_connection_error(self):
+        self.pair()
+        self.store.put('telegram_status',{'state':'error','message':'stale'})
+        # The production loop writes connected after this same successful call.
+        self.service.poll_telegram()
+        self.service.mark_telegram_connected()
+        self.assertEqual(self.store.config('telegram_status')['state'],'connected')
+
     def test_telegram_pairing_dedup_and_unauthorized_sender(self):
         generation=self.pair()
         self.assertEqual(self.store.config('telegram')['user_id'],42)
