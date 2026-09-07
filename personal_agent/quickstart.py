@@ -15,6 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 from .quickstart_store import QuickStore
 from .quickstart_service import AgentService
+from .plugins import PluginRegistry
 from .providers import ProviderError
 
 WEB=Path(__file__).parent/'web'
@@ -161,12 +162,33 @@ def make_handler(service, public_hosts=(), public_access_token=''):
     return Handler
 
 
+def plugins_main(argv):
+    """Manage declaration-only plugins without loading third-party code."""
+    parser=argparse.ArgumentParser(description='Manage local AgentOS plugin manifests.')
+    parser.add_argument('--data',default=os.environ.get('AGENTOS_DATA',str(Path.home()/'.local/share/agentos')))
+    sub=parser.add_subparsers(dest='command',required=True)
+    sub.add_parser('list')
+    install=sub.add_parser('install');install.add_argument('manifest')
+    enabled=sub.add_parser('enable');enabled.add_argument('id')
+    disabled=sub.add_parser('disable');disabled.add_argument('id')
+    remove=sub.add_parser('remove');remove.add_argument('id')
+    args=parser.parse_args(argv);registry=PluginRegistry(Path(args.data))
+    if args.command=='list':result=registry.list()
+    elif args.command=='install':result={'installed':registry.install(args.manifest)}
+    elif args.command=='enable':result=registry.set_enabled(args.id,True)
+    elif args.command=='disable':result=registry.set_enabled(args.id,False)
+    else:registry.remove(args.id);result={'removed':args.id}
+    print(json.dumps(result,ensure_ascii=False))
+
+
 def main():
     # Keep the normal server parser small while exposing delivery as a nested
     # command: `agentos delivery status`.
     if len(sys.argv)>1 and sys.argv[1]=='delivery':
         from .delivery import main as delivery_main
         return delivery_main(sys.argv[2:])
+    if len(sys.argv)>1 and sys.argv[1]=='plugins':
+        return plugins_main(sys.argv[2:])
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action',nargs='?',choices=['start'],default='start')
     parser.add_argument('--host',default='127.0.0.1')
