@@ -30,14 +30,23 @@ class DeliveryTests(unittest.TestCase):
     def controller(self, runner=None):
         return DeliveryController(self.root, self.state, runner or Runner(), now=lambda: self.clock[0])
 
+    def activate_governance_goal(self):
+        plan=json.loads((self.root/'delivery-plan.yaml').read_text())
+        plan['history']['documented_completed_iterations'].remove('GOV-01')
+        plan['next_goal']={'id':'GOV-01','status':'active'}
+        (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
+
     def test_packaged_delivery_plan_matches_repository_plan(self):
         root=Path(__file__).parents[1]
         self.assertEqual(json.loads((root/'delivery-plan.yaml').read_text()), json.loads((root/'personal_agent/delivery-plan.yaml').read_text()))
 
     def test_only_explicit_owner_activated_goal_can_be_selected(self):
+        altered=json.loads((self.root/'delivery-plan.yaml').read_text())
+        altered['history']['documented_completed_iterations'].remove('GOV-01')
+        altered['next_goal']={'id':'GOV-01','status':'active'}
+        (self.root/'delivery-plan.yaml').write_text(json.dumps(altered))
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')
         self.assertEqual(plan.select({})['id'], 'GOV-01')
-        altered=json.loads((self.root/'delivery-plan.yaml').read_text())
         altered['next_goal']['status']='requires-explicit-owner-approval'
         (self.root/'delivery-plan.yaml').write_text(json.dumps(altered))
         self.assertIsNone(DeliveryPlan(self.root/'delivery-plan.yaml').select({}))
@@ -52,6 +61,7 @@ class DeliveryTests(unittest.TestCase):
             controller._ensure_issue({'id':'NEW','milestone':'test','summary':'new work'}, {}, False)
 
     def test_closed_issue_does_not_complete_or_select_successor(self):
+        self.activate_governance_goal()
         runner=Runner([SimpleNamespace(returncode=0, stdout='CLOSED\n', stderr='')])
         StateStore(self.state).write({'active':'GOV-01','issues':{'GOV-01':168}})
         result=self.controller(runner).reconcile()
@@ -69,12 +79,14 @@ class DeliveryTests(unittest.TestCase):
                 'merged_pr':'https://example.test/pr/1', 'required_ci':'passed', 'closeout':True, 'requirements':'mapped'}})
 
     def test_run_never_launches_worker_or_merges(self):
+        self.activate_governance_goal()
         runner=Runner([SimpleNamespace(returncode=0, stdout='OPEN\n', stderr='')])
         result=self.controller(runner).run_once(dry_run=False)
         self.assertEqual(result['status'], 'manual-governance-execution-required')
         self.assertFalse(any(call[0][0] in {'codex','git'} for call in runner.calls))
 
     def test_blocked_goal_does_not_retry_or_contact_github_without_changed_condition(self):
+        self.activate_governance_goal()
         runner=Runner()
         StateStore(self.state).write({'active':'GOV-01','blocked':'GOV-01','status':'blocked-blocked-approval','issues':{'GOV-01':168}})
         result=self.controller(runner).run_once()
