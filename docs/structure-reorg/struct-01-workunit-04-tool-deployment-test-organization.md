@@ -23,7 +23,8 @@ Branch: `codex/struct-01-workunit-04-tool-deployment-tests`
 - [x] `src` 패키지, Docker 복사 경로, `.dockerignore`, 패키지 데이터 선언을 검사하는 verifier를 추가한다.
 - [x] verifier를 필수 `validate` CI 단계에 연결한다.
 - [ ] verifier, CLI, package install, Compose, pytest, unittest, 문서 검증이 clean checkout에서 통과한다.
-- [ ] 독립 검토와 PR merge 후 TASKS/roadmap/ledger를 closeout한다.
+- [x] 독립 검토 기록을 추가한다.
+- [ ] PR merge 후 TASKS/roadmap/ledger를 closeout한다.
 
 ## 4) 상태 로그
 
