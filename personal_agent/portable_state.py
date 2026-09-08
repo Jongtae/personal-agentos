@@ -6,6 +6,7 @@ import shutil
 import sqlite3
 import tarfile
 import tempfile
+import os
 
 from .manifests import validate
 
@@ -28,6 +29,16 @@ def _portable_db(source, target):
         if not {"auth", "sessions", "config"} <= tables: raise ValueError("AgentOS owner database has an unsupported schema.")
         copy.execute("DELETE FROM auth");copy.execute("DELETE FROM sessions")
         copy.executemany("DELETE FROM config WHERE key=?", ((key,) for key in _RESET_CONFIG))
+        # A portable restore is a new runtime boundary. Work which had not
+        # reached a terminal state before export must require a new owner
+        # request after restore; preserving it as queued/running would replay
+        # an external action when the restored service starts.
+        if "jobs" in tables:
+            copy.execute("""UPDATE jobs
+                            SET status='interrupted',
+                                error='Restored work was quarantined; submit a new request to retry.',
+                                delivery=CASE WHEN delivery IN ('sending','pending') THEN 'unknown' ELSE delivery END
+                            WHERE status IN ('queued','running')""")
         row = copy.execute("SELECT value FROM config WHERE key='a2a_delegations'").fetchone()
         if row:
             try: delegations = json.loads(row[0])
@@ -109,7 +120,12 @@ def restore_owner_state(archive, data):
     archive, data = Path(archive).expanduser().resolve(), Path(data).expanduser().resolve()
     if not archive.is_file(): raise ValueError("Owner-state archive does not exist.")
     if data.exists() and any(data.iterdir()): raise ValueError("Restore target must be empty.")
-    with tarfile.open(archive, "r:gz") as bundle, tempfile.TemporaryDirectory() as temporary:
+    # Stage on the target filesystem so the final rename is atomic. Validation
+    # finishes before the empty destination is touched, preventing a malformed
+    # archive or copy failure from leaving a partly restored runtime.
+    data.parent.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(archive, "r:gz") as bundle, tempfile.TemporaryDirectory(
+            dir=data.parent, prefix=".agentos-restore-") as temporary:
         bundle.extractall(temporary, members=_safe_members(bundle), filter="data");staged = Path(temporary) / ROOT
         try: manifest = json.loads((staged / "manifest.json").read_text())
         except (OSError, ValueError) as exc: raise ValueError("Invalid owner-state archive.") from exc
@@ -123,10 +139,11 @@ def restore_owner_state(archive, data):
             if name.startswith("plugins/"): validate(json.loads(path.read_text()))
         with sqlite3.connect(staged / DB_RELATIVE) as db:
             if not db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='config'").fetchone(): raise ValueError("Invalid owner-state database.")
-        # The archive staging directory may be on a different filesystem from
-        # the owner-selected data volume (notably a Docker named volume).
-        # shutil.move falls back to a copy in that case while preserving the
-        # validated, secret-free staged contents.
-        data.parent.mkdir(parents=True, exist_ok=True);shutil.move(str(staged), str(data))
+        if data.exists():
+            # rmdir is deliberately race-safe: if anything appeared after the
+            # initial emptiness check, restoration refuses instead of merging.
+            try: data.rmdir()
+            except OSError as exc: raise ValueError("Restore target must remain empty.") from exc
+        os.replace(staged, data)
     (data / "private").chmod(0o700);(data / DB_RELATIVE).chmod(0o600)
     return data

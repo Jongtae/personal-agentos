@@ -24,7 +24,7 @@ if [ -n "$(docker compose ps -q agentos)" ]; then
   exit 65
 fi
 
-# Restore refuses a non-empty /data directory. This makes replacing a runtime
+# Restore refuses a non-empty /state/data directory. This makes replacing a runtime
 # an explicit operator action and avoids overwriting a live owner's state.
 docker compose run --rm --no-deps -T \
   -v "$archive_dir:/backup:ro" \
@@ -32,13 +32,5 @@ docker compose run --rm --no-deps -T \
 import sys
 from pathlib import Path
 from personal_agent.portable_state import restore_owner_state
-data = Path("/data")
-staging = data / ".agentos-restore-staging"
-if staging.exists():
-    raise SystemExit("restore staging directory already exists")
-restore_owner_state("/backup/" + sys.argv[1], staging)
-for item in staging.iterdir():
-    item.replace(data / item.name)
-staging.rmdir()
-print(data)
+print(restore_owner_state("/backup/" + sys.argv[1], Path("/state/data")))
 ' "$archive_name"
