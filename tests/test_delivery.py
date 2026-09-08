@@ -56,13 +56,13 @@ class DeliveryTests(unittest.TestCase):
         plan['next_goal']={'id':'TOP','status':'active'}
         (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
 
-    def test_closed_repository_goal_cannot_resume_or_select_a_successor(self):
-        runner=Runner()
-        controller=self.controller(runner)
-        self.assertEqual(controller.plan.next_goal()['status'], 'development_complete')
-        self.assertIsNone(controller.plan.select({}))
-        self.assertEqual(controller.run_once()['status'], 'awaiting-owner-activated-goal')
-        self.assertEqual(runner.calls, [])
+    def test_owner_activated_scenario_goal_is_selectable_without_reviving_closed_top_goal(self):
+        controller=self.controller()
+        self.assertEqual(controller.plan.next_goal()['status'], 'active')
+        self.assertEqual(controller.plan.next_goal()['id'], 'SCN-D-01')
+        self.assertEqual(controller.plan.select({})['id'], 'SCN-D-01')
+        self.assertIn('TOP-03', controller.plan.documented_completed())
+        self.assertNotIn('SCN-I-01', controller.plan.documented_completed())
 
     def test_top_goal_stays_selectable_after_its_inventory_substep_closes(self):
         self.activate_top_fixture()
