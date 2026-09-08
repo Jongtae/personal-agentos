@@ -8,7 +8,7 @@ The connection requests only `https://www.googleapis.com/auth/drive.file`. Agent
 
 ## Local and relay boundary
 
-The owner's local runtime creates PKCE verifier/challenge, a random one-time state, expiry, and Telegram-owner binding. The browser callback is accepted only after state, owner, expiry, and single-use checks. The local runtime exchanges the code and writes tokens only to its encrypted secret store. Status/evidence contains state names and times only—never OAuth code, verifier, token, client secret, Telegram message body, file body, or selected excerpt.
+The owner's local runtime creates PKCE verifier/challenge, a random one-time state, expiry, and Telegram-owner binding. The browser callback is accepted only after state, owner, expiry, and single-use checks. The local runtime exchanges the code and writes tokens only to its encrypted secret store. The Drive handoff fails closed when given the ordinary `QuickStore`; its `EncryptedDriveSecretStore` uses authenticated encryption and receives its key from an owner-local keychain or runtime secret boundary, never from the data directory. Status/evidence contains state names and times only—never OAuth code, verifier, token, client secret, Telegram message body, file body, or selected excerpt.
 
 The HTTPS handoff/relay may route the browser but must not persist any of those values. It must have no database, log, analytics event, or error payload containing secrets or user file data.
 

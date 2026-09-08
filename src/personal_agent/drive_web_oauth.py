@@ -6,9 +6,12 @@ and tokens stay in the owner's local runtime.
 """
 import base64
 import hashlib
+import json
 import secrets
 import time
 from urllib.parse import urlencode
+
+from cryptography.fernet import Fernet, InvalidToken
 
 
 DRIVE_FILE = "https://www.googleapis.com/auth/drive.file"
@@ -25,6 +28,43 @@ class DriveWebOAuthError(ValueError):
 
 class DriveScopeError(DriveWebOAuthError):
     pass
+
+
+class EncryptedDriveSecretStore:
+    """Encrypt Drive-only secrets with a local-runtime key kept outside storage.
+
+    The caller supplies the key from its local secret/keychain boundary.  The
+    key is never persisted by this class, so copying the local data directory
+    alone cannot reveal OAuth tokens or PKCE state.
+    """
+    encrypted_secrets = True
+
+    def __init__(self, store, key):
+        if not isinstance(key, (str, bytes)):
+            raise ValueError("A local encryption key is required for Drive OAuth.")
+        try:
+            self.cipher = Fernet(key.encode() if isinstance(key, str) else key)
+        except (ValueError, TypeError) as exc:
+            raise ValueError("A valid local encryption key is required for Drive OAuth.") from exc
+        self.store = store
+
+    def secret(self, key, value=None):
+        if value is not None:
+            payload = json.dumps(value, separators=(",", ":")).encode()
+            self.store.secret("encrypted:" + key, self.cipher.encrypt(payload).decode())
+        raw = self.store.secret("encrypted:" + key)
+        if not raw:
+            return ""
+        try:
+            return json.loads(self.cipher.decrypt(str(raw).encode()).decode())
+        except (InvalidToken, ValueError, TypeError, json.JSONDecodeError) as exc:
+            raise DriveWebOAuthError("Encrypted Google Drive credentials cannot be read locally.") from exc
+
+    def put(self, key, value):
+        self.store.put(key, value)
+
+    def config(self, key, default=None):
+        return self.store.config(key, default)
 
 
 def _pkce_pair():
@@ -46,6 +86,8 @@ class DriveWebOAuthHandoff:
             raise ValueError("Web OAuth client, callback, and HTTPS handoff URL are required.")
         if not handoff_url.startswith("https://") or not redirect_uri.startswith("https://"):
             raise ValueError("Web OAuth handoff and callback URLs must use HTTPS.")
+        if not getattr(store, "encrypted_secrets", False):
+            raise ValueError("Drive OAuth requires an encrypted owner-local secret store.")
         self.store, self.client_id = store, client_id
         self.redirect_uri, self.handoff_url = redirect_uri, handoff_url.rstrip("/")
         self.now, self.ttl_seconds = now, ttl_seconds
@@ -129,6 +171,17 @@ class DriveWebOAuthHandoff:
     def status(self):
         value = self.store.config(STATUS_KEY, {"state": "disconnected", "audit": []})
         return {"state": value.get("state", "disconnected"), "audit": list(value.get("audit", []))}
+
+    def telegram_status_message(self):
+        state = self.status()["state"]
+        messages = {
+            "connected": "Google Drive가 연결되었습니다. Google Picker에서 선택한 파일만 읽을 수 있습니다.",
+            "denied": "Google Drive 권한이 허용되지 않았습니다. 필요할 때 다시 연결해 주세요.",
+            "expired": "Google Drive 연결 링크가 만료되었습니다. Telegram에서 다시 연결해 주세요.",
+            "reauth-required": "Google Drive 연결이 만료되었습니다. 다시 연결해 주세요.",
+            "callback-failed": "Google Drive 연결을 완료하지 못했습니다. Telegram에서 새 연결 링크를 요청해 주세요.",
+        }
+        return messages.get(state, "Google Drive 연결이 필요합니다. 선택한 파일만 읽을 수 있습니다.")
 
     def _pending(self, state, owner):
         pending = self.store.secret(PENDING_KEY)

@@ -8,7 +8,7 @@
 
 ## 로컬·중계 경계
 
-사용자 로컬 런타임이 PKCE verifier/challenge, 무작위 일회성 state, 만료, Telegram 사용자 바인딩을 만든다. 콜백은 state·사용자·만료·일회성 검증을 모두 통과할 때만 처리한다. 코드 교환과 토큰 저장은 로컬 암호화 secret store에서만 한다. 상태·감사 기록에는 상태명과 시간만 남기며 코드·verifier·토큰·client secret·Telegram 본문·파일 본문·발췌문을 남기지 않는다.
+사용자 로컬 런타임이 PKCE verifier/challenge, 무작위 일회성 state, 만료, Telegram 사용자 바인딩을 만든다. 콜백은 state·사용자·만료·일회성 검증을 모두 통과할 때만 처리한다. 코드 교환과 토큰 저장은 로컬 암호화 secret store에서만 한다. Drive handoff는 일반 `QuickStore`를 받으면 실패하며, `EncryptedDriveSecretStore`는 인증된 암호화를 사용하고 키는 데이터 디렉터리가 아닌 사용자 로컬 keychain 또는 런타임 secret 경계에서만 받는다. 상태·감사 기록에는 상태명과 시간만 남기며 코드·verifier·토큰·client secret·Telegram 본문·파일 본문·발췌문을 남기지 않는다.
 
 HTTPS handoff/relay는 브라우저를 라우팅할 수 있지만 위 값을 저장해서는 안 된다. 로그·DB·분석·오류 payload에도 secret 또는 파일 데이터를 담지 않는다.
 

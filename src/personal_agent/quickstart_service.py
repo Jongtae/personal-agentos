@@ -85,7 +85,8 @@ def subscription_public_evidence(result):
 
 class AgentService:
     def __init__(self, store, adapter=None, telegram_transport=None, subscription_engines=None, execution_adapter=None,
-                 assistant_orchestrator=None, isolated_engine_adapter=None, isolated_mcp_registry=None):
+                 assistant_orchestrator=None, isolated_engine_adapter=None, isolated_mcp_registry=None,
+                 drive_web_oauth=None):
         self.store=store
         self.adapter=adapter or ModelAdapter()
         self.telegram_transport=telegram_transport or request_json
@@ -100,6 +101,9 @@ class AgentService:
         self.settings_orchestrator=SettingsOrchestrator(store)
         self.recommendation_orchestrator=CapabilityRecommendationOrchestrator(store)
         self.personal_knowledge_orchestrator=PersonalKnowledgeOrchestrator(store)
+        # This is injected only by an owner-local deployment which supplies an
+        # encrypted secret store and its local key.  It is never auto-enabled.
+        self.drive_web_oauth=drive_web_oauth
         self.lock=threading.RLock()
         self.worker_lock=threading.Lock()
         self.local_tools=LocalTools()
@@ -496,6 +500,25 @@ class AgentService:
     def telegram_method(self, method, body):
         return self.telegram_call(self.store.secret('telegram_token'),method,body)
 
+    @staticmethod
+    def requests_drive_access(text):
+        if not isinstance(text, str):
+            return False
+        normalized = text.lower()
+        return ('google drive' in normalized or '구글 드라이브' in normalized or '드라이브' in normalized) and any(
+            word in normalized for word in ('찾', '읽', '자료', 'file', '파일', '요약', 'search'))
+
+    def offer_drive_connection(self, telegram_owner_id):
+        if not self.drive_web_oauth:
+            return False
+        offer = self.drive_web_oauth.begin(telegram_owner_id)
+        self.telegram_method('sendMessage', {
+            'chat_id': telegram_owner_id,
+            'text': offer['message'],
+            'reply_markup': {'inline_keyboard': [[offer['button']]]},
+        })
+        return True
+
     def connect_telegram(self, body):
         token=body.get('token','')
         if not isinstance(token,str) or not 10<=len(token)<=300 or not all(c.isalnum() or c in ':_-' for c in token):
@@ -840,6 +863,14 @@ class AgentService:
             if paired:
                 self.store.put('telegram_status',{'state':'connected','message':'개인 계정이 연결되었습니다. AgentOS가 연결을 자동으로 확인합니다.'})
                 self.queue_telegram_connection_verification()
+            if authorized and task_id and self.requests_drive_access(text) and self.drive_web_oauth:
+                if self.drive_web_oauth.status()['state'] != 'connected':
+                    try:
+                        self.offer_drive_connection(sender)
+                    except (ValueError, ProviderError):
+                        # The durable work item remains; no OAuth detail or
+                        # token is exposed through Telegram or logs.
+                        pass
             if authorized and self.is_natural_language(text) and task_id:
                 if guided_context:
                     self.offer_telegram_context_choices(task_id,sender,generation)
