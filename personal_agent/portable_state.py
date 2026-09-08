@@ -36,6 +36,7 @@ def _portable_db(source, target):
                 safe = {ident: {key: item[key] for key in ('id','state','peer','skill','created_at','updated_at','error') if key in item}
                         for ident, item in delegations.items() if isinstance(item, dict)}
                 copy.execute("UPDATE config SET value=? WHERE key='a2a_delegations'", (json.dumps(safe, sort_keys=True),))
+        copy.execute("DELETE FROM config WHERE key='calendar_create'")
         copy.commit();copy.execute("VACUUM")
 
 def export_owner_state(data, archive):
