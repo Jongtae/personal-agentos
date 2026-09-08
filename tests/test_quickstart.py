@@ -10,7 +10,9 @@ from urllib.error import HTTPError
 from urllib.parse import urlsplit, parse_qs
 from personal_agent.quickstart_store import QuickStore
 from personal_agent.quickstart_service import AgentService, TELEGRAM_RESULT_PREVIEW_CHARS
-from personal_agent.quickstart import make_handler
+from personal_agent.quickstart import make_handler, configured_service
+from personal_agent.drive_web_oauth import DriveWebOAuthHandoff, EncryptedDriveSecretStore
+from cryptography.fernet import Fernet
 from personal_agent.providers import ModelAdapter, ProviderError
 
 
@@ -130,6 +132,33 @@ class QuickstartTests(unittest.TestCase):
         home=self.service.home()
         self.assertEqual(home['state'],'working')
         self.assertEqual(home['active_jobs'],1)
+
+    def test_local_drive_configuration_is_explicit_and_never_exposes_secret(self):
+        disabled=configured_service(self.store, {'AGENTOS_DRIVE_CLIENT_ID':'client','AGENTOS_DRIVE_ENCRYPTION_KEY':Fernet.generate_key().decode()})
+        self.assertIsNone(disabled.drive_web_oauth)
+        configured=configured_service(self.store, {
+            'AGENTOS_DRIVE_LOCAL_ONLY':'1', 'AGENTOS_DRIVE_CLIENT_ID':'client',
+            'AGENTOS_DRIVE_ENCRYPTION_KEY':Fernet.generate_key().decode(), 'AGENTOS_DRIVE_LOCAL_PORT':'9123',
+            'AGENTOS_DRIVE_CLIENT_SECRET':'never-return-this',
+        })
+        self.assertEqual(configured.drive_web_oauth.redirect_uri,'http://localhost:9123/oauth/google/callback')
+        self.assertNotIn('never-return-this',json.dumps(configured.settings()))
+
+    def test_local_drive_handoff_rejects_bad_callback_without_login(self):
+        key=Fernet.generate_key()
+        drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(self.store,key),'client',
+            'http://localhost:8787/oauth/google/callback','http://localhost:8787',allow_localhost=True,local_only=True)
+        service=AgentService(self.store,ModelAdapter(self.transport),self.transport,drive_web_oauth=drive)
+        offer=drive.begin(123)
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(service));thread=threading.Thread(target=server.serve_forever);thread.start()
+        try:
+            base='http://127.0.0.1:'+str(server.server_port)
+            with self.assertRaises(HTTPError) as error:
+                build_opener().open(base+'/oauth/google/callback?state=not-valid',timeout=3)
+            self.assertEqual(error.exception.code,400)
+            self.assertNotIn(offer['state'], error.exception.read().decode())
+        finally:
+            server.shutdown();thread.join();server.server_close()
 
     def test_workspace_is_opt_in_and_saved_results_survive_restart(self):
         workspace=self.service.create_workspace({'title':'UX 개선','purpose':'대화 경험 정리'})

@@ -58,9 +58,9 @@ class DeliveryTests(unittest.TestCase):
 
     def test_completed_drive_goal_does_not_revive_reserved_scenario_implementation(self):
         controller=self.controller()
-        self.assertEqual(controller.plan.next_goal()['status'], 'paused')
-        self.assertIsNone(controller.plan.next_goal()['id'])
-        self.assertIsNone(controller.plan.select({}))
+        self.assertEqual(controller.plan.next_goal()['status'], 'active')
+        self.assertEqual(controller.plan.next_goal()['id'], 'DRIVE-LOCAL-OP-01')
+        self.assertEqual(controller.plan.select({})['id'], 'DRIVE-LOCAL-OP-01')
         self.assertIn('TOP-03', controller.plan.documented_completed())
         self.assertIn('SCN-D-01', controller.plan.documented_completed())
         self.assertIn('DRIVE-TG-01', controller.plan.documented_completed())
