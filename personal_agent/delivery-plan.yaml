@@ -468,13 +468,13 @@
       "V1-05"
     ],
     "reason": "v1.0.4 delivered the runtime and release baseline. Version 5 tracks the approved DM-first consumer experience.",
-    "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01","I-MP2-01","D-MP2-02","I-MP2-02","D-MP2-03","I-MP2-03","STAB-01","OP-01","OP-02","GOV-01","TOP-00"],
+    "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01","I-MP2-01","D-MP2-02","I-MP2-02","D-MP2-03","I-MP2-03","STAB-01","OP-01","OP-02","GOV-01","TOP-00","TOP-01"],
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
     "id": "TOP",
     "status": "active",
-    "action": "continue only top-level Goal #265 and its documented executable substeps; TOP-01 retains its technical Compose-registry blocker while independent STATUS-01 and later dependency-satisfied work may proceed; do not activate new product scope",
+    "action": "continue only top-level Goal #265 with its next documented executable substep TOP-02 for full current product integration regression and bounded defect repair; TOP-01 is complete on PR #272 credential-free Compose lifecycle evidence; do not activate new product scope or claim or configure provider credentials, live connections, or operating deployment",
     "source": "https://github.com/Jongtae/personal-agentos/issues/265"
   }
 }
