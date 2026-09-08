@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-**Status: development complete, pending owner operating approval under TOP / issue #265.** The immutable deployment candidate is `53912eeb1357ced37031234b1e5376f024dd0a96`; its `main` `validate` run `34204797899` passed. Archived plans and the legacy `agentos/PRD.md` prototype are historical inputs, not implementation scope.
+**Status: development complete; administrative closeout #282, TOP issue #265. No active successor.** The immutable deployment candidate is `53912eeb1357ced37031234b1e5376f024dd0a96`; its `main` `validate` run `34204797899` passed. Archived plans and the legacy `agentos/PRD.md` prototype are historical inputs, not implementation scope.
 
 The top-level Goal stays active while an approved row below has a safe next action. A substep issue, PR, or closeout completes only that substep. The Agent immediately advances to the next already-enumerated executable row when its predecessors and authority are satisfied. It cannot add a feature, revive a reserved proposal, widen a data or permission boundary, or perform operating deployment.
 
@@ -10,14 +10,14 @@ The top-level Goal stays active while an approved row below has a safe next acti
 
 | ID | Source and owner outcome | Current evidence | Next action | Owner-setting dependency |
 | --- | --- | --- | --- | --- |
-| CORE-01 | Root Hub v2 PRD: local-first subscription assistant owns state, policy, tools, queue, approvals, evidence, recovery | Hub modules and fixture tests; MP1 R-01–R-05 issues #217–#225 | Reconcile current source links and rerun final integration | Official engine login only in operating mode |
-| CORE-02 | MP1: Personal Space, lifecycle, Drive, A2A, Calendar, ReAct, export/restore | Mock-contract evidence #180, #185, #191, #201, #205, #209, #217–#225 | Current integration regression; no new feature | Drive/Calendar OAuth and explicit action approval |
+| CORE-01 | Root Hub v2 PRD: local-first subscription assistant owns state, policy, tools, queue, approvals, evidence, recovery | Hub modules and fixture tests; MP1 R-01–R-05 issues #217–#225 | Closed by #277/#278 and main CI 34204797899 | Official engine login only in operating mode |
+| CORE-02 | MP1: Personal Space, lifecycle, Drive, A2A, Calendar, ReAct, export/restore | Mock-contract evidence #180, #185, #191, #201, #205, #209, #217–#225 | Closed by #277/#278; no new feature | Drive/Calendar OAuth and explicit action approval |
 | MP2-01 | Completed conversation settings, reviewed recommendation, owner-local retrieval | Automated evidence #235, #243, #251; status reconciled in #270 | Do not select a next MP2 feature | No marketplace/install/connection authority |
-| STAB-01 | Telegram approved-note summary, bounded engine tool roundtrip, recovery | Fixture/CI evidence #255 | Re-run current end-to-end mock path | Telegram token and live provider remain owner-only |
-| DEPLOY-01 | OP-01/OP-02: isolated Compose, default-deny egress, health, restore/no replay | PR #272 merge `410a003a1332ceb2ec6dd32a74146b0422ac1d42`: actual credential-free build, health, recreate, backup/restore, and cleanup | Preserve evidence in TOP-02 integration and TOP-03 candidate audit | Exact DNS allowlist, claim, official login, optional Telegram pairing |
-| GOV-01 | Evidence-only delivery governance | Merged #263/#264 and controller tests | Extend only to this approved top-level inventory | None |
-| STATUS-01 | README, MP2 proposal, open Hub/UX epics | Reconciled in #270: v1.0.4 is unsupported, MP2 is development complete, and stale epics are historical administrative records | Preserve current claims through TOP-03 audit | None |
-| LEGACY-01 | `agentos/PRD.md` prototype | Conflicts with Hub v2 and absent from current plans | Decision-needed; do not implement or revive | Separate owner product decision |
+| STAB-01 | Telegram approved-note summary, bounded engine tool roundtrip, recovery | Fixture/CI evidence #255 | Closed by current #277 fixtures and CI | Telegram token and live provider remain owner-only |
+| DEPLOY-01 | OP-01/OP-02: isolated Compose, default-deny egress, health, restore/no replay | PR #272 merge `410a003a1332ceb2ec6dd32a74146b0422ac1d42`: actual credential-free build, health, recreate, backup/restore, and cleanup | Preserve completed TOP-02/TOP-03 candidate evidence | Exact DNS allowlist, claim, official login, optional Telegram pairing |
+| GOV-01 | Evidence-only delivery governance | Merged #263/#264 and controller tests | Preserve completed contract; no active successor | None |
+| STATUS-01 | README, MP2 proposal, open Hub/UX epics | Reconciled in #270: v1.0.4 is unsupported, MP2 is development complete, and stale epics are historical administrative records | Preserve current claims in #282 final audit | None |
+| LEGACY-01 | `agentos/PRD.md` prototype | Conflicts with Hub v2 and absent from current plans | Owner decision #279: retain as historical; do not revive | Resolved; future OS/appliance work needs a separately approved proposal |
 
 ## Detailed traceability
 
@@ -27,11 +27,11 @@ The top-level Goal stays active while an approved row below has a safe next acti
 | HUB-02 | Paired Telegram request/progress/result/recovery; STAB-01 complete | `test_telegram*.py`, `test_isolated_engine_integration.py`; no token/pairing claim |
 | HUB-03 | Isolated owner runtime, bounded tools, queue, approvals, evidence/recovery; OP-02 complete | `test_agent_runtime.py`, `test_operating_recovery.py`, `test_isolated_engine_integration.py` |
 | HUB-04 | Opt-in clipboard/URL context with sensitive filtering and policy sharing | `test_context_inbox.py`; no external sharing is claimed |
-| HUB-05 | Curated personal-records, research/briefing, and project-review assistant policies | `test_mp1_release.py`; final current integration still TOP-02 |
+| HUB-05 | Curated personal-records, research/briefing, and project-review assistant policies | `test_mp1_release.py`; current TOP-02/TOP-03 regression complete in #277 |
 | HUB-06 | Web research, connected-document reads, notes, and reviewed delegation tool boundary | `test_agent_runtime.py`, `test_documents.py`, `test_mp1_release.py` |
 | HUB-07 | Portable export/restore excluding connection secrets | `test_operating_recovery.py`, `test_mp1_release.py` |
 | DEPLOY-01 | TOP-01 complete: isolated credential-free Compose lifecycle proves build, HTTP health, recreation persistence, secret-free restore, pairing exclusion, and cleanup | PR #272 required CI plus current actual local acceptance; no provider, credential, or live-operation claim |
-| STATUS-01 | Documentation/issue-state reconciliation is complete | PR #270 and required CI; old epics are not silently closed |
+| STATUS-01 | Documentation/issue-state reconciliation is complete | PR #270 and required CI; old epics are explicitly reconciled under owner-authorized #282 |
 
 ## Ordered substeps
 

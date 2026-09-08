@@ -4,6 +4,10 @@ Use the [Goal Execution Contract](goal-execution-contract.en.md) with this track
 
 AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gateway. The Mac hosts the owner-controlled runtime; AgentOS owns personal state, assistants, permissions, tools, task lifecycle, and evidence; Codex or Claude Code performs bounded engine turns.
 
+## First milestone closeout — 2026-09-08
+
+Owner-authorized [#282](https://github.com/Jongtae/personal-agentos/issues/282) consolidates the development baseline in the [Korean report](first-milestone-report.ko.md). TOP has no active successor. The #279 owner decision retains the legacy prototype as historical. OP-03 #280/#281 remains unfinished; actual provider login, Telegram/OAuth activation, and operating deployment remain separate. Historical milestones are closed as completed or superseded with explicit evidence, without claiming live acceptance.
+
 ## M0 — Product basis and delivery sequence
 
 [#103](https://github.com/Jongtae/personal-agentos/issues/103) records the current product contract, freezes legacy P7 work, and moves the delivery loop onto Hub v2.

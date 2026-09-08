@@ -492,7 +492,7 @@
         "GOV-01": {"status": "merged-current-evidence", "evidence": ["PR #263/#264 governance and controller tests"]},
         "STATUS-01": {"status": "merged-current-evidence", "evidence": ["PR #270/#271 reconciliation"]},
         "OWNER-01": {"status": "owner-operating-action", "action": "approve operating deployment; set exact provider DNS allowlist, claim runtime, complete official login, optionally enter Telegram/OAuth settings, and observe a live task"},
-        "LEGACY-01": {"status": "separate-owner-product-decision", "decision": "decide whether the archived conflicting agentos/PRD.md prototype should ever be promoted; it is not revived by TOP"}
+        "LEGACY-01": {"status": "separate-owner-product-decision", "decision": "Owner decision #279: retain agentos/PRD.md as historical; any future OS/appliance direction needs a separately approved proposal and contract."}
       },
       "deployment_candidate": {"commit": "53912eeb1357ced37031234b1e5376f024dd0a96", "required_ci": [{"name": "validate", "conclusion": "success", "commit": "53912eeb1357ced37031234b1e5376f024dd0a96", "run": "34204797899"}]},
       "unresolved_review_findings": []
@@ -520,8 +520,8 @@
   },
   "next_goal": {
     "id": "TOP",
-    "status": "active",
-    "action": "TOP implementation is complete on current evidence. Do not activate a successor; preserve the immutable candidate and await only OWNER-01 operating deployment approval or the separate LEGACY-01 product decision.",
+    "status": "development_complete",
+    "action": "TOP development is closed under #282. Do not activate a successor. Preserve the immutable candidate; OWNER-01 requires separate operating approval. LEGACY-01 is resolved by #279: retain historical prototype. OP-03 #280/#281 remains unfinished and outside this completed baseline.",
     "source": "https://github.com/Jongtae/personal-agentos/issues/265"
   }
 }
