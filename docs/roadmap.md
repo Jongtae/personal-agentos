@@ -12,6 +12,10 @@ Owner-authorized [#282](https://github.com/Jongtae/personal-agentos/issues/282) 
 
 [#303](https://github.com/Jongtae/personal-agentos/issues/303) audited all tracked workflows and found one required `validate` workflow. Merged [PR #304](https://github.com/Jongtae/personal-agentos/pull/304) retained its pull-request and `main` triggers while removing its redundant `unittest discover` invocation: the preceding full `pytest` suite already collects those tests. Required `validate` run `34222145626` passed. This is CI-only maintenance and changes no runtime, credential, provider, connection, or operating-deployment boundary.
 
+## Complete on merge — Telegram Drive web OAuth contract
+
+Owner-authorized [DRIVE-TG-01 / #306](https://github.com/Jongtae/personal-agentos/issues/306) delivers a mock-validated Telegram-to-browser Google Drive OAuth handoff: owner binding, signed and expiring state, PKCE, encrypted owner-local token storage, explicit file selection, native Google Workspace export handling, redacted recovery messages, and Drive-request job pause/resume. It is not a live connection: no provider login, credential entry, token exchange, Drive access, or external operating deployment is claimed. A separately goal-ready operating iteration is required for local live testing.
+
 ## Complete design — First live-use scenarios
 
 Owner-authorized [SCN-D-01 / #301](https://github.com/Jongtae/personal-agentos/issues/301) defines two first-use journeys before any new capability is implemented: (1) Telegram meeting preparation using owner-approved, attributable Drive context followed by separately approved Calendar draft creation; and (2) owner-supplied content translation or summarization followed by an exact KakaoTalk recipient/conversation preview and a separate one-time final-send approval. It is a design-only goal. KakaoTalk capability, credentials, connection, delivery, and live operating evidence are explicitly out of scope; a copy/export fallback is not a delivery claim. SCN-I-01 remains reserved until a separate goal-ready implementation issue is created and activated.
