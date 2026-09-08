@@ -67,3 +67,5 @@ The owner-local delivery state is reconciled and must not rerun merged UX, MP1, 
 D-MP2-02 selects reviewed capability discovery and recommendation as that bounded friction. It defines only an owner-local reviewed catalogue and read-only recommendation boundary; marketplace discovery, downloading, installation, activation, permission/scope grant, credentials, OAuth, external endpoints/actions, and operating deployment remain out of scope. I-MP2-02 requires a separate goal-ready issue.
 
 I-MP2-02 delivers the fixture-backed owner-local catalogue and read-only recommendation model with deterministic ranking and HTTP/Telegram parity. It remains development-only mock-contract evidence and does not claim any live recommendation source, connector, or installation.
+
+D-MP2-03 defines transparent owner-local Personal Space retrieval with source evidence and a separate explicit sharing boundary. It excludes external indexing, cloud sync, provider/OAuth/credentials, automatic long-term memory, document ingestion, external action, and operating deployment. I-MP2-03 requires a separate goal-ready issue.
