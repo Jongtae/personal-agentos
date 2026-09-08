@@ -9,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
 
 
@@ -84,6 +85,7 @@ class BoundedExecutionAdapter:
 
     def environment(self, engine_id, binary, run_dir):
         env = {'HOME': str(run_dir), 'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8'}
+        env['PYTHONPATH'] = str(Path(__file__).resolve().parents[1])
         if engine_id != 'codex':
             return env
         # Codex owns its official session under CODEX_HOME. AgentOS never
@@ -102,7 +104,10 @@ class BoundedExecutionAdapter:
         if engine_id == 'codex':
             # `exec` is non-interactive and JSON output is required so prose
             # around an answer cannot be mistaken for execution evidence.
-            return [binary, 'exec', '--json', '--sandbox', 'read-only', '--skip-git-repo-check', prompt]
+            bridge = json.loads(Path(mcp_config).read_text())['mcpServers']['agentos']
+            return [binary, 'exec', '--json', '--sandbox', 'read-only', '--skip-git-repo-check',
+                    '-c', f'mcp_servers.agentos.command={json.dumps(sys.executable)}',
+                    '-c', f'mcp_servers.agentos.args={json.dumps(bridge["args"])}', prompt]
         if engine_id == 'claude-code':
             return [binary, '-p', prompt, '--output-format', 'json', '--strict-mcp-config', '--mcp-config', str(mcp_config)]
         raise ExecutionError('지원하는 구독 엔진을 선택하세요.')
@@ -158,7 +163,13 @@ class BoundedExecutionAdapter:
         with tempfile.TemporaryDirectory(dir=self.runtime_root, prefix='turn-') as folder:
             run_dir = Path(folder)
             config = run_dir / 'agentos-mcp.json'
-            config.write_text(json.dumps({'tools': tools.definitions()}, ensure_ascii=False), encoding='utf-8')
+            # Both supported CLIs receive this per-turn bridge configuration.
+            # The engine gets no store handle; the bridge alone owns validated
+            # access to the AgentOS tool facade.
+            config.write_text(json.dumps({'mcpServers': {'agentos': {
+                'command': sys.executable,
+                'args': ['-m', 'personal_agent.mcp_bridge', '--data', str(tools.capabilities.store.root), '--job', tools.capabilities.job_id],
+            }}}, ensure_ascii=False), encoding='utf-8')
             env = self.environment(engine_id, binary, run_dir)
             try:
                 completed = self.runner(self.command(engine_id, binary, prompt, config), cwd=run_dir,

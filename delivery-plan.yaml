@@ -344,6 +344,16 @@
       "depends_on": ["D-MP2-03"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Implement fixture-backed owner-local retrieval with source evidence, redaction, audit/export safety, and channel parity."
+    },
+    {
+      "id": "STAB-01",
+      "milestone": "Subscription-Engine Telegram Stabilization",
+      "issue": 254,
+      "kind": "stabilization",
+      "depends_on": ["I-MP2-03"],
+      "contract": "subscription-telegram-stabilization-contract.en.md",
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "summary": "Stabilize the approved-note Telegram summary path through bounded subscription-engine MCP execution and required CI gates."
     }
   ],
   "milestones": {
@@ -364,6 +374,9 @@
     },
     "AgentOS Owner-Local Knowledge Retrieval": {
       "title": "AgentOS Owner-Local Knowledge Retrieval"
+    },
+    "Subscription-Engine Telegram Stabilization": {
+      "title": "Subscription-Engine Telegram Stabilization"
     }
   },
   "completion_claims": {
@@ -397,9 +410,9 @@
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
-    "id": "MP2-REVIEW-02",
-    "status": "autonomous-cycle-selection",
-    "action": "select one bounded next MP2 owner friction from the proposal",
-    "source": "docs/master-plan-02-proposal.en.md"
+    "id": "STAB-01",
+    "status": "active-owner-directed-stabilization",
+    "action": "complete the owner-directed subscription-engine Telegram stabilization cycle",
+    "source": "docs/subscription-telegram-stabilization-contract.en.md"
   }
 }
