@@ -32,6 +32,12 @@ Before activating a goal, its issue and source plan must identify all of the fol
 6. Create a PR that distinguishes automated evidence from operating evidence, merge it, close the issue, and update `TASKS.md`, `docs/roadmap.md`, and the ledger together.
 7. Perform the completion audit. Only then report the goal complete.
 
+## Autonomous delivery-cycle delegation
+
+For a Master Plan cycle explicitly delegated by the owner, the Agent does not wait for owner review after every small D/I iteration. Within the vision, active delivery plan, proposal, and design-contract scope, it may select one **bounded owner friction** and execute its required design → implementation → automated validation → PR merge → closeout sequence in order.
+
+This delegation is not authority for automatic installation, permission escalation, or an operating-mode transition. The Agent must stop and request a cycle-level review before credential or OAuth configuration, a new external connection/endpoint, permission or scope expansion, a consequential external action, expansion of a personal-data boundary, a security/governance boundary change, or Master Plan cycle completion. If the next selection exceeds documented scope or requires a product judgment between equally valid owner outcomes, the Agent reports candidates and evidence instead of starting implementation.
+
 ## Terminal-state discipline
 
 - A goal is **complete** only when current authoritative state proves every completion item. Intent, a partial fixture, an unmerged branch, or a narrow test cannot prove a broader claim.

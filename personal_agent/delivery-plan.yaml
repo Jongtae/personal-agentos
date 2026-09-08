@@ -300,9 +300,9 @@
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
-    "id": "MP2-REVIEW-01",
-    "status": "requires-evidence-review",
-    "action": "review I-MP2-01 mock-contract evidence and nominate the next single MP2 owner friction before creating another implementation goal",
+    "id": "D-MP2-02",
+    "status": "autonomous-cycle-selection",
+    "action": "select one bounded next MP2 owner friction from the proposal, create its goal-ready design issue and branch, then execute its design contract without routine owner review",
     "source": "docs/master-plan-02-proposal.en.md"
   }
 }

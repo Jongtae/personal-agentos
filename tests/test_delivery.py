@@ -58,8 +58,8 @@ class DeliveryTests(unittest.TestCase):
         result=self.controller(Runner()).status()
         self.assertIsNone(result['active'])
         self.assertEqual(result['status'],'reconciled-documentation')
-        self.assertEqual(result['next_goal']['id'],'MP2-REVIEW-01')
-        self.assertEqual(result['next_action'],'review I-MP2-01 mock-contract evidence and nominate the next single MP2 owner friction before creating another implementation goal')
+        self.assertEqual(result['next_goal']['id'],'D-MP2-02')
+        self.assertEqual(result['next_action'],'select one bounded next MP2 owner friction from the proposal, create its goal-ready design issue and branch, then execute its design contract without routine owner review')
         self.assertIn('D-MP2-01',result['completed'])
         persisted=StateStore(self.state).read()
         self.assertNotIn('active',persisted);self.assertNotIn('blocked',persisted);self.assertNotIn('next_retry_at',persisted)
@@ -70,13 +70,13 @@ class DeliveryTests(unittest.TestCase):
         self.assertIsNone(result['active'])
         self.assertEqual(result['status'],'reconciled-documentation')
         self.assertIn('I-MP2-01',result['completed'])
-        self.assertEqual(result['next_goal']['id'],'MP2-REVIEW-01')
+        self.assertEqual(result['next_goal']['id'],'D-MP2-02')
 
     def test_reconciled_documentation_state_adopts_later_documented_closeout(self):
         StateStore(self.state).write({'completed':['D-MP2-01'],'status':'complete','last_validation':'migrated-documentation'})
         result=self.controller(Runner()).status()
         self.assertIn('I-MP2-01',result['completed'])
-        self.assertEqual(result['next_goal']['id'],'MP2-REVIEW-01')
+        self.assertEqual(result['next_goal']['id'],'D-MP2-02')
 
     def test_valid_ux_block_is_not_migrated(self):
         StateStore(self.state).write({'active':'UX-02','blocked':'UX-02','status':'blocked-validation-failed','next_retry_at':self.clock[0]+21600})
@@ -262,7 +262,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertNotIn('active',result)
         self.assertNotIn('milestone',result)
         self.assertNotIn('issue',result)
-        self.assertEqual(self.controller(Runner()).status()['next_action'],'review I-MP2-01 mock-contract evidence and nominate the next single MP2 owner friction before creating another implementation goal')
+        self.assertEqual(self.controller(Runner()).status()['next_action'],'select one bounded next MP2 owner friction from the proposal, create its goal-ready design issue and branch, then execute its design contract without routine owner review')
 
     def test_created_ux_issue_uses_its_configured_milestone(self):
         plan=json.loads((self.root/'delivery-plan.yaml').read_text())
