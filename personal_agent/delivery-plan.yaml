@@ -336,8 +336,8 @@
     {
       "id": "I-MP2-03",
       "milestone": "AgentOS Owner-Local Knowledge Retrieval",
+      "issue": 250,
       "kind": "implementation",
-      "activation_status": "requires-goal-ready-issue",
       "design_id": "D-MP2-03",
       "contract": "d-mp2-03-personal-knowledge-retrieval-contract.en.md",
       "automated_evidence": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
@@ -398,8 +398,8 @@
   },
   "next_goal": {
     "id": "I-MP2-03",
-    "status": "requires-goal-ready-issue",
-    "action": "create goal-ready I-MP2-03 issue before implementation",
+    "status": "active-goal-ready-issue",
+    "action": "complete the active I-MP2-03 goal through automated validation and PR merge",
     "source": "docs/d-mp2-03-personal-knowledge-retrieval-contract.en.md"
   }
 }

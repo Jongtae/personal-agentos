@@ -98,6 +98,26 @@ class QuickstartTests(unittest.TestCase):
         finally:
             server.shutdown();thread.join();server.server_close()
 
+    def test_authenticated_local_companion_knowledge_route_uses_owner_local_policy(self):
+        self.store.claim(self.store.bootstrap.read_text(),'long-password-test')
+        with self.store.db() as db:
+            db.execute('INSERT INTO notes VALUES (?,?,?)',('knowledge-note','Aurora local plan',1))
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(self.service))
+        thread=threading.Thread(target=server.serve_forever);thread.start()
+        client=build_opener(HTTPCookieProcessor(CookieJar()));url='http://127.0.0.1:'+str(server.server_port)
+        def request(path,body=None):
+            req=Request(url+path,data=json.dumps(body).encode() if body is not None else None,headers={'Content-Type':'application/json'} if body is not None else {})
+            with client.open(req,timeout=3) as response:return json.load(response)
+        try:
+            with self.assertRaises(HTTPError): request('/api/personal-knowledge',{'query':'aurora'})
+            request('/api/login',{'password':'long-password-test'})
+            result=request('/api/personal-knowledge',{'query':'aurora'})
+            self.assertEqual(result['state'],'completed')
+            self.assertTrue(result['results'][0]['reference'].startswith('pk_'))
+            self.assertNotIn('owner',json.dumps(self.store.config('personal_knowledge_audit')))
+        finally:
+            server.shutdown();thread.join();server.server_close()
+
     def test_home_is_minimal_and_never_includes_connection_secrets(self):
         self.store.claim(self.store.bootstrap.read_text(),'long-password-test')
         self.model(key='private-api-key')
