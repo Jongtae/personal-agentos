@@ -245,6 +245,15 @@
       "depends_on": ["MP1-R-04"],
       "release_validation": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Release the policy-owned Personal Assistant Core with end-to-end automated acceptance."
+    },
+    {
+      "id": "D-MP2-01",
+      "milestone": "AgentOS Conversation-First Settings",
+      "issue": 230,
+      "kind": "design",
+      "depends_on": ["MP1-R-05"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
+      "summary": "Define the conversation-first settings intent, preview/confirm, redaction, parity, recovery, and local companion contract before implementation."
     }
   ],
   "milestones": {
@@ -256,6 +265,9 @@
     },
     "AgentOS Personal Assistant Core": {
       "title": "AgentOS Personal Assistant Core"
+    },
+    "AgentOS Conversation-First Settings": {
+      "title": "AgentOS Conversation-First Settings"
     }
   },
   "history": {
