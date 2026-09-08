@@ -56,11 +56,11 @@ class DeliveryTests(unittest.TestCase):
         plan['next_goal']={'id':'TOP','status':'active'}
         (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
 
-    def test_completed_scenario_design_cannot_select_reserved_implementation(self):
+    def test_owner_activated_drive_goal_selects_without_reviving_reserved_scenario_implementation(self):
         controller=self.controller()
-        self.assertEqual(controller.plan.next_goal()['status'], 'development_complete')
-        self.assertEqual(controller.plan.next_goal()['id'], 'SCN-D-01')
-        self.assertIsNone(controller.plan.select({}))
+        self.assertEqual(controller.plan.next_goal()['status'], 'active')
+        self.assertEqual(controller.plan.next_goal()['id'], 'DRIVE-TG-01')
+        self.assertEqual(controller.plan.select({})['id'], 'DRIVE-TG-01')
         self.assertIn('TOP-03', controller.plan.documented_completed())
         self.assertIn('SCN-D-01', controller.plan.documented_completed())
         self.assertNotIn('SCN-I-01', controller.plan.documented_completed())
