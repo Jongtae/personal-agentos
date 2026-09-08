@@ -17,6 +17,7 @@ jobs:
       - run: python -m pip install --upgrade pip pytest pypdf python-docx openpyxl
       - run: python -m pip install -e .
       - run: python3 scripts/verify_master_plan_docs.py
+      - run: python3 scripts/verify_src_layout.py
       - run: cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml
       - run: python3 -c "import json,pathlib; [json.loads(line) for line in pathlib.Path('docs/issue-branch-ledger.jsonl').read_text(encoding='utf-8').splitlines()]"
       - run: python3 -m pytest -q tests
