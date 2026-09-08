@@ -2,7 +2,7 @@
 
 Active work is executed only from a goal-ready issue and active delivery-plan entry under the [Goal Execution Contract](docs/goal-execution-contract.en.md). Status tables are trackers, not authority to activate reserved work.
 
-## Active repository maintenance
+## Completed repository maintenance
 
 | Work unit | Issue | Branch | Status |
 | --- | --- | --- | --- |
@@ -10,7 +10,7 @@ Active work is executed only from a goal-ready issue and active delivery-plan en
 | STRUCT-01-WU-02: 문서·산출물 정리 | [#286](https://github.com/Jongtae/personal-agentos/issues/286) | `codex/struct-01-workunit-02-docifacts` | complete |
 | STRUCT-01-WU-03: 제품 패키지 정리 | [#287](https://github.com/Jongtae/personal-agentos/issues/287) | `codex/struct-01-workunit-03-product-packages` | complete (PR #288 merged) |
 | STRUCT-01-WU-04: 도구·배포·테스트 정리 | [#291](https://github.com/Jongtae/personal-agentos/issues/291) | `codex/struct-01-workunit-04-tool-deployment-tests` | complete (PR #292 merged) |
-| STRUCT-01-WU-05: 독립 검토와 최종 마감 | [#295](https://github.com/Jongtae/personal-agentos/issues/295) | `codex/struct-01-final-closeout` | in progress |
+| STRUCT-01-WU-05: 독립 검토와 최종 마감 | [#295](https://github.com/Jongtae/personal-agentos/issues/295) | `codex/struct-01-final-closeout` | complete (PR #296 merged) |
 
 ## Closed top-level program
 
