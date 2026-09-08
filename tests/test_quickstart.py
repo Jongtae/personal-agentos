@@ -134,7 +134,7 @@ class QuickstartTests(unittest.TestCase):
         self.assertEqual(home['active_jobs'],1)
 
     def test_local_drive_configuration_is_explicit_and_never_exposes_secret(self):
-        disabled=configured_service(self.store, {'AGENTOS_DRIVE_CLIENT_ID':'client','AGENTOS_DRIVE_ENCRYPTION_KEY':Fernet.generate_key().decode()})
+        disabled=configured_service(self.store, {'AGENTOS_DRIVE_LOCAL_ONLY':'1','AGENTOS_DRIVE_CLIENT_ID':'client','AGENTOS_DRIVE_ENCRYPTION_KEY':Fernet.generate_key().decode()})
         self.assertIsNone(disabled.drive_web_oauth)
         configured=configured_service(self.store, {
             'AGENTOS_DRIVE_LOCAL_ONLY':'1', 'AGENTOS_DRIVE_CLIENT_ID':'client',

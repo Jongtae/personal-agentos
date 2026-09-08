@@ -40,15 +40,22 @@ def configured_service(store, environ=None):
         finder=lambda command: '/isolated-engine/codex' if command=='codex' else None
     ) if isolated_engine else None)
     drive=None
+    drive_exchange=None
     if environ.get('AGENTOS_DRIVE_LOCAL_ONLY')=='1':
-        client_id=environ.get('AGENTOS_DRIVE_CLIENT_ID',''); key=environ.get('AGENTOS_DRIVE_ENCRYPTION_KEY','')
+        client_id=environ.get('AGENTOS_DRIVE_CLIENT_ID',''); key=environ.get('AGENTOS_DRIVE_ENCRYPTION_KEY',''); client_secret=environ.get('AGENTOS_DRIVE_CLIENT_SECRET','')
         port=environ.get('AGENTOS_DRIVE_LOCAL_PORT','8787')
-        if client_id and key:
+        if client_id and key and client_secret:
             base=f'http://localhost:{port}'
             drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(store,key),client_id,
                 base+'/oauth/google/callback',base,allow_localhost=True,local_only=True)
-    return AgentService(store,subscription_engines=isolated_engines,
-                        isolated_engine_adapter=isolated_engine,drive_web_oauth=drive)
+            def drive_exchange(payload):
+                body=urlencode({**payload,'client_secret':client_secret,'grant_type':'authorization_code'}).encode()
+                with urlopen(Request('https://oauth2.googleapis.com/token',body,{'Content-Type':'application/x-www-form-urlencoded'}),timeout=15) as response:
+                    return json.loads(response.read())
+    service=AgentService(store,subscription_engines=isolated_engines,
+                         isolated_engine_adapter=isolated_engine,drive_web_oauth=drive)
+    service.drive_token_exchange=drive_exchange
+    return service
 
 
 def make_handler(service, public_hosts=(), public_access_token=''):
@@ -133,13 +140,9 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 try:
                     callback={key: values[0] for key,values in parse_qs(parts.query).items()}
                     owner=service.drive_web_oauth.callback_owner(callback.get('state'))
-                    secret=os.environ.get('AGENTOS_DRIVE_CLIENT_SECRET','')
-                    if not secret: raise DriveWebOAuthError('Local OAuth secret is unavailable.')
-                    def exchange(payload):
-                        body=urlencode({**payload,'client_secret':secret,'grant_type':'authorization_code'}).encode()
-                        with urlopen(Request('https://oauth2.googleapis.com/token',body,{'Content-Type':'application/x-www-form-urlencoded'}),timeout=15) as response:
-                            return json.loads(response.read())
-                    service.complete_drive_web_oauth(callback,owner,exchange)
+                    if not callable(getattr(service,'drive_token_exchange',None)):
+                        raise DriveWebOAuthError('Local OAuth configuration is unavailable.')
+                    service.complete_drive_web_oauth(callback,owner,service.drive_token_exchange)
                     return self.reply(200,b'Google Drive connected. Return to Telegram.','text/plain; charset=utf-8')
                 except (AttributeError, DriveWebOAuthError, OSError, ValueError):
                     return self.reply(400,b'Google Drive connection could not be completed. Return to Telegram and request a new link.','text/plain; charset=utf-8')
