@@ -33,6 +33,7 @@ class DriveWebOAuthTests(unittest.TestCase):
         self.assertEqual(offer["button"]["text"], "Google Drive 연결하기")
         self.assertTrue(offer["button"]["url"].startswith("https://"))
         self.assertNotIn("verifier", offer["button"]["url"])
+        self.assertEqual(len(state.split(".")), 2)
         query = parse_qs(urlparse(self.flow.authorization_url(state, 42)).query)
         self.assertEqual(query["scope"], [DRIVE_FILE])
         self.assertEqual(query["code_challenge_method"], ["S256"])

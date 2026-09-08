@@ -6,6 +6,7 @@ and tokens stay in the owner's local runtime.
 """
 import base64
 import hashlib
+import hmac
 import json
 import secrets
 import time
@@ -96,9 +97,12 @@ class DriveWebOAuthHandoff:
         if not isinstance(telegram_owner_id, int) or telegram_owner_id <= 0:
             raise DriveWebOAuthError("A paired Telegram owner is required.")
         verifier, challenge = _pkce_pair()
-        state = secrets.token_urlsafe(32)
+        nonce = secrets.token_urlsafe(32)
+        state_key = secrets.token_bytes(32)
+        signature = hmac.new(state_key, f"{telegram_owner_id}:{nonce}".encode(), hashlib.sha256).hexdigest()
+        state = nonce + "." + signature
         created = self.now()
-        pending = {"state": state, "verifier": verifier, "owner": telegram_owner_id,
+        pending = {"state": state, "state_key": base64.urlsafe_b64encode(state_key).decode(), "verifier": verifier, "owner": telegram_owner_id,
                    "created_at": created, "expires_at": created + self.ttl_seconds, "status": "pending"}
         self.store.secret(PENDING_KEY, pending)
         self._audit("connection-offered")
@@ -191,6 +195,14 @@ class DriveWebOAuthHandoff:
             raise DriveWebOAuthError("Google Drive authorization state did not match.")
         if owner != pending.get("owner"):
             raise DriveWebOAuthError("This Drive connection belongs to another Telegram owner.")
+        try:
+            nonce, signature = state.rsplit(".", 1)
+            state_key = base64.urlsafe_b64decode(pending["state_key"].encode())
+            expected = hmac.new(state_key, f"{owner}:{nonce}".encode(), hashlib.sha256).hexdigest()
+        except (KeyError, ValueError, TypeError):
+            raise DriveWebOAuthError("Google Drive authorization state is invalid.")
+        if not hmac.compare_digest(signature, expected):
+            raise DriveWebOAuthError("Google Drive authorization state signature did not match.")
         if self.now() >= pending.get("expires_at", 0):
             self._finish("expired")
             raise DriveWebOAuthError("Google Drive connection link expired; request a new link.")
