@@ -2,11 +2,15 @@
 
 Active work is executed only from a goal-ready issue and active delivery-plan entry under the [Goal Execution Contract](docs/goal-execution-contract.en.md). Status tables are trackers, not authority to activate reserved work.
 
-## Active top-level program
+## Closed top-level program
 
 | Goal | Issue | Status |
 | --- | --- | --- |
-| TOP | [#265](https://github.com/Jongtae/personal-agentos/issues/265) | Development complete on immutable candidate `53912eeb1357ced37031234b1e5376f024dd0a96` and main `validate` run `34204797899`; await only explicit owner operating approval or the separate LEGACY-01 product decision. |
+| TOP | [#265](https://github.com/Jongtae/personal-agentos/issues/265) | Development complete on immutable candidate `53912eeb1357ced37031234b1e5376f024dd0a96` and main `validate` run `34204797899`; development closeout #282; no active successor. OWNER-01 remains separate operating work; LEGACY-01 resolved by #279 (historical only). |
+
+## First milestone consolidation
+
+[#282](https://github.com/Jongtae/personal-agentos/issues/282) records the [2026-09-08 first milestone report](docs/first-milestone-report.ko.md), full issue/PR/branch inventory, independent review, and evidence-based administrative cleanup. OP-03 [#280](https://github.com/Jongtae/personal-agentos/issues/280) / PR #281 remains unfinished; passing CI is not acceptance completion. Four dirty worktrees and that unmerged branch are preserved.
 
 ## Maintained baseline
 

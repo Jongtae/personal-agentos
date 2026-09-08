@@ -51,13 +51,28 @@ class DeliveryTests(unittest.TestCase):
         (self.root/'delivery-plan.yaml').write_text(json.dumps(altered))
         self.assertIsNone(DeliveryPlan(self.root/'delivery-plan.yaml').select({}))
 
+    def activate_top_fixture(self):
+        plan=json.loads((self.root/'delivery-plan.yaml').read_text())
+        plan['next_goal']={'id':'TOP','status':'active'}
+        (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
+
+    def test_closed_repository_goal_cannot_resume_or_select_a_successor(self):
+        runner=Runner()
+        controller=self.controller(runner)
+        self.assertEqual(controller.plan.next_goal()['status'], 'development_complete')
+        self.assertIsNone(controller.plan.select({}))
+        self.assertEqual(controller.run_once()['status'], 'awaiting-owner-activated-goal')
+        self.assertEqual(runner.calls, [])
+
     def test_top_goal_stays_selectable_after_its_inventory_substep_closes(self):
+        self.activate_top_fixture()
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')
         self.assertIn('TOP-00', plan.documented_completed())
         self.assertEqual(plan.next_goal()['id'], 'TOP')
         self.assertEqual(plan.select({})['id'], 'TOP')
 
     def test_top_goal_migrates_a_documented_legacy_block_before_resuming(self):
+        self.activate_top_fixture()
         StateStore(self.state).write({
             'active':'UX-05', 'blocked':'UX-05', 'status':'blocked-validation-failed',
             'issues':{'UX-05':154},
