@@ -957,7 +957,10 @@ class AgentService:
                         capabilities=Capabilities(self.store,None,{},'',job['id'],record,network=self.local_tools,
                                                   document_access=False,packages=self.runtime_packages(),
                                                   allowed_tools={'list_notes','save_note','web_search'})
-                        engine_prompt=prompt
+                        # Use the same owner-approved request payload prepared
+                        # for the local model path.  In particular, /summarize
+                        # must send notes, never only the command literal.
+                        engine_prompt=history[-1]['content']
                         lookup_query=subscription_public_lookup_query(prompt)
                         if lookup_query:
                             record('web_search','running',json.dumps({'scope':'subscription-preflight','query':lookup_query},ensure_ascii=False))
