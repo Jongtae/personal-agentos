@@ -38,6 +38,7 @@ def ready_preflight(_root):
 def test_doctor_reports_ready_without_external_configuration(monkeypatch):
     monkeypatch.setattr(DOCTOR.operating_preflight, "inspect", ready_preflight)
     monkeypatch.setattr(DOCTOR, "_port_available", lambda _: True)
+    monkeypatch.setattr(DOCTOR, "_candidate_from_plan", lambda _root: "a" * 40)
     runner = Runner({
         ("git", "rev-parse", "HEAD"): "a" * 40 + "\n",
         ("git", "status", "--porcelain"): "",
@@ -81,6 +82,7 @@ def test_doctor_defaults_port_from_agentos_port(monkeypatch):
     monkeypatch.setattr(DOCTOR.operating_preflight, "inspect", ready_preflight)
     monkeypatch.setenv("AGENTOS_PORT", "9911")
     monkeypatch.setattr(DOCTOR, "_port_available", lambda _: True)
+    monkeypatch.setattr(DOCTOR, "_candidate_from_plan", lambda _root: "a" * 40)
     runner = Runner({
         ("git", "rev-parse", "HEAD"): "a" * 40 + "\n",
         ("git", "status", "--porcelain"): "",
