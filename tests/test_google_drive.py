@@ -60,3 +60,11 @@ class DriveTests(unittest.TestCase):
         with self.assertRaises(DriveAuthorizationError): self.connection.complete({"code": "code", "state": pending["state"]})
         self.assertEqual(self.connection.status()["state"], "disconnected")
         self.assertEqual(GoogleDrive(lambda *args: (_ for _ in ()).throw(RuntimeError("offline")), "secret").health(), {"ok": False, "error": "RuntimeError"})
+
+    def test_expired_token_requires_reauth_and_reconnect_restores_health(self):
+        pending = self.connection.connect(); self.connection.complete({"code": "code", "state": pending["state"]})
+        tokens = self.store.secret("google_drive_tokens"); tokens["expires_at"] = 0; self.store.secret("google_drive_tokens", tokens)
+        with self.assertRaises(DriveAuthorizationError): self.connection.adapter()
+        self.assertEqual(self.connection.health(), {"ok": False, "state": "reauth-required"})
+        pending = self.connection.connect(); self.connection.complete({"code": "code", "state": pending["state"]})
+        self.assertEqual(self.connection.health(), {"ok": True, "state": "connected"})

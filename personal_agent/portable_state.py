@@ -52,6 +52,8 @@ def _portable_db(source, target):
                         record['result'] = {'id': item['result']['id']}
                     safe[ident] = record
                 copy.execute("UPDATE config SET value=? WHERE key='calendar_create'", (json.dumps(safe, sort_keys=True),))
+        # Selected Drive content and approvals are owner-local, one-use context.
+        copy.execute("DELETE FROM config WHERE key='drive_excerpt_approvals'")
         copy.commit();copy.execute("VACUUM")
 
 def export_owner_state(data, archive):

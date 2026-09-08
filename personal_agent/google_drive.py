@@ -85,6 +85,8 @@ class GoogleDriveConnection:
         tokens = {key: response[key] for key in ("access_token", "refresh_token", "expires_in", "scope") if key in response}
         if DRIVE_READONLY not in str(tokens.get("scope", DRIVE_READONLY)):
             raise DriveAuthorizationError("Google Drive read-only scope was not granted.")
+        if isinstance(tokens.get("expires_in"), (int, float)):
+            tokens["expires_at"] = time.time() + max(0, tokens["expires_in"])
         self.store.secret(TOKEN_SECRET, tokens)
         self._clear_pending()
         self.store.put(CONNECTION_CONFIG, {"state": "connected", "connected_at": time.time(), "audit": ["connected"]})
@@ -95,10 +97,11 @@ class GoogleDriveConnection:
         return {"state": value.get("state", "disconnected"), "audit": list(value.get("audit", []))}
 
     def health(self):
-        tokens = self.store.secret(TOKEN_SECRET)
-        if not isinstance(tokens, dict) or not tokens.get("access_token"):
-            return {"ok": False, "state": "disconnected"}
-        return {**GoogleDrive(self.transport, tokens["access_token"]).health(), "state": self.status()["state"]}
+        try:
+            adapter = self.adapter()
+        except DriveAuthorizationError:
+            return {"ok": False, "state": self.status()["state"]}
+        return {**adapter.health(), "state": self.status()["state"]}
 
     def disconnect(self):
         prior = self.status()
@@ -111,6 +114,10 @@ class GoogleDriveConnection:
         tokens = self.store.secret(TOKEN_SECRET)
         if not isinstance(tokens, dict) or not tokens.get("access_token"):
             raise DriveAuthorizationError("Google Drive is not connected.")
+        if isinstance(tokens.get("expires_at"), (int, float)) and time.time() >= tokens["expires_at"]:
+            prior = self.status()
+            self.store.put(CONNECTION_CONFIG, {"state": "reauth-required", "audit": [*prior["audit"], "token-expired"][-50:]})
+            raise DriveAuthorizationError("Google Drive authorization expired; reconnect required.")
         return GoogleDrive(self.transport, tokens["access_token"])
 
     def _clear_pending(self):
