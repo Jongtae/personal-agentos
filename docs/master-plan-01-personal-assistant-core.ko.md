@@ -21,6 +21,8 @@
 
 각 iteration은 GitHub 이슈, `codex/` 브랜치, 작은 의도적 커밋, PR, 자동 검증을 갖는다. 완료 작업은 `TASKS.md`, `docs/roadmap.md`, `docs/issue-branch-ledger.jsonl`에 함께 기록한다.
 
+향후 remediation 또는 운영 모드 iteration을 활성화할 때 issue는 [Goal 실행 계약](goal-execution-contract.ko.md)에 따라 goal-ready가 되어야 한다. 이 Master Plan은 범위와 완료 기준을 제공하고, `delivery-plan.yaml`은 실행 순서를 제공한다.
+
 외부 연동과 Agent는 문서화된 contract, fixture, mock 기반 자동 검증으로 개발한다. OAuth client, provider credential, 외부 endpoint, 실제 활성화는 의도적으로 뒤로 미룬다. Master Plan 전체가 완료된 뒤 소유자가 AgentOS를 운영 모드로 배포하면서 한 번 설정한다. Mock 성공은 MP1 개발 작업을 완료하지만, 해당 외부 서비스가 이미 운영 중이라는 주장은 하지 않는다.
 
 ## Phase sequence

@@ -15,6 +15,8 @@ AgentOS는 contract-first delivery와 자동 품질 gate를 사용한다. 모든
 
 ## 개발 완료 규칙
 
+[Goal 실행 계약](goal-execution-contract.ko.md)은 활성 plan/issue가 실행 가능한 goal이 되는 방식, active/blocked 상태를 유지하는 방식, 완료 전 필요한 audit를 정의한다.
+
 Iteration은 다음이 issue와 pull request에 기록될 때 완료된다.
 
 - 문서화된 contract와 위협/데이터 경계 결정;

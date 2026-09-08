@@ -1,5 +1,7 @@
 # AgentOS Hub v2 roadmap
 
+Use the [Goal Execution Contract](goal-execution-contract.en.md) with this tracker: the active delivery plan and a goal-ready issue select work; vision, historical entries, and reserved proposals do not activate themselves.
+
 AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gateway. The Mac hosts the owner-controlled runtime; AgentOS owns personal state, assistants, permissions, tools, task lifecycle, and evidence; Codex or Claude Code performs bounded engine turns.
 
 ## M0 — Product basis and delivery sequence

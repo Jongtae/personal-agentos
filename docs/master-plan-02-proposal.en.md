@@ -4,6 +4,8 @@
 
 **Status: reserved.** MP2 is not MP1 implementation or an active delivery plan. It does not fix features, issues, or dates before completion evidence exists for [Master Plan 1](master-plan-01-personal-assistant-core.en.md).
 
+A candidate becomes an executable goal only after promotion to an active delivery-plan iteration and a goal-ready issue under the [Goal Execution Contract](goal-execution-contract.en.md). Recording a candidate never grants implementation authority.
+
 ## Promotion criteria
 
 Promote MP2 to `proposed` only after recording MP1's named live acceptance and the largest personal-assistant friction found in real use. Complete all of the following information.

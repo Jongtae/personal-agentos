@@ -21,6 +21,8 @@ Every phase has a `D-*` design iteration and an `I-*` implementation iteration. 
 
 Every iteration has a GitHub issue, a `codex/` branch, small intentional commits, a PR, and automated validation. Completed work is recorded together in `TASKS.md`, `docs/roadmap.md`, and `docs/issue-branch-ledger.jsonl`.
 
+When a future remediation or operating-mode iteration is activated, its issue must be made goal-ready under the [Goal Execution Contract](goal-execution-contract.en.md). This Master Plan supplies scope and completion criteria; `delivery-plan.yaml` supplies executable order.
+
 External integrations and agents are developed from their documented contracts with fixtures and mock-based automated validation. OAuth clients, provider credentials, external endpoints, and real activation are deliberately deferred: after the whole Master Plan is complete, the owner configures them once while deploying AgentOS in operating mode. Mock success completes MP1 delivery work; it never claims that the corresponding external service is already operating.
 
 ## Phase sequence

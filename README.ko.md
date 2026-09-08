@@ -39,3 +39,5 @@ v2 소비자 설치 프로그램이 만들어지는 동안 Homebrew 경로는 �
 ## 거버넌스
 
 모든 활성 Hub v2 마일스톤에는 GitHub 이슈, 브랜치, PR, 자동 검증이 있습니다. Master Plan 개발 중 외부 capability는 문서화된 contract와 mock으로 검증하며, 실제 credential과 connection은 Master Plan 전체 완료 뒤 소유자가 운영 모드로 배포할 때만 설정합니다. 전체 품질 gate는 [contract-first 개발 거버넌스](docs/development-governance.ko.md)에 정의합니다. 구현 전에 [AGENTS.md](AGENTS.md), [PRD.md](PRD.md), [TASKS.md](TASKS.md), [로드맵](docs/roadmap.md)을 읽어보세요.
+
+활성 작업은 [Goal 실행 계약](docs/goal-execution-contract.ko.md)으로 실행 가능하게 만들며, 실행 가능한 iteration과 vision·historical record·reserved proposal을 구분합니다.
