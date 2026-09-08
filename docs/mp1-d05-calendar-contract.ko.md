@@ -12,7 +12,7 @@ Adapter는 approval ID와 payload hash에서 나온 idempotency key와 최소 ev
 
 ## API와 저장
 
-`CalendarCreate`는 `draft(input)`, `preview(draft_id)`, `approve(draft_id, owner_id)`, `create(draft_id, approval_id, owner_id)`, `status(event_id)`를 제공한다. 상태는 `draft`, `awaiting-approval`, `approved`, `created`, `failed`, `expired`이며 terminal `created`는 바뀌지 않는다. 소유자 로컬 record는 draft hash, approval ID, idempotency key, result metadata, redacted error class만 보관한다.
+`CalendarCreate`는 `draft(input, owner_id)`, `preview(draft_id, owner_id)`, `approve(draft_id, owner_id)`, `create(draft_id, approval_id, owner_id)`, `status(draft_id, owner_id)`를 제공한다. 상태는 `awaiting-approval`, `approved`, `created`, `failed`, `expired`이며 terminal `created`는 바뀌지 않는다. 정책 소유 orchestrator만 승인과 생성을 위한 service/channel 진입점이 된다. 소유자 로컬 record는 canonical draft hash, 단발 approval ID, idempotency key, result metadata, redacted error class를 보관하고, portable export에는 내용이 없는 복구 metadata만 남긴다.
 
 ## Fixture와 자동 acceptance
 

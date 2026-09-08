@@ -100,6 +100,11 @@ class AgentService:
             raise ValueError('개인 비서 요청을 확인하세요.')
         request = dict(body)
         request['owner_id'] = owner_id
+        action = request.get('action')
+        if action == 'calendar-approve':
+            return self.assistant_orchestrator.approve_calendar(request)
+        if action == 'calendar-create':
+            return self.assistant_orchestrator.create_calendar(request)
         return self.assistant_orchestrator.handle(request)
 
     def settings(self):
