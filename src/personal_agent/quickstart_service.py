@@ -536,9 +536,11 @@ class AgentService:
         try:
             result = self.drive_web_oauth.complete(callback, telegram_owner_id, exchange)
         except ValueError:
-            self.publish_drive_connection_status(telegram_owner_id)
+            try:self.publish_drive_connection_status(telegram_owner_id)
+            except ProviderError:pass
             raise
-        self.publish_drive_connection_status(telegram_owner_id)
+        try:self.publish_drive_connection_status(telegram_owner_id)
+        except ProviderError:pass
         return result
 
     def select_drive_files(self, telegram_owner_id, files):
