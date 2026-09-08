@@ -141,6 +141,17 @@ class DriveWebOAuthTests(unittest.TestCase):
         self.assertIn("/picked?alt=media", calls[0][0])
         self.assertNotIn("local file body", str(self.flow.status()))
 
+    def test_picker_grant_is_owner_bound_short_lived_and_single_use(self):
+        self.connect()
+        grant=self.flow.create_picker_grant(42)
+        self.assertTrue(self.flow.picker_grant_active(grant))
+        owner, result=self.flow.select_files_for_grant(grant,[{"id":"picked","name":"plan"}])
+        self.assertEqual(owner,42)
+        self.assertEqual(result["state"],"files-selected")
+        self.assertFalse(self.flow.picker_grant_active(grant))
+        with self.assertRaises(DriveWebOAuthError):
+            self.flow.select_files_for_grant(grant,[{"id":"other"}])
+
     def test_google_native_file_is_exported_and_selection_keeps_connection_active(self):
         self.connect()
         self.flow.select_files(42, [{"id": "doc", "mimeType": "application/vnd.google-apps.document"}])

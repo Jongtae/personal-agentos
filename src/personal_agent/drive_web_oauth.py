@@ -21,6 +21,7 @@ PENDING_KEY = "drive_web_oauth_pending"
 TOKEN_KEY = "drive_web_oauth_tokens"
 STATUS_KEY = "drive_web_oauth_status"
 SELECTED_FILES_KEY = "drive_web_oauth_selected_files"
+PICKER_GRANT_KEY = "drive_web_oauth_picker_grant"
 FILES_ENDPOINT = "https://www.googleapis.com/drive/v3/files"
 
 
@@ -186,6 +187,43 @@ class DriveWebOAuthHandoff:
         self.store.put(SELECTED_FILES_KEY, {"owner": telegram_owner_id, "files": selected})
         self._record("files-selected")
         return {"state": "files-selected", "files": selected}
+
+    def create_picker_grant(self, telegram_owner_id):
+        """Mint a short-lived, one-use browser grant after OAuth succeeds.
+
+        This is deliberately *not* an OAuth token.  It lets the local Picker
+        page submit only the owner's selected file identifiers and is kept in
+        the encrypted secret store so neither status APIs nor the ordinary
+        local database reveal it.
+        """
+        self._connected(telegram_owner_id)
+        value = {"grant": secrets.token_urlsafe(32), "owner": telegram_owner_id,
+                 "expires_at": self.now() + self.ttl_seconds, "used": False}
+        self.store.secret(PICKER_GRANT_KEY, value)
+        self._record("picker-offered")
+        return value["grant"]
+
+    def select_files_for_grant(self, grant, files):
+        value = self.store.secret(PICKER_GRANT_KEY)
+        if (not isinstance(grant, str) or not isinstance(value, dict)
+                or value.get("used") or not secrets.compare_digest(grant, str(value.get("grant", "")))):
+            raise DriveWebOAuthError("Google Drive file-selection link is invalid or already used.")
+        if self.now() >= value.get("expires_at", 0):
+            self.store.secret(PICKER_GRANT_KEY, {"used": True})
+            raise DriveWebOAuthError("Google Drive file-selection link expired; request a new link.")
+        owner = value.get("owner")
+        if not isinstance(owner, int):
+            raise DriveWebOAuthError("Google Drive file-selection link is invalid.")
+        # Consume before accepting the metadata so a second browser tab cannot
+        # replace a deliberate Picker selection.
+        self.store.secret(PICKER_GRANT_KEY, {"used": True})
+        return owner, self.select_files(owner, files)
+
+    def picker_grant_active(self, grant):
+        value = self.store.secret(PICKER_GRANT_KEY)
+        return (isinstance(grant, str) and isinstance(value, dict)
+                and not value.get("used") and self.now() < value.get("expires_at", 0)
+                and secrets.compare_digest(grant, str(value.get("grant", ""))))
 
     def assert_selected(self, telegram_owner_id, file_id):
         self._connected(telegram_owner_id)

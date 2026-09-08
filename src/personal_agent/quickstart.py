@@ -27,6 +27,49 @@ WEB=Path(__file__).parent/'web'
 ISOLATED_MCP_PATH='/internal/isolated-engine/mcp'
 
 
+def picker_page(config, grant):
+    """Return the local, no-store page that hosts the Google Picker.
+
+    Only the OAuth client id and a referrer-restricted Picker developer key
+    reach this page.  OAuth codes, access tokens, refresh tokens, and the
+    server-side selection grant never appear in JavaScript configuration.
+    """
+    safe_config=json.dumps(config, separators=(',', ':')).replace('<','\\u003c')
+    safe_grant=json.dumps(grant).replace('<','\\u003c')
+    return f'''<!doctype html><html lang="ko"><meta charset="utf-8">
+<meta name="referrer" content="no-referrer"><title>Google Drive 파일 선택</title>
+<main><h1>Google Drive 파일 선택</h1><p id="status">Google Drive Picker를 여는 중입니다.</p><button id="retry" hidden>다시 열기</button></main>
+<script src="https://apis.google.com/js/api.js"></script><script src="https://accounts.google.com/gsi/client"></script>
+<script>
+const pickerConfig={safe_config}; const selectionGrant={safe_grant};
+const status=document.getElementById('status'), retry=document.getElementById('retry');
+let pickerReady=false;
+function fail(message) {{ status.textContent=message; retry.hidden=false; }}
+function sendSelection(documents) {{
+  const files=documents.map(d=>({{id:d.id,name:d.name||'',mime_type:d.mimeType||''}}));
+  fetch('/api/drive/picker-selection',{{method:'POST',headers:{{'Content-Type':'application/json'}},
+    body:JSON.stringify({{grant:selectionGrant,files}})}}).then(async response=>{{
+      if(!response.ok) throw new Error('selection rejected');
+      status.textContent='파일 선택을 저장했습니다. Telegram에서 결과를 확인하세요.';
+    }}).catch(()=>fail('파일 선택을 저장하지 못했습니다. Telegram에서 새 연결을 요청하세요.'));
+}}
+function openPicker() {{
+  retry.hidden=true;
+  if(!pickerReady || !window.google || !google.accounts) return fail('Google Picker를 불러오지 못했습니다.');
+  const tokenClient=google.accounts.oauth2.initTokenClient({{client_id:pickerConfig.client_id,
+    scope:'https://www.googleapis.com/auth/drive.file', callback:token=>{{
+      if(token.error) return fail('Google Drive 권한이 필요합니다. 다시 시도하세요.');
+      const picker=new google.picker.PickerBuilder().setDeveloperKey(pickerConfig.developer_key)
+        .setAppId(pickerConfig.app_id).setOAuthToken(token.access_token)
+        .setCallback(data=>{{if(data.action===google.picker.Action.PICKED) sendSelection(data.docs||[]);
+          else if(data.action===google.picker.Action.CANCEL) status.textContent='파일 선택을 취소했습니다. Telegram에서 새 연결을 요청하세요.';}})
+        .build(); picker.setVisible(true);
+    }}); tokenClient.requestAccessToken({{prompt:''}});
+}}
+gapi.load('picker',()=>{{pickerReady=true; openPicker();}}); retry.addEventListener('click',openPicker);
+</script></html>'''.encode()
+
+
 def configured_service(store, environ=None):
     """Build the service with an explicitly configured isolated gateway."""
     environ=os.environ if environ is None else environ
@@ -41,6 +84,8 @@ def configured_service(store, environ=None):
     ) if isolated_engine else None)
     drive=None
     drive_exchange=None
+    drive_read=None
+    picker_config=None
     if environ.get('AGENTOS_DRIVE_LOCAL_ONLY')=='1':
         client_id=environ.get('AGENTOS_DRIVE_CLIENT_ID',''); key=environ.get('AGENTOS_DRIVE_ENCRYPTION_KEY',''); client_secret=environ.get('AGENTOS_DRIVE_CLIENT_SECRET','')
         port=environ.get('AGENTOS_DRIVE_LOCAL_PORT','8787')
@@ -52,9 +97,22 @@ def configured_service(store, environ=None):
                 body=urlencode({**payload,'client_secret':client_secret,'grant_type':'authorization_code'}).encode()
                 with urlopen(Request('https://oauth2.googleapis.com/token',body,{'Content-Type':'application/x-www-form-urlencoded'}),timeout=15) as response:
                     return json.loads(response.read())
+            def drive_read(url, body, headers):
+                # This is the sole owner-local transport for selected Drive
+                # bytes.  Callers keep the body in memory only.
+                with urlopen(Request(url, body, headers), timeout=20) as response:
+                    return response.read()
+            picker_key=environ.get('AGENTOS_DRIVE_PICKER_API_KEY','')
+            if picker_key:
+                # Google Picker requires a browser-visible, referrer-restricted
+                # developer key.  It is not included in status/settings APIs.
+                picker_config={'client_id':client_id,'developer_key':picker_key,
+                               'app_id':client_id.split('-',1)[0]}
     service=AgentService(store,subscription_engines=isolated_engines,
                          isolated_engine_adapter=isolated_engine,drive_web_oauth=drive)
     service.drive_token_exchange=drive_exchange
+    service.drive_read=drive_read
+    service.drive_picker_config=picker_config
     return service
 
 
@@ -72,7 +130,7 @@ def make_handler(service, public_hosts=(), public_access_token=''):
 
         def log_message(self,*args):pass
 
-        def reply(self,status,body,content_type='application/json; charset=utf-8',cookie=None):
+        def reply(self,status,body,content_type='application/json; charset=utf-8',cookie=None,csp=None):
             data=json.dumps(body,ensure_ascii=False).encode() if content_type.startswith('application/json') else body
             self.send_response(status)
             self.send_header('Content-Type',content_type)
@@ -80,7 +138,7 @@ def make_handler(service, public_hosts=(), public_access_token=''):
             self.send_header('Cache-Control','no-store')
             self.send_header('X-Content-Type-Options','nosniff')
             self.send_header('Referrer-Policy','no-referrer')
-            self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+            self.send_header('Content-Security-Policy',csp or "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
             if cookie:self.send_header('Set-Cookie',cookie)
             self.end_headers()
             self.wfile.write(data)
@@ -143,9 +201,18 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                     if not callable(getattr(service,'drive_token_exchange',None)):
                         raise DriveWebOAuthError('Local OAuth configuration is unavailable.')
                     service.complete_drive_web_oauth(callback,owner,service.drive_token_exchange)
+                    if getattr(service,'drive_picker_config',None):
+                        grant=service.drive_web_oauth.create_picker_grant(owner)
+                        return self.redirect('/google-drive-picker?'+urlencode({'grant':grant}))
                     return self.reply(200,b'Google Drive connected. Return to Telegram.','text/plain; charset=utf-8')
                 except (AttributeError, DriveWebOAuthError, OSError, ValueError):
                     return self.reply(400,b'Google Drive connection could not be completed. Return to Telegram and request a new link.','text/plain; charset=utf-8')
+            if path=='/google-drive-picker':
+                grant=parse_qs(parts.query).get('grant',[''])[0]
+                if not (getattr(service,'drive_picker_config',None) and service.drive_web_oauth.picker_grant_active(grant)):
+                    return self.reply(400,b'Google Drive file-selection link is invalid or expired. Return to Telegram and request a new link.','text/plain; charset=utf-8')
+                csp="default-src 'self'; script-src 'self' https://apis.google.com https://accounts.google.com; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://accounts.google.com https://www.googleapis.com; frame-src https://accounts.google.com https://docs.google.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+                return self.reply(200,picker_page(service.drive_picker_config,grant),'text/html; charset=utf-8',csp=csp)
             if path in ('/','/app.js','/style.css'):
                 filename={'/':'index.html','/app.js':'app.js','/style.css':'style.css'}[path]
                 mime={'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8'}[path]
@@ -221,6 +288,9 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                         return self.reply(403,{'error':'이 환경에서는 로그인이 필요합니다.'})
                     token=store.local_session()
                     return self.reply(200,{'ok':True},cookie=f'agentos_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=86400')
+                if path=='/api/drive/picker-selection':
+                    result=service.select_drive_picker_files(body.get('grant'),body.get('files'))
+                    return self.reply(200,{'state':result['state']})
                 if path in ('/api/claim','/api/login'):
                     with attempts_lock:
                         attempts[:]=[t for t in attempts if t>time.time()-60]

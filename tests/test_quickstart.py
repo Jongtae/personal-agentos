@@ -174,6 +174,55 @@ class QuickstartTests(unittest.TestCase):
         finally:
             server.shutdown();thread.join();server.server_close()
 
+    def test_local_picker_page_uses_one_time_grant_without_server_oauth_token(self):
+        key=Fernet.generate_key()
+        drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(self.store,key),'web-client',
+            'http://localhost:8787/oauth/google/callback','http://localhost:8787',allow_localhost=True,local_only=True)
+        offer=drive.begin(123); state=parse_qs(urlsplit(offer['button']['url']).query)['state'][0]
+        drive.complete({'state':state,'code':'short-code'},123,lambda _:{'access_token':'server-only-token','scope':'https://www.googleapis.com/auth/drive.file'})
+        grant=drive.create_picker_grant(123)
+        service=AgentService(self.store,ModelAdapter(self.transport),self.transport,drive_web_oauth=drive)
+        service.drive_picker_config={'client_id':'web-client','developer_key':'restricted-browser-key','app_id':'123'}
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(service));thread=threading.Thread(target=server.serve_forever);thread.start()
+        try:
+            url='http://127.0.0.1:'+str(server.server_port)
+            with build_opener().open(url+'/google-drive-picker?grant='+grant,timeout=3) as response:
+                page=response.read().decode()
+            self.assertIn('restricted-browser-key',page)
+            self.assertNotIn('server-only-token',page)
+            self.assertIn("/api/drive/picker-selection",page)
+        finally:
+            server.shutdown();thread.join();server.server_close()
+
+    def test_drive_request_without_local_capability_never_falls_through_to_model(self):
+        self.model(); self.assertTrue(self.service.test_model()['ok']); self.calls.clear()
+        self.store.enqueue('구글 드라이브 연결해 보자','drive-not-configured',channel='telegram:g',chat_id=123)
+        self.assertTrue(self.service.run_one())
+        job=self.store.jobs()[0]
+        self.assertEqual(job['status'],'failed')
+        self.assertIn('not configured locally',job['error'])
+        self.assertFalse(any(url.endswith('/api/chat') for url, _body, _headers in self.calls))
+
+    def test_selected_drive_content_is_only_in_memory_for_the_model_turn(self):
+        key=Fernet.generate_key()
+        drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(self.store,key),'client',
+            'http://localhost:8787/oauth/google/callback','http://localhost:8787',allow_localhost=True,local_only=True)
+        offer=drive.begin(123); state=parse_qs(urlsplit(offer['button']['url']).query)['state'][0]
+        drive.complete({'state':state,'code':'code'},123,lambda _:{'access_token':'server-token','scope':'https://www.googleapis.com/auth/drive.file'})
+        drive.select_files(123,[{'id':'picked','name':'plan.txt'}])
+        service=AgentService(self.store,ModelAdapter(self.transport),self.transport,drive_web_oauth=drive)
+        service.drive_read=lambda _url,_body,_headers:b'private selected Drive plan body'
+        service.save_model({'provider':'ollama','endpoint':'http://127.0.0.1:11434','model':'test-model'})
+        self.assertTrue(service.test_model()['ok']); self.calls.clear()
+        job_id=self.store.enqueue('구글 드라이브 파일을 요약해줘','selected-drive',channel='telegram:g',chat_id=123)
+        self.assertTrue(service.run_one())
+        self.assertEqual(self.store.job(job_id)['status'],'succeeded')
+        self.assertNotIn('private selected Drive plan body',json.dumps(self.store.history()))
+        self.assertNotIn('private selected Drive plan body',json.dumps(self.store.jobs()))
+        self.assertNotIn('private selected Drive plan body',json.dumps(self.store.recent_tool_events()))
+        model_call=next(body for url,body,_headers in self.calls if url.endswith('/api/chat'))
+        self.assertIn('private selected Drive plan body',str(model_call))
+
     def test_workspace_is_opt_in_and_saved_results_survive_restart(self):
         workspace=self.service.create_workspace({'title':'UX 개선','purpose':'대화 경험 정리'})
         self.assertEqual(self.store.workspaces()[0]['id'],workspace['id'])
