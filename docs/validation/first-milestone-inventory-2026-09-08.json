@@ -934,7 +934,7 @@
       "title": "feat: add owner-safe operating doctor",
       "state": "open",
       "merged_at": null,
-      "merge_commit": "992cb101a279c91ec3abb25b72e4ba03420460ac",
+      "merge_commit": null,
       "head_ref": "codex/280-owner-operating-doctor",
       "head_sha": "8cc9b8f9ad1345e81346763564cd04bde31637c3",
       "url": "https://github.com/Jongtae/personal-agentos/pull/281"
@@ -1564,7 +1564,7 @@
       "title": "fix: make Telegram task-card cancellation practical on mobile",
       "state": "closed",
       "merged_at": null,
-      "merge_commit": "9632981ed2eca26932f24bc68079fcb1a9728111",
+      "merge_commit": null,
       "head_ref": "fix/telegram-card-cancellation-window",
       "head_sha": "24bca08c3ca8ccd3ffd653560bf373a59bff8b62",
       "url": "https://github.com/Jongtae/personal-agentos/pull/166"
@@ -1814,7 +1814,7 @@
       "title": "[H3-01] Add managed Telegram pairing boundary",
       "state": "closed",
       "merged_at": null,
-      "merge_commit": "14d72b722eb962f0d0b6d11ed7284e83309d5a52",
+      "merge_commit": null,
       "head_ref": "delivery/h3-01",
       "head_sha": "e77474c13c1dd75273d3f423f2958b754b8a7823",
       "url": "https://github.com/Jongtae/personal-agentos/pull/120"
