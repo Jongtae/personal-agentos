@@ -2,7 +2,7 @@
 
 ## Status and goal
 
-**Status: implementation incomplete.** D-01 through I-06 merged in dependency order, but review found that their isolated adapters and direct fixture do not prove the policy-owned personal-assistant product flow. [MP1 Remediation](mp1-remediation.en.md) defines the required R-01 through R-05 implementation sequence. The remaining manual Telegram observations from UX-05 were removed from that release gate by owner decision; that decision does not claim those observations passed. External credentials and real connection activation remain deferred to the owner-controlled operating-mode deployment.
+**Status: development complete (mock-contract validated).** D-01 through I-06 remain historical boundary work; R-01 through R-05 then merged in dependency order to prove the policy-owned personal-assistant flow through automated fixtures. [MP1 Remediation](mp1-remediation.en.md) records that evidence. The remaining manual Telegram observations from UX-05 were removed from that release gate by owner decision; that decision does not claim those observations passed. External credentials and real connection activation remain deferred to the owner-controlled operating-mode deployment.
 
 The goal is to validate a personal-assistant core in which one owner asks for outcomes from AgentOS Personal Space and AgentOS coordinates only reviewed connections while retaining personal state, approvals, evidence, and recovery.
 

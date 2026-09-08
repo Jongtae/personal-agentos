@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status: proposed remediation.** The original D-01 through I-06 work produced boundary contracts and isolated mock adapters, but does not yet prove the personal-assistant product flow. MP1 remains implementation incomplete until every remediation iteration below merges with its stated automated acceptance.
+**Status: complete remediation (mock-contract validated).** The original D-01 through I-06 work produced boundary contracts and isolated mock adapters. R-01 through R-05 subsequently merged with their stated automated acceptance, proving the policy-owned personal-assistant product flow. This is development evidence only; operating-mode deployment remains separate.
 
 ## Gap analysis
 
