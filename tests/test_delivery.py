@@ -56,10 +56,10 @@ class DeliveryTests(unittest.TestCase):
     def test_closed_ux05_state_reconciles_to_next_mp2_selection(self):
         StateStore(self.state).write({'active':'UX-05','blocked':'UX-05','completed':['UX-01','UX-02','UX-03','UX-03a','UX-04'],'status':'blocked-validation-failed','next_retry_at':self.clock[0]+21600,'last_error':'historical failure'})
         result=self.controller(Runner()).status()
-        self.assertEqual(result['active'],'STAB-01')
+        self.assertIsNone(result['active'])
         self.assertEqual(result['status'],'reconciled-documentation')
-        self.assertIsNone(result['next_goal'])
-        self.assertEqual(result['next_action'],'run current iteration')
+        self.assertEqual(result['next_goal']['id'],'OPERATING-MODE-REVIEW')
+        self.assertEqual(result['next_action'],'do not start a new feature or operating deployment without an explicit owner direction')
         self.assertIn('D-MP2-01',result['completed'])
         persisted=StateStore(self.state).read()
         self.assertNotIn('active',persisted);self.assertNotIn('blocked',persisted);self.assertNotIn('next_retry_at',persisted)
@@ -67,16 +67,16 @@ class DeliveryTests(unittest.TestCase):
     def test_merged_documented_iteration_clears_active_state_and_exposes_review_gate(self):
         StateStore(self.state).write({'active':'I-MP2-01','milestone':'AgentOS Conversation-First Settings','issue':234,'status':'complete'})
         result=self.controller(Runner()).status()
-        self.assertEqual(result['active'],'STAB-01')
+        self.assertIsNone(result['active'])
         self.assertEqual(result['status'],'reconciled-documentation')
         self.assertIn('I-MP2-01',result['completed'])
-        self.assertIsNone(result['next_goal'])
+        self.assertEqual(result['next_goal']['id'],'OPERATING-MODE-REVIEW')
 
     def test_reconciled_documentation_state_adopts_later_documented_closeout(self):
         StateStore(self.state).write({'completed':['D-MP2-01'],'status':'complete','last_validation':'migrated-documentation'})
         result=self.controller(Runner()).status()
         self.assertIn('I-MP2-01',result['completed'])
-        self.assertEqual(result['active'],'STAB-01')
+        self.assertIsNone(result['active'])
 
     def test_valid_ux_block_is_not_migrated(self):
         StateStore(self.state).write({'active':'UX-02','blocked':'UX-02','status':'blocked-validation-failed','next_retry_at':self.clock[0]+21600})
@@ -264,7 +264,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertNotIn('active',result)
         self.assertNotIn('milestone',result)
         self.assertNotIn('issue',result)
-        self.assertEqual(self.controller(Runner()).status()['next_action'],'complete the owner-directed subscription-engine Telegram stabilization cycle')
+        self.assertEqual(self.controller(Runner()).status()['next_action'],'do not start a new feature or operating deployment without an explicit owner direction')
 
     def test_created_ux_issue_uses_its_configured_milestone(self):
         plan=json.loads((self.root/'delivery-plan.yaml').read_text())
