@@ -29,3 +29,4 @@ Branch: `codex/struct-01-workunit-04-tool-deployment-tests`
 
 - 2026-09-08: Issue #291 및 matching branch 생성.
 - 2026-09-08: src-layout/Docker/CI/script bootstrap 회귀를 검사하는 verifier를 추가하고 validate workflow에 연결.
+- 2026-09-08: 로컬 `operating_preflight.py --root .` 실행에서 `state=ready`, recovery action 없음, owner 운영 게이트 deferred를 재확인했다. 원격 CI의 단발성 preflight probe 실패는 검증 완화 없이 새 run에서 재확인한다.
