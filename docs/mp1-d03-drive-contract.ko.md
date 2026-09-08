@@ -6,8 +6,8 @@ I-03은 표준 설치형 앱 OAuth Authorization Code 흐름과 PKCE, 최소 읽
 
 ## 데이터와 보안
 
-Token은 private connection store에만 남고 export, event, log, engine, browser 응답에서 제외된다. 검색 metadata와 선택 발췌문은 소유자 로컬에 남는다. 외부 engine에는 기존 문서 승인 경계가 요청별 최소 선택 발췌문을 허용하기 전 Drive 내용을 전달하지 않는다.
+Token은 private connection store에만 남고 export, event, log, engine, browser 응답에서 제외된다. 검색 metadata와 선택 발췌문은 소유자 로컬에 남는다. 선택 발췌문은 소유자에 묶이고 최대 4,000자로 제한되며, 명시 A2A 위임에 정확히 그 context를 전달하려면 단발 승인이 필요하다. Evidence는 lifecycle metadata만 기록하고, portable export는 발췌문·승인·소유자 식별·파일 내용을 제거한다.
 
 ## API와 acceptance
 
-Connector는 connect, health, search, 선택 읽기, disconnect를 제공한다. Disconnect는 로컬 token 저장을 폐기하고 redacted audit metadata를 남긴다. Fixture는 PKCE state 불일치, 만료 token, scope 거절, 결과 redaction, 승인 거절, disconnect를 다룬다. 자동 테스트는 모든 경로를 다루며 I-03은 Drive 쓰기 capability를 추가하지 않는다.
+Connector는 connect, health, search, 선택 읽기, disconnect를 제공한다. Disconnect는 로컬 token 저장을 폐기하고 redacted audit metadata를 남긴다. 만료 token은 새 인증이 완료될 때까지 `reauth-required`가 된다. Fixture는 PKCE state 불일치, 만료 token/re-auth, scope 거절, 결과 redaction, 선택 발췌 승인 거절, disconnect/reconnect를 다룬다. 자동 테스트는 모든 경로를 다루며 I-03은 Drive 쓰기 capability를 추가하지 않는다.

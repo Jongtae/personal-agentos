@@ -3,7 +3,9 @@
 Adapters are injected and deliberately have no HTTP or channel surface.  This
 module is the only boundary allowed to select and invoke them.
 """
+import hashlib
 import time
+import uuid
 
 from .capabilities import CapabilityRegistry
 
@@ -27,6 +29,17 @@ class PersonalAssistantOrchestrator:
         rows.append(event)
         self.store.put('personal_assistant_evidence', rows[-100:])
         return event
+
+    def _drive_adapter(self):
+        if self.drive is None:
+            raise AssistantRequestError('Google Drive 연결을 먼저 설정하세요.')
+        return self.drive.adapter() if hasattr(self.drive, 'adapter') else self.drive
+
+    def _drive_excerpts(self):
+        return self.store.config('drive_excerpt_approvals', {})
+
+    def _put_drive_excerpts(self, rows):
+        self.store.put('drive_excerpt_approvals', rows)
 
     @staticmethod
     def _request(value):
@@ -72,9 +85,7 @@ class PersonalAssistantOrchestrator:
         if intent == 'drive-search':
             try:
                 self.registry.require_enabled('google-drive-read', 'read')
-                if self.drive is None:
-                    raise AssistantRequestError('Google Drive 연결을 먼저 설정하세요.')
-                rows = self.drive.search(value.get('query', message))
+                rows = self._drive_adapter().search(value.get('query', message))
                 safe = [{'id': row.get('id', ''), 'name': row.get('name', ''), 'mime_type': row.get('mime_type', '')} for row in rows[:20] if isinstance(row, dict)]
                 evidence = self._evidence('drive-search', 'completed', result_count=len(safe))
                 return {'state': 'completed', 'response': 'Google Drive에서 관련 파일을 찾았습니다.', 'sources': safe, 'evidence': evidence}
@@ -86,7 +97,10 @@ class PersonalAssistantOrchestrator:
                 self.registry.require_enabled('compatibility-a2a-peer', 'delegate')
                 if self.a2a is None:
                     raise AssistantRequestError('A2A test peer가 연결되지 않았습니다.')
-                delegation = self.a2a.delegate({'explicit': True, 'owner': owner, 'prompt': message})
+                excerpt = self._approved_drive_excerpt(value.get('drive_excerpt'), owner) if value.get('drive_excerpt') is not None else None
+                delegation = self.a2a.delegate({'explicit': True, 'owner': owner, 'prompt': message, **({'context': {'text': excerpt['text']}} if excerpt else {})})
+                if excerpt:
+                    rows = self._drive_excerpts(); rows[excerpt['id']]['state'] = 'consumed'; self._put_drive_excerpts(rows)
                 evidence = self._evidence('a2a-delegate', 'requested', delegation_id=delegation['id'])
                 return {'state': 'requested', 'response': '명시한 작업을 호환성 Agent에 위임했습니다.', 'delegation_id': delegation['id'], 'evidence': evidence}
             except (ValueError, AssistantRequestError) as exc:
@@ -105,6 +119,52 @@ class PersonalAssistantOrchestrator:
                 return {'state': 'blocked', 'response': str(exc), 'evidence': evidence}
         evidence = self._evidence('unknown', 'fallback', '요청을 더 구체적으로 설명하거나 사용 가능한 연결을 확인하세요.')
         return {'state': 'fallback', 'response': '이 요청에 사용할 검토된 capability를 찾지 못했습니다.', 'evidence': evidence}
+
+    def draft_drive_excerpt(self, value):
+        """Read a bounded local excerpt; it cannot reach a peer before approval."""
+        _, owner = self._request(value)
+        try:
+            self.registry.require_enabled('google-drive-read', 'read')
+            file_id, start, length = value.get('file_id'), value.get('start', 0), value.get('length', 4000)
+            if not isinstance(file_id, str) or not file_id or not isinstance(start, int) or start < 0 or not isinstance(length, int) or not 1 <= length <= 4000:
+                raise AssistantRequestError('선택할 Drive 발췌문 범위를 확인하세요.')
+            content = self._drive_adapter().read(file_id)
+            if isinstance(content, dict): content = content.get('text')
+            if not isinstance(content, str):
+                raise AssistantRequestError('Drive 파일 내용을 안전하게 읽지 못했습니다.')
+            excerpt = content[start:start + length]
+            if not excerpt:
+                raise AssistantRequestError('선택한 Drive 발췌문이 비어 있습니다.')
+            ident = str(uuid.uuid4()); rows = self._drive_excerpts()
+            rows[ident] = {'id': ident, 'owner': owner, 'text': excerpt, 'hash': hashlib.sha256(excerpt.encode()).hexdigest(), 'state': 'awaiting-approval'}
+            self._put_drive_excerpts(rows)
+            evidence = self._evidence('drive-excerpt-draft', 'awaiting-approval', excerpt_id=ident, length=len(excerpt))
+            return {'state': 'awaiting-approval', 'excerpt': {'id': ident, 'text': excerpt}, 'evidence': evidence}
+        except (ValueError, AssistantRequestError) as exc:
+            evidence = self._evidence('drive-excerpt-draft', 'blocked', 'Drive 연결을 다시 인증하거나 발췌 범위를 확인하세요.')
+            return {'state': 'blocked', 'response': str(exc), 'evidence': evidence}
+
+    def approve_drive_excerpt(self, value):
+        _, owner = self._request(value)
+        try:
+            self.registry.require_enabled('google-drive-read', 'read')
+            ident = value.get('excerpt_id'); rows = self._drive_excerpts(); row = rows.get(ident)
+            if not isinstance(ident, str) or not row or row.get('owner') != owner or row.get('state') != 'awaiting-approval':
+                raise AssistantRequestError('승인할 Drive 발췌문을 확인하세요.')
+            row['approval_id'] = uuid.uuid4().hex; row['state'] = 'approved'; rows[ident] = row; self._put_drive_excerpts(rows)
+            evidence = self._evidence('drive-excerpt-approval', 'approved', excerpt_id=ident)
+            return {'state': 'approved', 'approval_id': row['approval_id'], 'evidence': evidence}
+        except (ValueError, AssistantRequestError) as exc:
+            evidence = self._evidence('drive-excerpt-approval', 'blocked', '발췌문을 다시 확인하세요.')
+            return {'state': 'blocked', 'response': str(exc), 'evidence': evidence}
+
+    def _approved_drive_excerpt(self, value, owner):
+        if not isinstance(value, dict):
+            raise AssistantRequestError('외부 Agent에 전달할 승인된 Drive 발췌문이 필요합니다.')
+        row = self._drive_excerpts().get(value.get('excerpt_id'))
+        if not row or row.get('owner') != owner or row.get('state') != 'approved' or row.get('approval_id') != value.get('approval_id'):
+            raise AssistantRequestError('Drive 발췌문 승인이 일치하지 않습니다.')
+        return row
 
     def approve_calendar(self, value):
         """Record a one-time owner approval for a previously previewed draft."""

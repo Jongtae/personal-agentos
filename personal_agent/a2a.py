@@ -24,8 +24,13 @@ class A2ADelegation:
     def delegate(self, request):
         if not isinstance(request, dict) or request.get("explicit") is not True or not isinstance(request.get("owner"), str) or not request["owner"] or not isinstance(request.get("prompt"), str) or not request["prompt"].strip() or len(request["prompt"]) > 12000:
             raise A2AError("Explicit owner delegation is required.")
+        context = request.get("context")
+        if context is not None and (not isinstance(context, dict) or set(context) != {"text"} or not isinstance(context["text"], str) or not context["text"] or len(context["text"]) > 4000):
+            raise A2AError("Delegation context is invalid.")
         card = self.discover(); ident, correlation = str(uuid.uuid4()), str(uuid.uuid4())
-        remote = self.peer.create({"delegation_id": ident, "correlation_id": correlation, "prompt": request["prompt"].strip(), "skill": card["skill"]})
+        outbound = {"delegation_id": ident, "correlation_id": correlation, "prompt": request["prompt"].strip(), "skill": card["skill"]}
+        if context is not None: outbound["context"] = context
+        remote = self.peer.create(outbound)
         if not isinstance(remote, dict) or remote.get("correlation_id") != correlation: raise A2AError("Peer correlation mismatch.")
         rows = self._all(); rows[ident] = {"id": ident, "owner": request["owner"], "state": "requested", "correlation_id": correlation, "peer": card["peer"], "skill": card["skill"], "created_at": self.now(), "updated_at": self.now(), "artifacts": [], "progress": []}; self._put(rows)
         return self.status(ident, request["owner"])

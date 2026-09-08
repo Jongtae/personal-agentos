@@ -20,6 +20,7 @@ class Peer:
 class Drive:
     def __init__(self): self.queries = []
     def search(self, query): self.queries.append(query); return [{'id': 'file-1', 'name': 'private plan', 'mime_type': 'text/plain', 'token': 'must-not-return'}]
+    def read(self, file_id): return 'private selected Drive excerpt'
 
 
 class PersonalAssistantTests(unittest.TestCase):
@@ -57,6 +58,16 @@ class PersonalAssistantTests(unittest.TestCase):
         self.assertEqual(implicit['state'], 'fallback'); self.assertFalse(self.peer.requests)
         delegated = self.assistant.handle(self.request('A2A 위임: 자연어 요청을 조사해줘'))
         self.assertEqual(delegated['state'], 'requested'); self.assertEqual(len(self.peer.requests), 1)
+
+    def test_selected_drive_excerpt_requires_owner_approval_before_a2a_context(self):
+        self.enable('google-drive-read', ('read',)); self.enable('compatibility-a2a-peer', ('delegate',))
+        blocked = self.assistant.handle(self.request('A2A 위임: 발췌문을 요약해줘', drive_excerpt={'excerpt_id': 'missing', 'approval_id': 'missing'}))
+        self.assertEqual(blocked['state'], 'blocked'); self.assertFalse(self.peer.requests)
+        draft = self.assistant.draft_drive_excerpt(self.request('Drive 발췌문: 선택', file_id='file-1', length=8))
+        approved = self.assistant.approve_drive_excerpt(self.request('Drive 발췌 승인', excerpt_id=draft['excerpt']['id']))
+        delegated = self.assistant.handle(self.request('A2A 위임: 발췌문을 요약해줘', drive_excerpt={'excerpt_id': draft['excerpt']['id'], 'approval_id': approved['approval_id']}))
+        self.assertEqual(delegated['state'], 'requested'); self.assertEqual(self.peer.requests[-1]['context'], {'text': 'private '})
+        self.assertNotIn('private ', str(self.store.config('personal_assistant_evidence')))
 
     def test_orchestrator_normalizes_invalid_a2a_card_to_recovery(self):
         self.enable('compatibility-a2a-peer', ('delegate',))

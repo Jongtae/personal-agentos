@@ -101,6 +101,10 @@ class AgentService:
         request = dict(body)
         request['owner_id'] = owner_id
         action = request.get('action')
+        if action == 'drive-excerpt-draft':
+            return self.assistant_orchestrator.draft_drive_excerpt(request)
+        if action == 'drive-excerpt-approve':
+            return self.assistant_orchestrator.approve_drive_excerpt(request)
         if action == 'calendar-approve':
             return self.assistant_orchestrator.approve_calendar(request)
         if action == 'calendar-create':
