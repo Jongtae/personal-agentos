@@ -58,8 +58,8 @@ class DeliveryTests(unittest.TestCase):
         result=self.controller(Runner()).status()
         self.assertIsNone(result['active'])
         self.assertEqual(result['status'],'reconciled-documentation')
-        self.assertEqual(result['next_goal']['id'],'I-MP2-01')
-        self.assertEqual(result['next_action'],'create goal-ready I-MP2-01 issue before implementation')
+        self.assertEqual(result['next_goal']['id'],'MP2-REVIEW-01')
+        self.assertEqual(result['next_action'],'review I-MP2-01 mock-contract evidence and nominate the next single MP2 owner friction before creating another implementation goal')
         self.assertIn('D-MP2-01',result['completed'])
         persisted=StateStore(self.state).read()
         self.assertNotIn('active',persisted);self.assertNotIn('blocked',persisted);self.assertNotIn('next_retry_at',persisted)
@@ -201,7 +201,7 @@ class DeliveryTests(unittest.TestCase):
         completed.append('UX-06')
         self.assertEqual(plan.select({'completed':completed})['id'],'MP1-D-01')
         completed.append('MP1-D-01')
-        expected=('MP1-I-01','MP1-D-02','MP1-I-02','MP1-D-03','MP1-I-03','MP1-D-04','MP1-I-04','MP1-D-05','MP1-I-05','MP1-D-06','MP1-I-06','MP1-R-01','MP1-R-02','MP1-R-03','MP1-R-04','MP1-R-05','D-MP2-01')
+        expected=('MP1-I-01','MP1-D-02','MP1-I-02','MP1-D-03','MP1-I-03','MP1-D-04','MP1-I-04','MP1-D-05','MP1-I-05','MP1-D-06','MP1-I-06','MP1-R-01','MP1-R-02','MP1-R-03','MP1-R-04','MP1-R-05','D-MP2-01','I-MP2-01')
         for iteration in expected:
             self.assertEqual(plan.select({'completed':completed})['id'],iteration)
             completed.append(iteration)
@@ -248,7 +248,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertNotIn('active',result)
         self.assertNotIn('milestone',result)
         self.assertNotIn('issue',result)
-        self.assertEqual(self.controller(Runner()).status()['next_action'],'create goal-ready I-MP2-01 issue before implementation')
+        self.assertEqual(self.controller(Runner()).status()['next_action'],'review I-MP2-01 mock-contract evidence and nominate the next single MP2 owner friction before creating another implementation goal')
 
     def test_created_ux_issue_uses_its_configured_milestone(self):
         plan=json.loads((self.root/'delivery-plan.yaml').read_text())
