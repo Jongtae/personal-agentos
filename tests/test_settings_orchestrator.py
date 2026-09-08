@@ -1,12 +1,17 @@
 import json
 import tempfile
+import threading
 import unittest
+from http.cookiejar import CookieJar
+from http.server import ThreadingHTTPServer
+from urllib.request import Request, build_opener, HTTPCookieProcessor
 
 from personal_agent.capabilities import CapabilityRegistry
 from personal_agent.portable_state import export_owner_state, restore_owner_state
 from personal_agent.quickstart_service import AgentService
 from personal_agent.quickstart_store import QuickStore
 from personal_agent.settings_orchestrator import SettingsError, SettingsOrchestrator
+from personal_agent.quickstart import make_handler
 
 
 class SettingsOrchestratorTests(unittest.TestCase):
@@ -53,6 +58,32 @@ class SettingsOrchestratorTests(unittest.TestCase):
         applied=service.conversation_settings_request({'operation':'confirm','draft_id':draft['id'],'digest':draft['digest']},'same-owner','http')
         self.assertEqual(applied['state'],'applied')
         self.assertEqual(service.conversation_settings_request({'operation':'read'},'same-owner','telegram')['capabilities'][1]['state'],'paused')
+
+    def test_queued_telegram_settings_commands_use_the_same_controller(self):
+        service=AgentService(self.store)
+        job=self.store.enqueue('/settings Drive pause','settings-telegram-draft',channel='telegram',chat_id=42)
+        self.assertTrue(service.run_one())
+        self.assertIn('Confirm ',self.store.job(job)['response'])
+        draft=next(iter(self.store.config('settings_change_drafts').values()))
+        confirm=self.store.enqueue('/settings Confirm '+draft['id'],'settings-telegram-confirm',channel='telegram',chat_id=42)
+        self.assertTrue(service.run_one())
+        self.assertIn('paused',self.store.job(confirm)['response'])
+
+    def test_authenticated_http_settings_route_uses_preview_and_confirm_contract(self):
+        self.store.claim(self.store.bootstrap.read_text(),'long-password-test')
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(AgentService(self.store)))
+        thread=threading.Thread(target=server.serve_forever); thread.start()
+        client=build_opener(HTTPCookieProcessor(CookieJar())); base='http://127.0.0.1:'+str(server.server_port)
+        def request(path, body):
+            req=Request(base+path,data=json.dumps(body).encode(),headers={'Content-Type':'application/json'})
+            with client.open(req,timeout=3) as response:return json.load(response)
+        try:
+            request('/api/login',{'password':'long-password-test'})
+            draft=request('/api/settings/request',{'operation':'draft','intent':'Drive pause'})['preview']
+            result=request('/api/settings/request',{'operation':'confirm','draft_id':draft['id'],'digest':draft['digest']})
+            self.assertEqual(result['result']['state'],'paused')
+        finally:
+            server.shutdown(); thread.join(); server.server_close()
 
     def test_export_drops_pending_confirmation_and_keeps_only_redacted_audit(self):
         preview=self.settings.draft('owner','http','Drive pause')['preview']

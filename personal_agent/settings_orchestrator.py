@@ -68,8 +68,17 @@ class SettingsOrchestrator:
             raise SettingsError("검토된 설정 범주를 선택하세요.")
         rows = [self._redacted_capability(item) for item in self.registry.list()
                 if category is None or item["id"] in self._CATEGORY[category]]
+        audit = self.store.config("settings_audit", [])
+        activity = [{key: item[key] for key in ("at", "target", "before", "after", "terminal", "error_class") if key in item}
+                    for item in audit[-20:] if isinstance(item, dict) and item.get("terminal") != "drafted"] if isinstance(audit, list) else []
         return {"state": "read", "category": category or "all", "capabilities": rows,
-                "manual_sections": ["Assistant", "Connections", "Data & privacy", "Approvals & activity", "Runtime & recovery"]}
+                "manual_sections": [
+                    {"id":"assistant", "label":"Assistant", "description":"선택한 assistant와 기본 동작"},
+                    {"id":"connections", "label":"Connections", "description":"검토된 연결 상태와 lifecycle"},
+                    {"id":"data-privacy", "label":"Data & privacy", "description":"개인 공간과 export/restore 경계"},
+                    {"id":"activity", "label":"Approvals & activity", "description":"redacted settings activity와 recovery"},
+                    {"id":"runtime", "label":"Runtime & recovery", "description":"local runtime health와 recovery"},
+                ], "activity": activity}
 
     def _intent(self, intent):
         if not isinstance(intent, str):
