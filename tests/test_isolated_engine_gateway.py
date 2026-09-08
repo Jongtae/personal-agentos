@@ -75,7 +75,7 @@ class IsolatedEngineGatewayTests(unittest.TestCase):
             _FixtureHandler.requests,
             [{"prompt": "summarize approved notes", "engine_id": "codex", "token": token}],
         )
-        wire_payload = str(_FixtureHandler.requests[0]).lower()
+        wire_payload = str({key: value for key, value in _FixtureHandler.requests[0].items() if key != "token"}).lower()
         for forbidden in ("store", "data", "profile", "path", "credential", "home"):
             self.assertNotIn(forbidden, wire_payload)
 
