@@ -111,7 +111,7 @@ class DriveWebOAuthTests(unittest.TestCase):
         self.store.secret("telegram_token", "test-token")
         self.store.put("telegram", {"enabled": True, "generation": "g", "user_id": 42, "cursor": 0})
         service=AgentService(self.store, telegram_transport=transport, drive_web_oauth=self.flow)
-        service.ingest_update({"update_id": 1, "message": {"from": {"id": 42}, "chat": {"id": 42, "type": "private"}, "text": "구글 드라이브 자료를 찾아줘"}}, "g")
+        service.ingest_update({"update_id": 1, "message": {"from": {"id": 42}, "chat": {"id": 42, "type": "private"}, "text": "구글 드라이브 연결해 보자"}}, "g")
         job=self.store.jobs()[0]
         self.assertEqual(job["status"], "awaiting_drive")
         state=parse_qs(urlparse(next(body for body in calls if "reply_markup" in body)["reply_markup"]["inline_keyboard"][0][0]["url"]).query)["state"][0]
