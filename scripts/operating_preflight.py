@@ -2,6 +2,7 @@
 import argparse
 import json
 from http.server import ThreadingHTTPServer
+import os
 from pathlib import Path
 import re
 import stat
@@ -150,19 +151,71 @@ def inspect(root, product_probe=None):
         failures.append("missing-project-version")
     compose_text = compose.read_text(encoding="utf-8") if compose.exists() else ""
     docker_text = dockerfile.read_text(encoding="utf-8") if dockerfile.exists() else ""
-    engine_section = compose_text.partition("\n  engine:\n")[2].partition("\nnetworks:\n")[0]
+    egress_dockerfile = root / "Dockerfile.egress"
+    egress_docker_text = egress_dockerfile.read_text(encoding="utf-8") if egress_dockerfile.exists() else ""
+    proxy_source = root / "personal_agent" / "limited_egress_proxy.py"
+    proxy_text = proxy_source.read_text(encoding="utf-8") if proxy_source.exists() else ""
+
+    def service_section(name):
+        matched = re.search(
+            rf"(?ms)^  {re.escape(name)}:\n(?P<body>.*?)(?=^  [A-Za-z0-9_.-]+:\n|^[A-Za-z])",
+            compose_text,
+        )
+        return matched.group("body") if matched else ""
+
+    def service_list(section, name):
+        matched = re.search(
+            rf"(?m)^    {re.escape(name)}:\n(?P<items>(?:      - .*\n)+)",
+            section,
+        )
+        if not matched:
+            return []
+        return [
+            line.removeprefix("      - ").strip().strip('"')
+            for line in matched.group("items").splitlines()
+        ]
+
+    agentos_section = service_section("agentos")
+    engine_section = service_section("engine")
+    egress_section = service_section("egress-proxy")
+    network_text = compose_text.partition("\nnetworks:\n")[2].partition("\nvolumes:\n")[0]
+    engine_network_internal = re.search(
+        r"(?ms)^  engine-internal:\s*\n(?:(?:    .*)\n)*?    internal:\s*true\s*$",
+        network_text,
+    )
+    provider_network = re.search(r"(?m)^  provider-egress:\s*$", network_text)
+    provider_network_internal = re.search(
+        r"(?ms)^  provider-egress:\s*\n(?:(?:    .*)\n)*?    internal:\s*true\s*$",
+        network_text,
+    )
     isolated_engine = all((
         re.search(r"(?m)^  engine:\s*$", compose_text) is not None,
         "AGENTOS_ISOLATED_ENGINE_URL: http://engine:8766/execute" in compose_text,
         "personal_agent.isolated_engine_sidecar" in engine_section,
         "http://agentos:8787/internal/isolated-engine/mcp" in engine_section,
-        "agentos-engine-profile:/engine-profile" in engine_section,
-        "agentos-data:/state" not in engine_section,
+        len(re.findall(r"(?m)^    volumes:\s*$", engine_section)) == 1,
+        service_list(engine_section, "volumes") == ["agentos-engine-profile:/engine-profile"],
+        re.search(r"(?m)^    (?:ports|expose|network_mode):", engine_section) is None,
         "read_only: true" in engine_section,
-        re.search(r"(?m)^      - engine-internal\s*$", engine_section) is not None,
-        "internal: true" in compose_text,
+        service_list(engine_section, "networks") == ["engine-internal"],
+        engine_network_internal is not None,
     ))
-    structural = {
+    egress_policy = all((
+        bool(egress_section),
+        "HTTPS_PROXY: http://egress-proxy:3128" in engine_section,
+        "HTTP_PROXY: http://egress-proxy:3128" in engine_section,
+        "NO_PROXY: agentos,localhost,127.0.0.1" in engine_section,
+        service_list(egress_section, "networks") == ["engine-internal", "provider-egress"],
+        "provider-egress" not in agentos_section,
+        re.search(r"(?m)^    (?:ports|expose|volumes|network_mode):", egress_section) is None,
+        "AGENTOS_PROVIDER_EGRESS_ALLOWLIST: ${AGENTOS_PROVIDER_EGRESS_ALLOWLIST:-}" in egress_section,
+        provider_network is not None,
+        provider_network is not None and provider_network_internal is None,
+        "dockerfile: Dockerfile.egress" in egress_section,
+        "personal_agent.limited_egress_proxy" in egress_docker_text,
+        "parse_allowlist" in proxy_text and "hostname not in self.server.allowed_hosts" in proxy_text,
+    ))
+    required_structural = {
         "loopback_binding": '127.0.0.1:${AGENTOS_PORT:-8787}:8787' in compose_text,
         "separate_owner_volume": "agentos-data:/state" in compose_text and "agentos-data:" in compose_text,
         "separate_engine_profile_volume": "agentos-engine-profile:/engine-profile" in compose_text and "agentos-engine-profile:" in compose_text,
@@ -170,10 +223,20 @@ def inspect(root, product_probe=None):
         "local_health_check": "healthcheck:" in compose_text and "/healthz" in compose_text,
         "recovery_scripts": all((root / "scripts" / script).is_file() for script in REQUIRED_SCRIPTS),
         "subscription_engine_isolated": isolated_engine,
-        # The internal-only network intentionally cannot reach the provider.
-        # Operating readiness requires a narrow, owner-approved egress policy;
-        # preflight must not mistake architecture evidence for live readiness.
-        "isolated_engine_external_egress_policy": False,
+        "isolated_engine_external_egress_policy": egress_policy,
+    }
+    raw_allowlist = os.environ.get("AGENTOS_PROVIDER_EGRESS_ALLOWLIST", "")
+    invalid_allowlist = False
+    try:
+        from personal_agent.limited_egress_proxy import parse_allowlist
+        allowlist_configured = bool(parse_allowlist(raw_allowlist))
+    except (ImportError, ValueError):
+        invalid_allowlist = True
+        allowlist_configured = False
+    observations = {
+        "provider_egress_allowlist_configured": allowlist_configured,
+        # Static architecture and owner configuration are not live provider evidence.
+        "provider_egress_reachable": False,
     }
     failure_names = {
         "loopback_binding": "unsafe-or-missing-loopback-binding",
@@ -185,7 +248,9 @@ def inspect(root, product_probe=None):
         "subscription_engine_isolated": "subscription-engine-isolation-design-required",
         "isolated_engine_external_egress_policy": "isolated-engine-egress-policy-required",
     }
-    failures.extend(failure_names[name] for name, passed in structural.items() if not passed)
+    failures.extend(failure_names[name] for name, passed in required_structural.items() if not passed)
+    if invalid_allowlist:
+        failures.append("invalid-provider-egress-allowlist")
     try:
         product = (product_probe or _product_probe)()
     except Exception as exc:
@@ -196,10 +261,16 @@ def inspect(root, product_probe=None):
     return {
         "state": "ready" if not failures else "not-ready",
         "supported_version": version,
-        "execution_path": "isolated-subscription-engine-pending-egress-policy",
-        "checks": {**structural, **product},
+        "execution_path": (
+            "isolated-subscription-engine-policy-proxy-owner-configured"
+            if allowlist_configured else
+            "isolated-subscription-engine-policy-proxy-owner-configuration-deferred"
+        ),
+        "checks": {**required_structural, **observations, **product},
         "recovery_actions": failures,
-        "deferred_owner_gates": [
+        "deferred_owner_gates": ([
+            "owner provider egress allowlist operating configuration",
+        ] if not allowlist_configured else []) + [
             "explicit operating-deployment approval",
             "local runtime claim",
             "owner-approved engine image build and official login after egress acceptance",
