@@ -2,17 +2,12 @@
 
 Active work is executed only from a goal-ready issue and active delivery-plan entry under the [Goal Execution Contract](docs/goal-execution-contract.en.md). Status tables are trackers, not authority to activate reserved work.
 
-## Active delivery
-
-| Work unit | Issue | Branch | Status |
-| --- | --- | --- | --- |
-| SCN-D-01: first live-use scenario contract | [#301](https://github.com/Jongtae/personal-agentos/issues/301) | `codex/scn-01-live-use-scenarios` | active design: define the approved research-to-action and reviewed-sharing journeys; no provider configuration or KakaoTalk delivery claim. |
-
 ## Completed repository maintenance
 
 | Work unit | Issue | Branch | Status |
 | --- | --- | --- | --- |
 | CI-01: GitHub Actions validation audit | [#303](https://github.com/Jongtae/personal-agentos/issues/303) | `codex/actions-ci-audit` | complete (PR #304 merged; required `validate` passed) |
+| SCN-D-01: first live-use scenario contract | [#301](https://github.com/Jongtae/personal-agentos/issues/301) | `codex/scn-01-live-use-scenarios` | complete design; SCN-I-01 remains reserved until a separately goal-ready implementation issue is activated. |
 | STRUCT-01-WU-01: 구조 확정과 이동 명세 | [#285](https://github.com/Jongtae/personal-agentos/issues/285) | `codex/struct-01-repo-structure` | complete |
 | STRUCT-01-WU-02: 문서·산출물 정리 | [#286](https://github.com/Jongtae/personal-agentos/issues/286) | `codex/struct-01-workunit-02-docifacts` | complete |
 | STRUCT-01-WU-03: 제품 패키지 정리 | [#287](https://github.com/Jongtae/personal-agentos/issues/287) | `codex/struct-01-workunit-03-product-packages` | complete (PR #288 merged) |

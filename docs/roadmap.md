@@ -6,15 +6,15 @@ AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gate
 
 ## First milestone closeout — 2026-09-08
 
-Owner-authorized [#282](https://github.com/Jongtae/personal-agentos/issues/282) consolidates the development baseline through merged PR #283 (`0025148e7ab30bd27c4b1ca761b3ba9702b0e0f8`, required validate `34213401518` success) in the [Korean report](first-milestone-report.ko.md). TOP remains development-complete, and #279 retains the legacy prototype as historical. OP-03 #280/#281 is now merged/closed. Actual provider login, Telegram/OAuth activation, and operating deployment remain separate.
+Owner-authorized [#282](https://github.com/Jongtae/personal-agentos/issues/282) consolidates the development baseline through merged PR #283 (`0025148e7ab30bd27c4b1ca761b3ba9702b0e0f8`, required validate `34213401518` success) in the [Korean report](first-milestone-report.ko.md). TOP remains development-complete, and #279 retains the legacy prototype as historical. OP-03 #280/#281 remains unfinished and preserved. Actual provider login, Telegram/OAuth activation, and operating deployment remain separate.
 
 ## Completed — GitHub Actions validation audit
 
 [#303](https://github.com/Jongtae/personal-agentos/issues/303) audited all tracked workflows and found one required `validate` workflow. Merged [PR #304](https://github.com/Jongtae/personal-agentos/pull/304) retained its pull-request and `main` triggers while removing its redundant `unittest discover` invocation: the preceding full `pytest` suite already collects those tests. Required `validate` run `34222145626` passed. This is CI-only maintenance and changes no runtime, credential, provider, connection, or operating-deployment boundary.
 
-## Active — First live-use scenarios
+## Complete design — First live-use scenarios
 
-Owner-authorized [SCN-D-01 / #301](https://github.com/Jongtae/personal-agentos/issues/301) defines two first-use journeys before any new capability is implemented: (1) Telegram meeting preparation using owner-approved, attributable Drive context followed by separately approved Calendar draft creation; and (2) owner-supplied content translation or summarization followed by an exact KakaoTalk recipient/conversation preview and a separate one-time final-send approval. It is a design-only goal. KakaoTalk capability, credentials, connection, delivery, and live operating evidence are explicitly out of scope; a copy/export fallback is not a delivery claim. SCN-I-01 remains reserved until this contract has merged and a separate goal-ready implementation issue exists.
+Owner-authorized [SCN-D-01 / #301](https://github.com/Jongtae/personal-agentos/issues/301) defines two first-use journeys before any new capability is implemented: (1) Telegram meeting preparation using owner-approved, attributable Drive context followed by separately approved Calendar draft creation; and (2) owner-supplied content translation or summarization followed by an exact KakaoTalk recipient/conversation preview and a separate one-time final-send approval. It is a design-only goal. KakaoTalk capability, credentials, connection, delivery, and live operating evidence are explicitly out of scope; a copy/export fallback is not a delivery claim. SCN-I-01 remains reserved until a separate goal-ready implementation issue is created and activated.
 
 ## M0 — Product basis and delivery sequence
 
