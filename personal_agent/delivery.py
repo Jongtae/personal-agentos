@@ -71,6 +71,15 @@ class DeliveryPlan:
         if len(self.items)!=len(data['iterations']):raise DeliveryError('Each delivery iteration needs a unique id.')
         self.milestones=data.get('milestones',{}) if isinstance(data.get('milestones',{}),dict) else {}
 
+    def documented_completed(self):
+        history=self.data.get('history',{})
+        rows=history.get('documented_completed_iterations',[]) if isinstance(history,dict) else []
+        return {item for item in rows if item in self.items}
+
+    def next_goal(self):
+        value=self.data.get('next_goal',{})
+        return dict(value) if isinstance(value,dict) else {}
+
     def milestone_title(self, item):
         configured=self.milestones.get(item.get('milestone'),{})
         if isinstance(configured,dict) and isinstance(configured.get('title'),str):return configured['title']
@@ -135,18 +144,26 @@ class DeliveryController:
         self.now=now or time.time
 
     def _migrate_stale_state(self, state):
-        """Drop control metadata for iterations absent from the active plan."""
+        """Reconcile retired control metadata with documented merged work."""
         state=dict(state)
         stale=False
+        history=self.plan.data.get('history',{})
+        reconcile_when=history.get('reconcile_state_when_active',[]) if isinstance(history,dict) else []
+        should_reconcile=state.get('active') in reconcile_when or state.get('blocked') in reconcile_when
+        documented=self.plan.documented_completed() if should_reconcile else set()
+        completed=set(state.get('completed',[])) if isinstance(state.get('completed'),list) else set()
+        if not documented <= completed:
+            state['completed']=sorted(completed | documented)
+            stale=True
         for key in ('active','blocked'):
             value=state.get(key)
-            if value and value not in self.plan.items:
+            if value and (value not in self.plan.items or value in documented):
                 state.pop(key,None)
                 stale=True
         if stale and not state.get('active') and not state.get('blocked'):
-            for key in ('milestone','issue','pr','release','next_retry_at','last_error'):
+            for key in ('milestone','issue','pr','release','next_retry_at','last_error','attempt_day','attempts_today'):
                 state.pop(key,None)
-            state.update(status='ready-to-run',last_validation='migrated-plan',updated_at=self.now())
+            state.update(status='reconciled-documentation' if should_reconcile else 'ready-to-run',last_validation='migrated-documentation' if should_reconcile else 'migrated-plan',updated_at=self.now())
         return state
 
     def status(self):
@@ -154,9 +171,11 @@ class DeliveryController:
         state=self._migrate_stale_state(previous)
         if state != previous:self.state_store.write(state)
         item=self.plan.select(state)
+        next_goal=self.plan.next_goal() if item is None else {}
         return {**state,'active':item and item['id'],'milestone':item and item['milestone'],
                 'issue':item and self._issue_number(item,state),'summary':item and item['summary'],
-                'next_action':'wait for retry' if state.get('status','').startswith('blocked') else ('run current iteration' if item else 'delivery plan complete')}
+                'next_goal':next_goal or None,
+                'next_action':'wait for retry' if state.get('status','').startswith('blocked') else ('run current iteration' if item else next_goal.get('action','delivery plan complete'))}
 
     def due(self, state):
         return not state.get('next_retry_at') or self.now()>=state['next_retry_at']
