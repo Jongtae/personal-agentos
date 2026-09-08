@@ -2,7 +2,7 @@
 
 ## 상태
 
-**상태: proposed.** MP1은 mock-contract evidence로 development complete이며, 소유자는 issue #230에서 대화 우선 설정을 다음 설계 마찰로 명시 선택했다. D-MP2-01과 I-MP2-01은 automated mock-contract evidence로 complete이며, live connection이나 운영 모드 capability를 주장하지 않는다.
+**상태: automated mock-contract evidence로 development complete; 후속 후보 미선정.** 선택된 대화 우선 설정 제안은 D-MP2-01/I-MP2-01로, 검토된 capability 추천은 D-MP2-02/I-MP2-02로, 소유자 로컬 지식 retrieval은 D-MP2-03/I-MP2-03로 완료되었다. Live connection이나 운영 모드 capability는 주장하지 않는다. 이후 MP2 후보는 active가 아니며 이 문서가 선택할 수 없다.
 
 후보는 활성 delivery-plan iteration으로 승격되고 [Goal 실행 계약](goal-execution-contract.ko.md)에 따른 goal-ready issue가 생긴 뒤에만 실행 가능한 goal이 된다. 소유자의 자율 사이클 위임은 Agent가 이 bounded 승격과 D/I sequence 완료를 routine iteration review 없이 수행하게 하지만, 자동 설치·권한 상승·운영 모드 authority를 주지는 않는다.
 
@@ -38,9 +38,9 @@ capability acquisition 제안에는 출처와 고정 버전, 라이선스, 설�
 
 MP2는 다음 기능 목록이 아니라, MP1 실사용 증거를 바탕으로 다음 가장 큰 개인 비서 마찰 하나를 선택하는 의사결정 문서다.
 
-## 후보 기록 — 대화 우선 설정
+## historical 후보 기록 — 대화 우선 설정
 
-**후보 상태: D-MP2-01 설계를 위해 선택되어 proposed.** 소유자는 개인 비서의 설정을 이해하거나 관리하기 위해 대화를 떠나야 하는 마찰을 다음 후보로 식별했다. 명시 선택과 MP1 완료는 설계 작업을 승격할 뿐 runtime 구현이나 live capability 주장이 아니다.
+**후보 상태: automated mock-contract evidence로 delivered.** 소유자는 개인 비서의 설정을 이해하거나 관리하기 위해 대화를 떠나야 하는 마찰을 다음 후보로 식별했다. 결과인 D-MP2-01/I-MP2-01 작업은 완료되었으며, 이 historical 기록은 후속 후보, runtime 구현, live capability 주장을 승격하지 않는다.
 
 | 항목 | 후보 기록 |
 | --- | --- |
@@ -51,7 +51,7 @@ MP2는 다음 기능 목록이 아니라, MP1 실사용 증거를 바탕으로 �
 | 데이터와 권한 경계 | 읽기는 redacted state에서 바로 답할 수 있다. 변경은 정확한 target, before/after state, effect, recovery를 적은 소유자 귀속·짧은 수명의 pending change를 만든다. 일치하는 명시 확인만 이를 적용할 수 있다. Secret, OAuth authorization code, token, password, raw path, approval ID, Personal Space 전체 record는 대화에서 받거나 표시하지 않는다. OAuth나 민감 credential 입력은 인증된 로컬 웹/OS browser 흐름으로 넘긴다. |
 | 비목표 | 자연어에서 임의 설정 변경, silent enable/pause/disconnect/credential 교체/외부 행동, 대화에서 secret 수집, 원격 hosted settings control plane, 로컬 수동 설정 화면의 대체는 범위가 아니다. |
 | 설계 iteration | [D-MP2-01 계약](d-mp2-01-conversation-settings-contract.ko.md)은 intent vocabulary, pending-change state machine, confirmation·expiry·idempotency·cancellation·owner binding, setting별 risk tier, HTTP/Telegram parity, redaction, audit/export/restore, threat model, 로컬 settings navigation/read model을 확정한다. |
-| 구현 iteration | `I-MP2-01`은 merge된 D-MP2-01 contract와 새 goal-ready issue 뒤에만 진행할 수 있다. 기존 capability lifecycle state에 대한 작은 검토된 read/change vocabulary, 하나의 preview/confirm controller, 보조 settings category를 구현한다. 새 provider connection과 credential은 별도 승인 흐름으로 남긴다. |
+| 구현 iteration | `I-MP2-01`은 merge된 D-MP2-01 contract와 goal-ready issue #234 뒤에 진행되었다. 기존 capability lifecycle state에 대한 작은 검토된 read/change vocabulary, 하나의 preview/confirm controller, 보조 settings category를 구현했다. 새 provider connection과 credential은 별도 승인 흐름으로 남긴다. |
 | automated validation | Fixture는 read-only answer, 정확한 preview/confirm, 만료/다른 owner/replay confirmation 거절, 모호한 언어에서 mutation 없음, lifecycle gate 강제, HTTP/Telegram parity, redacted transcript/evidence/export, settings navigation read model, 결정적 recovery를 증명해야 한다. |
-| live acceptance | 이 설계 iteration에는 요구하지 않으며 주장하지도 않는다. I-MP2-01은 live connection 주장 전에 credential-safe 운영 모드 관찰을 정의해야 한다. |
+| live acceptance | 주장하지 않는다. 완료된 mock-contract 작업은 live connection을 증명하지 않으며, 향후 후보는 live connection 주장 전에 credential-safe 운영 모드 관찰을 정의해야 한다. |
 | rollout/recovery | 대화형 read-only status부터 시작한다. 변경 초안은 명시 확인 뒤에만 제공한다. 모든 변경은 inverse 또는 이름 있는 recovery action을 보여주며, 대화 경로가 실패해도 로컬 수동 설정 화면을 계속 사용할 수 있다. |
