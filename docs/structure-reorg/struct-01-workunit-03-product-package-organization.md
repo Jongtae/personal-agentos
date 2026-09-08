@@ -52,7 +52,7 @@ Goal: `STRUCT-01 — AgentOS 저장소 구조 정리`
 - [x] 패키지 데이터 경로(`web/*`, `delivery-plan.yaml`)가 설치/실행 환경에서 정상 탐색됨(`package_data_ok` 확인)
 - [x] `pyproject.toml`, `Dockerfile`, `scripts`, `tests`, `docs`에서 경로 참조가 변경 후 정합
 - [x] `agentos` CLI 엔트리포인트가 패키지 경로 이동 후에도 정상 실행(`agentos --help` 확인)
-- [ ] 역할별 폴더 분해(필요 시)가 WU-03에서 추적되지 않고 별도 WU로 분리
+- [x] 역할별 모듈 배치는 기존 모듈 파일 경계를 유지하고, 내부 책임 분리는 범위 밖으로 명시해 별도 기능 WU로 확대하지 않음
 - [x] 소스 체크아웃에서 실행되는 검증 스크립트가 `src/` 패키지 루트를 직접 찾도록 정렬
 - [x] Docker 컨텍스트 예외와 CI editable 설치 경로를 `src/personal_agent/` 구조에 맞춤
 
