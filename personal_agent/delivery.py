@@ -179,7 +179,7 @@ class DeliveryController:
                 'next_action':'wait for retry' if state.get('status','').startswith('blocked') else ('run current iteration' if item else next_goal.get('action','delivery plan complete'))}
 
     def due(self, state):
-        return not state.get('next_retry_at') or self.now()>=state['next_retry_at']
+        return not state.get('status','').startswith('blocked')
 
     def _attempt_allowed(self, state):
         day=dt.datetime.fromtimestamp(self.now(),dt.timezone.utc).date().isoformat()
@@ -211,28 +211,13 @@ class DeliveryController:
         raise DeliveryError('A delivery controller cannot create an issue; an owner-activated goal-ready issue is required.')
 
     def _record_block(self, item, state, classification, detail, dry_run):
-        allowed,day,attempts=self._attempt_allowed(state)
-        retry_at=self.now()+RETRY_SECONDS if allowed else (dt.datetime.fromtimestamp(self.now(),dt.timezone.utc).replace(hour=0,minute=0,second=0,microsecond=0)+dt.timedelta(days=1)).timestamp()
         issue=self._issue_number(item,state)
         state.update(active=item['id'],blocked=item.get('repair_of') or item['id'],milestone=item['milestone'],issue=issue,status='blocked-'+classification,
-                     last_validation='failed',last_error=detail[:500],next_retry_at=retry_at,attempt_day=day,attempts_today=attempts+1,updated_at=self.now())
-        if issue and not dry_run:
-            self._gh('issue','edit',str(issue),'--repo',self.plan.data['repository'],'--add-label','blocked')
-            self._gh('issue','comment',str(issue),'--repo',self.plan.data['repository'],'--body',f'Delivery loop blocked: `{classification}`. Retry is scheduled after {dt.datetime.fromtimestamp(retry_at,dt.timezone.utc).isoformat()}. Validation detail: {detail[:300]}')
+                     last_validation='failed',last_error=detail[:500],next_retry_at=None,updated_at=self.now())
         return self.state_store.write(state)
 
     def _complete(self, item, state, dry_run=False):
-        evidence=state.get('evidence_audit',{})
-        required=('merged_pr','required_ci','closeout','requirements')
-        if not isinstance(evidence,dict) or any(not evidence.get(key) for key in required):
-            raise DeliveryError('Completion rejected: current merged PR, required CI, requirement-to-evidence audit, and closeout are required.')
-        completed=set(state.get('completed',[]));completed.add(item['id'])
-        state.update(completed=sorted(completed),active=None,status='completed',last_validation='passed',last_error='',next_retry_at=None,updated_at=self.now())
-        if state.get('blocked')==item['id']:state.pop('blocked',None)
-        issue=self._issue_number(item,state)
-        if issue and not dry_run:
-            self._gh('issue','close',str(issue),'--repo',self.plan.data['repository'],'--comment',f'Delivery loop completed `{item["id"]}` with recorded validation evidence.')
-        return self.state_store.write(state)
+        raise DeliveryError('Completion rejected: the delivery controller cannot verify merged PR, required CI, requirement-to-evidence audit, and closeout.')
 
     def _issue_is_closed(self, item, state):
         issue=self._issue_number(item,state)
@@ -256,6 +241,8 @@ class DeliveryController:
         try:
             state=self._migrate_stale_state(self.state_store.read());item=self.plan.select(state)
             if not item:return self.state_store.write({**state,'status':'awaiting-owner-activated-goal','updated_at':self.now()})
+            if state.get('status','').startswith('blocked'):
+                return self.state_store.write({**state,'status':'blocked-awaiting-changed-condition','updated_at':self.now()})
             issue=self._issue_number(item,state)
             if not issue:
                 return self.state_store.write({**state,'status':'ready-to-run','updated_at':self.now()})
@@ -276,6 +263,8 @@ class DeliveryController:
         try:
             state=self._migrate_stale_state(self.state_store.read());item=self.plan.select(state)
             if not item:return self.state_store.write({**state,'status':'awaiting-owner-activated-goal','updated_at':self.now()})
+            if state.get('status','').startswith('blocked'):
+                return self.state_store.write({**state,'status':'blocked-awaiting-changed-condition','updated_at':self.now()})
             issue=self._issue_number(item,state)
             try:
                 issue=self._ensure_issue(item,state,dry_run)
@@ -291,11 +280,6 @@ class DeliveryController:
                                                        'updated_at':self.now()})
                 except DeliveryError as exc:
                     return self._record_block(item,state,classify_failure(str(exc)),str(exc),dry_run)
-            if state.get('status','').startswith('blocked') and not self.due(state):return self.status()
-            allowed,_,_=self._attempt_allowed(state)
-            if state.get('status','').startswith('blocked') and not allowed:
-                state['next_retry_at']=(dt.datetime.fromtimestamp(self.now(),dt.timezone.utc).replace(hour=0,minute=0,second=0,microsecond=0)+dt.timedelta(days=1)).timestamp()
-                return self.state_store.write(state)
             state.update(active=item['id'],milestone=item['milestone'],issue=issue,status='running',updated_at=self.now())
             state.update(status='manual-governance-execution-required',updated_at=self.now())
             return self.state_store.write(state)
@@ -344,7 +328,9 @@ class DeliveryController:
         return None
 
     def _run_release(self, item, state):
-        """Publish a verified patch release and Formula update from controller-owned clones."""
+        """Fail closed: release mutations require the active-goal workflow."""
+        return self._record_block(item,state,'manual-governance-execution-required',
+                                  'The legacy controller cannot tag, publish, push, merge, install, or complete a release. Use the active goal workflow.',False)
         if not (self.root/'.git').exists():
             return self._record_block(item,state,'delivery-failed','Release requires a git checkout.',False)
         blocked=self._release_preflight(item,state)
@@ -442,8 +428,7 @@ class DeliveryController:
         return [command] if command else [sys.executable,'-m','personal_agent.quickstart']
 
     def install_schedule(self):
-        if not self.plan.select(self.state_store.read()):
-            raise DeliveryError('A schedule requires an explicitly owner-activated goal-ready iteration.')
+        raise DeliveryError('Managed delivery scheduling is disabled; use the one existing goal-resume heartbeat.')
         label='com.jongtae.personal-agentos.delivery';folder=Path.home()/'Library'/'LaunchAgents';path=folder/(label+'.plist')
         folder.mkdir(parents=True,exist_ok=True)
         source_mode=(self.root/'personal_agent'/'quickstart.py').is_file()

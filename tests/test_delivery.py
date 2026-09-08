@@ -64,9 +64,9 @@ class DeliveryTests(unittest.TestCase):
         item=controller.plan.items['GOV-01']
         with self.assertRaisesRegex(DeliveryError, 'Completion rejected'):
             controller._complete(item, {'issues':{'GOV-01':168}})
-        complete=controller._complete(item, {'issues':{'GOV-01':168}, 'evidence_audit':{
-            'merged_pr':'https://example.test/pr/1', 'required_ci':'passed', 'closeout':True, 'requirements':'mapped'}})
-        self.assertIn('GOV-01', complete['completed'])
+        with self.assertRaisesRegex(DeliveryError, 'Completion rejected'):
+            controller._complete(item, {'issues':{'GOV-01':168}, 'evidence_audit':{
+                'merged_pr':'https://example.test/pr/1', 'required_ci':'passed', 'closeout':True, 'requirements':'mapped'}})
 
     def test_run_never_launches_worker_or_merges(self):
         runner=Runner([SimpleNamespace(returncode=0, stdout='OPEN\n', stderr='')])
@@ -74,11 +74,22 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(result['status'], 'manual-governance-execution-required')
         self.assertFalse(any(call[0][0] in {'codex','git'} for call in runner.calls))
 
-    def test_schedule_requires_active_goal_ready_record(self):
-        plan=json.loads((self.root/'delivery-plan.yaml').read_text())
-        plan['next_goal']['status']='requires-explicit-owner-approval'
-        (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
-        with self.assertRaisesRegex(DeliveryError, 'owner-activated goal-ready'):
+    def test_blocked_goal_does_not_retry_or_contact_github_without_changed_condition(self):
+        runner=Runner()
+        StateStore(self.state).write({'active':'GOV-01','blocked':'GOV-01','status':'blocked-blocked-approval','issues':{'GOV-01':168}})
+        result=self.controller(runner).run_once()
+        self.assertEqual(result['status'], 'blocked-awaiting-changed-condition')
+        self.assertEqual(runner.calls, [])
+
+    def test_release_helper_fails_closed_without_mutation(self):
+        runner=Runner()
+        item={'id':'REL','milestone':'test','summary':'release'}
+        result=self.controller(runner)._run_release(item,{})
+        self.assertEqual(result['status'], 'blocked-manual-governance-execution-required')
+        self.assertEqual(runner.calls, [])
+
+    def test_schedule_cannot_create_a_second_delivery_loop(self):
+        with self.assertRaisesRegex(DeliveryError, 'one existing goal-resume heartbeat'):
             self.controller().install_schedule()
 
     def test_state_does_not_persist_sensitive_or_unreviewed_evidence(self):

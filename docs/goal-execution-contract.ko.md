@@ -38,11 +38,11 @@ Goal을 활성화하기 전에 issue와 원본 계획은 다음을 모두 식별
 
 소유자가 명시적으로 위임한 사이클에서는 Agent가 매 작은 work unit 뒤 소유자 리뷰를 기다리지 않는다. Agent는 명시적으로 active인 하나의 goal-ready iteration과 그 순서 있는 design→implementation→automated validation→PR merge→closeout만 계속 실행할 수 있다.
 
-이 위임은 자동 설치·자동 권한 상승·운영 모드 전환 권한이 아니다. Agent는 후속 goal을 선택해서는 안 되며, 새 feature를 시작하거나 replacement issue를 만들거나 reserved proposal을 재활성화해서는 안 된다. credential 또는 OAuth 구성, 새 외부 connection/endpoint, permission/scope 확대, consequential external action, 개인 데이터 경계 확대, security/governance boundary 변경, 또는 Master Plan 사이클 완료는 반드시 중단하고 종합 리뷰를 요청한다. 다음 선택이 필요하면 구현을 시작하지 않고 후보와 근거를 보고한다.
+이 위임은 자동 설치·자동 권한 상승·운영 모드 전환 권한이 아니다. Agent는 후속 goal을 선택해서는 안 되며, 새 feature를 시작하거나 replacement issue를 만들거나 reserved proposal을 재활성화해서는 안 된다. credential 또는 OAuth 구성, 새 외부 connection/endpoint, permission/scope 확대, consequential external action, 개인 데이터 경계 확대, security/governance boundary 변경, 또는 Master Plan 사이클 완료는 해당 action이 active goal-ready record에서 정확히 명시 승인되지 않은 한 중단해야 한다. 다음 선택이 필요하면 구현을 시작하지 않고 후보와 근거를 보고한다.
 
 ## 위임 및 독립 검토
 
-활성 issue는 독립 검토가 가능한 경우에만 역할 기반 model 위임을 기록한다. 탐색/문서 확인에는 낮은 비용의 읽기 역할, 제한된 구현에는 구현 역할, security/recovery/final completion 검토에는 독립 검토 역할을 사용할 수 있다. 이는 요청한 model이 사용 가능했다는 주장이 아니다. 기록은 요청·수락·관찰 설정을 구분하고, 두 구현자가 같은 file을 동시에 수정하지 않도록 file을 배정한다.
+활성 issue는 독립 검토가 가능한 경우에만 역할 기반 model 위임을 기록한다. 기본 요청 역할은 주 작업자 Astra medium, 독립 탐색/문서 확인 Terra low 또는 medium, 제한된 구현 Sol medium, security/recovery/final completion 검토 Astra high다. 이는 요청한 model이 사용 가능했다는 주장이 아니다. 기록은 요청·수락·관찰 설정을 구분하고, 두 구현자가 같은 file을 동시에 수정하지 않도록 file을 배정한다.
 
 Goal이 security, recovery, external boundary, automation/authority control, completion claim을 변경하면 complete 전에 독립 review artifact가 필요하다. Reviewer는 현재 diff와 evidence를 점검하고 미해결 finding을 이름으로 남기며, 가짜 product success나 routine owner manual test를 대신하지 않는다.
 
