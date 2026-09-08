@@ -404,6 +404,33 @@
       "depends_on": ["TOP-00"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
       "summary": "Keep the owner-approved top-level Goal active across completed substeps until every inventory requirement has merged current evidence or is a genuine owner operating action or separate owner product decision."
+    },
+    {
+      "id": "TOP-01",
+      "milestone": "Approved Specification Completion",
+      "issue": 267,
+      "kind": "integration",
+      "depends_on": ["TOP-00"],
+      "tests": ["python3 scripts/verify_compose_acceptance.py", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "summary": "Prove the isolated credential-free Compose lifecycle without reading owner Docker credentials or activating external providers."
+    },
+    {
+      "id": "TOP-02",
+      "milestone": "Approved Specification Completion",
+      "issue": 274,
+      "kind": "integration",
+      "depends_on": ["TOP-01"],
+      "tests": ["python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "summary": "Repair and regress the current product integration path while retaining AgentOS-owned state, tools, approvals, evidence, and recovery."
+    },
+    {
+      "id": "TOP-03",
+      "milestone": "Approved Specification Completion",
+      "issue": 276,
+      "kind": "verification",
+      "depends_on": ["TOP-02"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "summary": "Audit every active requirement, reject unsupported top-level completion claims, and record the exact immutable candidate plus separated owner operating actions."
     }
   ],
   "milestones": {

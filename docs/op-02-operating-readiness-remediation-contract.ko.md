@@ -4,7 +4,7 @@
 
 OP-01은 당시 통과한 정적 검사에 대한 과거 증거로 남는다. 그러나 준비 완료 주장을 증명하지 못했다. release tag `v1.0.4`는 subscription-engine stabilization과 preflight 변경보다 앞서며, Compose image에는 지원되는 subscription-engine executable이나 지속되는 공식 로그인 위치가 없었다.
 
-OP-02는 active remediation이며 deployment-ready closeout이 아니다. 현재 branch에는 isolated-engine architecture와 제한된 default-deny egress proxy가 존재한다. preflight의 `ready`는 architecture와 credential-free product fixture가 준비되었다는 뜻이며 owner operating configuration이나 live access가 준비되었다는 뜻이 아니다. 이 branch는 OP-02 closeout에 정확한 merge commit이 기록될 때에만 재현 가능한 immutable 배포 후보 하나를 제공한다. 그 전까지 `v1.0.4`나 현재 branch는 지원되는 owner deployment candidate가 아니다. 이 cycle은 owner allowlist를 설정하거나 operating Docker image를 build하지 않으며 owner deployment, credential configure, provider login을 수행하지 않고 live provider execution을 증명하지 않는다.
+OP-02는 historical remediation evidence이며 deployment-ready closeout이 아니다. isolated-engine architecture와 제한된 default-deny egress proxy를 제공했고 TOP-01과 TOP-02가 이후 lifecycle 및 configured-connection evidence를 더한다. preflight의 `ready`는 architecture와 credential-free product fixture가 준비되었다는 뜻이며 owner operating configuration이나 live access가 준비되었다는 뜻이 아니다. current verification 뒤 TOP-03만 재현 가능한 immutable deployment candidate를 명시할 수 있다. 그 전까지 `v1.0.4`나 현재 branch는 지원되는 owner deployment candidate가 아니다. 이 작업은 owner allowlist를 설정하거나 operating Docker image를 build하지 않으며 owner deployment, credential configure, provider login을 수행하지 않고 live provider execution을 증명하지 않는다.
 
 ## 지원 실행 경로
 

@@ -11,9 +11,7 @@ from pathlib import Path
 from personal_agent.isolated_engine_gateway import IsolatedEngineGateway
 from personal_agent.isolated_engine_gateway import InvalidGatewayEndpoint
 from personal_agent.quickstart import ISOLATED_MCP_PATH, configured_service, make_handler
-from personal_agent.quickstart_service import AgentService
 from personal_agent.quickstart_store import QuickStore
-from personal_agent.subscription_engines import SubscriptionEngines
 
 
 class _EngineHandler(BaseHTTPRequestHandler):
@@ -59,23 +57,42 @@ class IsolatedEngineIntegrationTests(unittest.TestCase):
         self.engine_thread.start()
         self.folder = tempfile.TemporaryDirectory()
         self.store = QuickStore(Path(self.folder.name) / 'data')
-        gateway = IsolatedEngineGateway(
-            f'http://127.0.0.1:{self.engine.server_port}/execute')
-        engines = SubscriptionEngines(finder=lambda _name: '/runtime/codex', clock=lambda: 1)
-        self.service = AgentService(self.store, subscription_engines=engines,
-                                    isolated_engine_adapter=gateway)
+        # The AgentOS host/container deliberately has no Codex on PATH.  The
+        # configured isolated service is the only supported installation.
+        self.path_patch = patch.dict('os.environ', {'PATH': ''})
+        self.path_patch.start()
+        self.service = configured_service(self.store, {
+            'AGENTOS_ISOLATED_ENGINE_URL':
+                f'http://127.0.0.1:{self.engine.server_port}/execute',
+        })
         self.agentos = ThreadingHTTPServer(
             ('127.0.0.1', 0), make_handler(self.service, ['public.example.test']))
         self.agentos_thread = threading.Thread(target=self.agentos.serve_forever, daemon=True)
         self.agentos_thread.start()
         _EngineHandler.agentos_address = self.agentos.server_address
-        self.service.connect_subscription_engine(
-            {'engine': 'codex', 'officially_authenticated': True})
+        status, _body, cookie = self._api_post('/api/claim', {})
+        self.assertEqual(status, 200)
+        self.cookie = cookie.split(';', 1)[0]
+        status, rejected, _cookie = self._api_post(
+            '/api/subscription-engines/connect',
+            {'engine': 'codex', 'officially_authenticated': False},
+            cookie=self.cookie,
+        )
+        self.assertEqual(status, 400)
+        self.assertIn('error', rejected)
+        status, connected, _cookie = self._api_post(
+            '/api/subscription-engines/connect',
+            {'engine': 'codex', 'officially_authenticated': True},
+            cookie=self.cookie,
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(connected['selected'], 'codex')
 
     def tearDown(self):
         self.agentos.shutdown()
         self.agentos.server_close()
         self.agentos_thread.join(timeout=1)
+        self.path_patch.stop()
         self.engine.shutdown()
         self.engine.server_close()
         self.engine_thread.join(timeout=1)
@@ -95,6 +112,21 @@ class IsolatedEngineIntegrationTests(unittest.TestCase):
         body = json.loads(response.read())
         connection.close()
         return response.status, body
+
+    def _api_post(self, path, body, *, cookie='', server=None):
+        raw = json.dumps(body).encode()
+        headers = {'Content-Type': 'application/json'}
+        if cookie:
+            headers['Cookie'] = cookie
+        server = self.agentos if server is None else server
+        connection = HTTPConnection(*server.server_address, timeout=2)
+        connection.request('POST', path, body=raw, headers=headers)
+        response = connection.getresponse()
+        payload = json.loads(response.read())
+        response_cookie = response.getheader('Set-Cookie', '')
+        status = response.status
+        connection.close()
+        return status, payload, response_cookie
 
     def test_selected_subscription_engine_uses_token_bound_read_only_proxy(self):
         with self.store.db() as db:
@@ -170,6 +202,42 @@ class IsolatedEngineIntegrationTests(unittest.TestCase):
                     self.store,
                     {'AGENTOS_ISOLATED_ENGINE_URL': 'http://example.com:9876/execute'},
                 )
+
+    def test_isolated_connection_api_rejects_engine_not_provided_by_sidecar(self):
+        status, rejected, _cookie = self._api_post(
+            '/api/subscription-engines/connect',
+            {'engine': 'claude-code', 'officially_authenticated': True},
+            cookie=self.cookie,
+        )
+
+        self.assertEqual(status, 400)
+        self.assertIn('CLI', rejected['error'])
+        self.assertEqual(self.store.config('subscription_engine')['id'], 'codex')
+
+    def test_non_isolated_connection_api_still_requires_a_local_cli(self):
+        folder = tempfile.TemporaryDirectory()
+        store = QuickStore(Path(folder.name) / 'data')
+        service = configured_service(store, {})
+        server = ThreadingHTTPServer(('127.0.0.1', 0), make_handler(service))
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            status, _body, cookie = self._api_post('/api/claim', {}, server=server)
+            self.assertEqual(status, 200)
+            with patch.dict('os.environ', {'PATH': ''}):
+                status, rejected, _cookie = self._api_post(
+                    '/api/subscription-engines/connect',
+                    {'engine': 'codex', 'officially_authenticated': True},
+                    cookie=cookie.split(';', 1)[0], server=server,
+                )
+            self.assertEqual(status, 400)
+            self.assertIn('CLI', rejected['error'])
+            self.assertEqual(store.config('subscription_engine', {}), {})
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=1)
+            folder.cleanup()
 
 
 if __name__ == '__main__':

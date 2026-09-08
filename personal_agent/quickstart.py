@@ -15,6 +15,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
 from .quickstart_store import QuickStore
 from .quickstart_service import AgentService
+from .subscription_engines import SubscriptionEngines
 from .plugins import PluginRegistry
 from .providers import ProviderError
 from .capabilities import CapabilityRegistry
@@ -29,7 +30,15 @@ def configured_service(store, environ=None):
     environ=os.environ if environ is None else environ
     endpoint=environ.get('AGENTOS_ISOLATED_ENGINE_URL','')
     isolated_engine=IsolatedEngineGateway(endpoint) if endpoint else None
-    return AgentService(store,isolated_engine_adapter=isolated_engine)
+    # The configured sidecar is itself the Codex installation boundary.  Do
+    # not inspect the AgentOS container/host PATH for a CLI that intentionally
+    # lives only in the isolated engine service.  The sidecar contract supports
+    # Codex only, so other engines remain unavailable in this mode.
+    isolated_engines=(SubscriptionEngines(
+        finder=lambda command: '/isolated-engine/codex' if command=='codex' else None
+    ) if isolated_engine else None)
+    return AgentService(store,subscription_engines=isolated_engines,
+                        isolated_engine_adapter=isolated_engine)
 
 
 def make_handler(service, public_hosts=(), public_access_token=''):

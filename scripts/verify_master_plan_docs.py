@@ -53,8 +53,55 @@ def verify_traceability(plan):
         if not isinstance(claim, dict) or claim.get("status") != "development_complete":
             continue
         required=claim.get("required_implementation_ids", [])
-        if not isinstance(required, list) or not required or any(ident not in iterations or ident not in completed for ident in required):
+        if claim_id != "TOP" and (not isinstance(required, list) or not required or any(ident not in iterations or ident not in completed for ident in required)):
             raise SystemExit(f"completion claim lacks implemented automated evidence: {claim_id}")
+        if claim_id != "TOP":
+            continue
+        required_top = ("TOP-00", "TOP-01", "TOP-02", "TOP-03")
+        if (tuple(required) != required_top or any(ident not in iterations for ident in required_top) or
+                any(ident not in completed for ident in required_top)):
+            raise SystemExit("TOP completion claim lacks every ordered substep")
+        requirements = claim.get("requirements")
+        if not isinstance(requirements, dict):
+            raise SystemExit("TOP completion claim lacks requirement evidence")
+        implementation_ids = set(claim.get("implementation_requirement_ids", []))
+        owner_ids = set(claim.get("owner_operating_requirement_ids", []))
+        decision_ids = set(claim.get("separate_owner_product_decision_ids", []))
+        required_implementation_ids = {"CORE-01", "CORE-02", "MP2-01", "STAB-01", "DEPLOY-01", "GOV-01", "STATUS-01"}
+        required_owner_ids = {"OWNER-01"}
+        required_decision_ids = {"LEGACY-01"}
+        if (implementation_ids != required_implementation_ids or owner_ids != required_owner_ids or
+                decision_ids != required_decision_ids):
+            raise SystemExit("TOP completion claim misclassifies a requirement")
+        if (not implementation_ids or not owner_ids or not decision_ids or implementation_ids & owner_ids or
+                implementation_ids & decision_ids or owner_ids & decision_ids):
+            raise SystemExit("TOP completion claim has invalid requirement ownership")
+        if set(requirements) != implementation_ids | owner_ids | decision_ids:
+            raise SystemExit("TOP completion claim omits a requirement")
+        for ident in implementation_ids:
+            evidence = requirements.get(ident)
+            references = evidence.get("evidence") if isinstance(evidence, dict) else None
+            if (not isinstance(evidence, dict) or evidence.get("status") != "merged-current-evidence" or
+                    not isinstance(references, list) or not references or
+                    any(not isinstance(reference, str) or not reference.strip() for reference in references)):
+                raise SystemExit(f"TOP implementation requirement is not evidenced: {ident}")
+        for ident in owner_ids:
+            action = requirements.get(ident)
+            if not isinstance(action, dict) or action.get("status") != "owner-operating-action" or not isinstance(action.get("action"), str) or not action["action"]:
+                raise SystemExit(f"TOP owner requirement is misclassified: {ident}")
+        for ident in decision_ids:
+            decision = requirements.get(ident)
+            if not isinstance(decision, dict) or decision.get("status") != "separate-owner-product-decision" or not isinstance(decision.get("decision"), str) or not decision["decision"]:
+                raise SystemExit(f"TOP product decision is not recorded: {ident}")
+        candidate = claim.get("deployment_candidate")
+        if not isinstance(candidate, dict) or not isinstance(candidate.get("commit"), str) or not re.fullmatch(r"[0-9a-f]{40}", candidate["commit"]):
+            raise SystemExit("TOP completion claim lacks an immutable deployment candidate")
+        checks = candidate.get("required_ci")
+        if (not isinstance(checks, list) or not checks or
+                any(not isinstance(check, dict) or not isinstance(check.get("name"), str) or not check["name"].strip() or
+                    check.get("conclusion") != "success" or check.get("commit") != candidate["commit"] for check in checks) or
+                claim.get("unresolved_review_findings") != []):
+            raise SystemExit("TOP completion claim lacks current verification evidence")
 
 
 def main():
