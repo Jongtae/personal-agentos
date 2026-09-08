@@ -13,6 +13,7 @@ PAIRS = (
     ("master-plan-02-proposal.ko.md", "master-plan-02-proposal.en.md"),
     ("mp1-d01-personal-space-contract.ko.md", "mp1-d01-personal-space-contract.en.md"),
     ("development-governance.ko.md", "development-governance.en.md"),
+    ("goal-execution-contract.ko.md", "goal-execution-contract.en.md"),
     ("mp1-d04-a2a-delegation-contract.ko.md", "mp1-d04-a2a-delegation-contract.en.md"),
     ("mp1-d05-calendar-contract.ko.md", "mp1-d05-calendar-contract.en.md"),
     ("mp1-d06-react-release-contract.ko.md", "mp1-d06-react-release-contract.en.md"),

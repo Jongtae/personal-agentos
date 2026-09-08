@@ -19,7 +19,9 @@ Before activating a goal, its issue and source plan must identify all of the fol
 | Non-goals | Adjacent work deliberately excluded so the agent cannot substitute an easier or broader result. |
 | Work units | Small ordered deliverables, each with its own observable result. Design work fixes contracts before dependent implementation begins. |
 | Evidence | Exact automated checks, fixtures, review artifacts, and—only for operating mode—deployment health evidence. Mock and operating evidence are named separately. |
-| Completion rule | A requirement-by-requirement audit proving every promised artifact, state transition, and check. |
+| Delegation record | For each delegated work unit: exclusive file ownership, requested model/reasoning, tool-accepted setting when available, observed result, and the reason the delegation is independent. |
+| Independent review | A required review artifact for relevant security, recovery, external-boundary, and final-completion work. It is not a routine owner manual-test gate. |
+| Completion rule | A current requirement-to-evidence audit proving every promised artifact, state transition, and check, including merged artifacts, required CI, and tracker/roadmap/ledger closeout. |
 | Blocked rule | The concrete external condition that prevents progress, recovery attempts already made, and the next authority or state change required. |
 
 ## Execution lifecycle
@@ -27,20 +29,28 @@ Before activating a goal, its issue and source plan must identify all of the fol
 1. Inspect the current repository, issue, branch, plan, and prior evidence; do not rely only on prior conversation.
 2. Derive a checklist from the goal-ready record. Preserve every explicit requirement and dependency.
 3. Create the required issue and `codex/` branch before changing implementation or documentation. Keep commits intentional and scoped.
-4. Complete the ordered work units. After each material change, test the relevant contract before moving on.
+4. Complete the ordered work units. After each material change, test the relevant contract before moving on. Use delegation only with the recorded model, ownership, and review boundaries.
 5. Run the declared complete validation set, including plan/doc parity, local-link, ledger, and full-suite checks when the source plan requires them.
 6. Create a PR that distinguishes automated evidence from operating evidence, merge it, close the issue, and update `TASKS.md`, `docs/roadmap.md`, and the ledger together.
 7. Perform the completion audit. Only then report the goal complete.
 
 ## Autonomous delivery-cycle delegation
 
-For a Master Plan cycle explicitly delegated by the owner, the Agent does not wait for owner review after every small D/I iteration. Within the vision, active delivery plan, proposal, and design-contract scope, it may select one **bounded owner friction** and execute its required design → implementation → automated validation → PR merge → closeout sequence in order.
+For a cycle explicitly delegated by the owner, the Agent does not wait for owner review after every small work unit. It may continue only the one explicitly active, goal-ready iteration and its ordered design → implementation → automated validation → PR merge → closeout sequence.
 
-This delegation is not authority for automatic installation, permission escalation, or an operating-mode transition. The Agent must stop and request a cycle-level review before credential or OAuth configuration, a new external connection/endpoint, permission or scope expansion, a consequential external action, expansion of a personal-data boundary, a security/governance boundary change, or Master Plan cycle completion. If the next selection exceeds documented scope or requires a product judgment between equally valid owner outcomes, the Agent reports candidates and evidence instead of starting implementation.
+This delegation is not authority for automatic installation, permission escalation, or an operating-mode transition. The Agent must not select a successor, start a new feature, create a replacement issue, or reactivate a reserved proposal. It must stop before credential or OAuth configuration, a new external connection/endpoint, permission or scope expansion, a consequential external action, expansion of a personal-data boundary, a security/governance boundary change, or Master Plan cycle completion unless that exact action is explicitly authorized in the active goal-ready record. If a next selection would be needed, it reports candidates and evidence instead of starting implementation.
+
+## Delegation and independent review
+
+The active issue records model-routed delegation only where it makes work independently reviewable. The default requested roles are Astra medium for the primary worker, Terra low or medium for independent exploration/document inspection, Sol medium for bounded implementation, and Astra high for security/recovery/final-completion review. These are role labels, not claims that a requested model was available. The record distinguishes requested, accepted, and observed settings and assigns files so two implementers do not edit the same file concurrently.
+
+An independent review artifact is required before completion when a goal changes security, recovery, an external boundary, automation/authority controls, or its completion claim. The reviewer checks the current diff and evidence, names unresolved findings, and does not substitute a fake product success or routine owner manual test.
+
+The single existing delivery automation may resume only the named active goal after checking issue, branch, plan, contract, and task state. It must not select a successor, create an automation, or run concurrently with an already active task. It remains paused when there is no active goal and after closeout; retries require a meaningful changed condition.
 
 ## Terminal-state discipline
 
-- A goal is **complete** only when current authoritative state proves every completion item. Intent, a partial fixture, an unmerged branch, or a narrow test cannot prove a broader claim.
+- A goal is **complete** only when a current requirement-to-evidence audit proves every completion item, merged artifact, required CI result, and tracker/roadmap/ledger closeout. Intent, a partial fixture, a closed issue, an unmerged branch, or a narrow test cannot prove a broader claim.
 - A goal remains **active** while a safe next action exists, even if work is difficult or incomplete.
 - A goal is **blocked** only after the same concrete external blocker has recurred across three goal turns and no meaningful safe progress remains. The report must name the blocker, evidence, and the smallest required next input.
 - A goal never treats a routine owner manual test, real credential, or live provider as a development blocker. Those belong to the separately documented operating-mode deployment unless the active goal explicitly authorizes it.
@@ -72,7 +82,7 @@ Execute <iteration ID and user outcome> from <authoritative issue and delivery-p
 
 Preserve the stated predecessors, non-goals, data/permission boundaries, and operating-mode separation. Work only within the documented authority. Implement the ordered work units, then run every declared validation and perform a requirement-by-requirement completion audit against current repository and PR state.
 
-Do not mark the goal complete until the issue, branch, PR merge, tracker/roadmap/ledger closeout, and all stated evidence are current. Treat live credentials, real providers, and manual owner validation as out of scope unless this specific goal explicitly authorizes operating-mode work. If a single external blocker persists for three consecutive goal turns after safe recovery attempts, mark it blocked with evidence; otherwise continue.
+Do not mark the goal complete until the issue, branch, PR merge, required CI, requirement-to-evidence audit, tracker/roadmap/ledger closeout, and all stated evidence are current. Continue only this active goal; do not select a successor. Treat live credentials, real providers, and manual owner validation as out of scope unless this specific goal explicitly authorizes operating-mode work. If a single external blocker persists for three consecutive goal turns after safe recovery attempts, mark it blocked with evidence; otherwise continue.
 ```
 
 ## Required final report

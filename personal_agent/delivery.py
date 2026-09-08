@@ -88,19 +88,18 @@ class DeliveryPlan:
 
     def select(self, state):
         completed=set(state.get('completed',[])) if isinstance(state.get('completed'),list) else set()
-        active=state.get('active')
-        if active in self.items and active not in completed:return self.items[active]
-        blocked=state.get('blocked')
-        if blocked in self.items and blocked not in completed:
-            repair=next((item for item in self.items.values() if item.get('repair_of')==blocked and item['id'] not in completed),None)
-            if repair:return repair
-            return self.items[blocked]
-        for item in self.data['iterations']:
-            if item['id'] in completed:continue
-            if item.get('activation_status') == 'requires-goal-ready-issue':continue
-            deps=item.get('depends_on',[])
-            if all(dep in completed for dep in deps):return item
-        return None
+        declared=self.next_goal()
+        active=declared.get('id') if declared.get('status') == 'active' else None
+        item=self.items.get(active)
+        if not item or active in completed:
+            return None
+        if item.get('activation_status') != 'owner-activated-goal-ready' or not item.get('issue'):
+            return None
+        dependencies=item.get('depends_on', [])
+        documented=self.documented_completed()
+        if not all(dependency in completed or dependency in documented for dependency in dependencies):
+            return None
+        return item
 
 
 class CommandRunner:
@@ -180,7 +179,7 @@ class DeliveryController:
                 'next_action':'wait for retry' if state.get('status','').startswith('blocked') else ('run current iteration' if item else next_goal.get('action','delivery plan complete'))}
 
     def due(self, state):
-        return not state.get('next_retry_at') or self.now()>=state['next_retry_at']
+        return not state.get('status','').startswith('blocked')
 
     def _attempt_allowed(self, state):
         day=dt.datetime.fromtimestamp(self.now(),dt.timezone.utc).date().isoformat()
@@ -207,38 +206,18 @@ class DeliveryController:
 
     def _ensure_issue(self, item, state, dry_run):
         issue=self._issue_number(item,state)
-        if issue or dry_run:return issue
-        title=f'[{item["id"]}] {item["summary"]}'
-        args=['issue','create','--repo',self.plan.data['repository'],'--title',title,
-              '--body',f'Automated delivery iteration `{item["id"]}` for {item["milestone"]}.\n\n{item["summary"]}',
-              '--label','iteration','--label','needs-validation']
-        milestone=self.plan.milestone_title(item)
-        if milestone:args.extend(['--milestone',milestone])
-        result=self._gh(*args)
-        found=re.search(r'/issues/(\d+)',result.stdout or '')
-        if result.returncode or not found:raise DeliveryError(result.stderr or 'Could not create delivery issue.')
-        state.setdefault('issues',{})[item['id']]=int(found.group(1))
-        return state['issues'][item['id']]
+        if issue:
+            return issue
+        raise DeliveryError('A delivery controller cannot create an issue; an owner-activated goal-ready issue is required.')
 
     def _record_block(self, item, state, classification, detail, dry_run):
-        allowed,day,attempts=self._attempt_allowed(state)
-        retry_at=self.now()+RETRY_SECONDS if allowed else (dt.datetime.fromtimestamp(self.now(),dt.timezone.utc).replace(hour=0,minute=0,second=0,microsecond=0)+dt.timedelta(days=1)).timestamp()
         issue=self._issue_number(item,state)
         state.update(active=item['id'],blocked=item.get('repair_of') or item['id'],milestone=item['milestone'],issue=issue,status='blocked-'+classification,
-                     last_validation='failed',last_error=detail[:500],next_retry_at=retry_at,attempt_day=day,attempts_today=attempts+1,updated_at=self.now())
-        if issue and not dry_run:
-            self._gh('issue','edit',str(issue),'--repo',self.plan.data['repository'],'--add-label','blocked')
-            self._gh('issue','comment',str(issue),'--repo',self.plan.data['repository'],'--body',f'Delivery loop blocked: `{classification}`. Retry is scheduled after {dt.datetime.fromtimestamp(retry_at,dt.timezone.utc).isoformat()}. Validation detail: {detail[:300]}')
+                     last_validation='failed',last_error=detail[:500],next_retry_at=None,updated_at=self.now())
         return self.state_store.write(state)
 
     def _complete(self, item, state, dry_run=False):
-        completed=set(state.get('completed',[]));completed.add(item['id'])
-        state.update(completed=sorted(completed),active=None,status='completed',last_validation='passed',last_error='',next_retry_at=None,updated_at=self.now())
-        if state.get('blocked')==item['id']:state.pop('blocked',None)
-        issue=self._issue_number(item,state)
-        if issue and not dry_run:
-            self._gh('issue','close',str(issue),'--repo',self.plan.data['repository'],'--comment',f'Delivery loop completed `{item["id"]}` with recorded validation evidence.')
-        return self.state_store.write(state)
+        raise DeliveryError('Completion rejected: the delivery controller cannot verify merged PR, required CI, requirement-to-evidence audit, and closeout.')
 
     def _issue_is_closed(self, item, state):
         issue=self._issue_number(item,state)
@@ -257,24 +236,22 @@ class DeliveryController:
         return state
 
     def reconcile(self, dry_run=False):
-        """Adopt a GitHub-closed active iteration without starting new work."""
+        """Never adopt a closed issue as proof of completion; await current evidence."""
         lock=self.state_store.locked()
         try:
             state=self._migrate_stale_state(self.state_store.read());item=self.plan.select(state)
-            if not item:return self.state_store.write(self._complete_plan(state,self.now()))
+            if not item:return self.state_store.write({**state,'status':'awaiting-owner-activated-goal','updated_at':self.now()})
+            if state.get('status','').startswith('blocked'):
+                return self.state_store.write({**state,'status':'blocked-awaiting-changed-condition','updated_at':self.now()})
             issue=self._issue_number(item,state)
             if not issue:
                 return self.state_store.write({**state,'status':'ready-to-run','updated_at':self.now()})
             try:
                 if self._issue_is_closed(item,state):
-                    completed=self._complete(item,state,dry_run=True)
-                    next_item=self.plan.select(completed)
-                    if next_item:
-                        return self.state_store.write({**completed,'active':next_item['id'],
-                                                       'milestone':next_item['milestone'],
-                                                       'issue':self._issue_number(next_item,completed),
-                                                       'status':'ready-to-run','updated_at':self.now()})
-                    return completed
+                    return self.state_store.write({**state,'active':item['id'],'milestone':item['milestone'],
+                                                   'issue':issue,'status':'completion-evidence-required',
+                                                   'last_error':'A closed issue is not completion evidence.',
+                                                   'updated_at':self.now()})
             except DeliveryError as exc:
                 return self._record_block(item,state,classify_failure(str(exc)),str(exc),dry_run)
             return self.state_store.write({**state,'active':item['id'],'milestone':item['milestone'],'issue':issue,'status':'ready-to-run','updated_at':self.now()})
@@ -285,47 +262,27 @@ class DeliveryController:
         lock=self.state_store.locked()
         try:
             state=self._migrate_stale_state(self.state_store.read());item=self.plan.select(state)
-            if not item:return self.state_store.write(self._complete_plan(state,self.now()))
-            # A local validation can establish its evidence without GitHub.
-            # This is essential for launchd's intentionally minimal runtime
-            # environment and makes local acceptance usable offline.
+            if not item:return self.state_store.write({**state,'status':'awaiting-owner-activated-goal','updated_at':self.now()})
+            if state.get('status','').startswith('blocked'):
+                return self.state_store.write({**state,'status':'blocked-awaiting-changed-condition','updated_at':self.now()})
             issue=self._issue_number(item,state)
-            if issue or item['kind']!='live_validation':
-                try:
-                    issue=self._ensure_issue(item,state,dry_run)
-                except DeliveryError as exc:
-                    return self._record_block(item,state,classify_failure(str(exc)),str(exc),dry_run)
+            try:
+                issue=self._ensure_issue(item,state,dry_run)
+            except DeliveryError as exc:
+                return self._record_block(item,state,classify_failure(str(exc)),str(exc),dry_run)
             if issue:state['issues']=dict(state.get('issues',{}),**{item['id']:issue})
-            # Launchd has no interactive GitHub credential context. A live
-            # validation must record its local evidence before any optional
-            # GitHub status lookup; only repair implementation work needs the
-            # closed-issue shortcut.
-            if not dry_run and item['kind']!='live_validation':
+            if not dry_run:
                 try:
-                    if self._issue_is_closed(item,state):return self._complete(item,state,dry_run=True)
+                    if self._issue_is_closed(item,state):
+                        return self.state_store.write({**state,'active':item['id'],'milestone':item['milestone'],
+                                                       'issue':issue,'status':'completion-evidence-required',
+                                                       'last_error':'A closed issue is not completion evidence.',
+                                                       'updated_at':self.now()})
                 except DeliveryError as exc:
                     return self._record_block(item,state,classify_failure(str(exc)),str(exc),dry_run)
-            if state.get('status','').startswith('blocked') and not self.due(state):return self.status()
-            allowed,_,_=self._attempt_allowed(state)
-            if state.get('status','').startswith('blocked') and not allowed:
-                state['next_retry_at']=(dt.datetime.fromtimestamp(self.now(),dt.timezone.utc).replace(hour=0,minute=0,second=0,microsecond=0)+dt.timedelta(days=1)).timestamp()
-                return self.state_store.write(state)
             state.update(active=item['id'],milestone=item['milestone'],issue=issue,status='running',updated_at=self.now())
-            if item['kind']=='live_validation':
-                result=self._command(item['validation'].split(),cwd=self.root,timeout=900)
-                output=(result.stdout or '')+'\n'+(result.stderr or '')
-                if result.returncode:
-                    return self._record_block(item,state,classify_failure(output),output,dry_run)
-                return self._complete(item,state,dry_run)
-            if item['kind']=='release':
-                if dry_run:
-                    state.update(status='ready-for-release',updated_at=self.now())
-                    return self.state_store.write(state)
-                return self._run_release(item,state)
-            if dry_run:
-                state.update(status='ready-for-codex',updated_at=self.now())
-                return self.state_store.write(state)
-            return self._run_worker(item,state)
+            state.update(status='manual-governance-execution-required',updated_at=self.now())
+            return self.state_store.write(state)
         finally:
             lock.close()
 
@@ -371,7 +328,9 @@ class DeliveryController:
         return None
 
     def _run_release(self, item, state):
-        """Publish a verified patch release and Formula update from controller-owned clones."""
+        """Fail closed: release mutations require the active-goal workflow."""
+        return self._record_block(item,state,'manual-governance-execution-required',
+                                  'The legacy controller cannot tag, publish, push, merge, install, or complete a release. Use the active goal workflow.',False)
         if not (self.root/'.git').exists():
             return self._record_block(item,state,'delivery-failed','Release requires a git checkout.',False)
         blocked=self._release_preflight(item,state)
@@ -454,32 +413,8 @@ class DeliveryController:
         return self._complete(item,state,False)
 
     def _run_worker(self, item, state):
-        if not (self.root/'.git').exists():return self._record_block(item,state,'delivery-failed','Codex delivery requires a git checkout.',False)
-        worktrees=self.state_store.path.parent/'worktrees';worktree=worktrees/item['id'].lower()
-        branch='delivery/'+item['id'].lower()
-        if not worktree.exists():
-            created=self._command(['git','worktree','add','-b',branch,str(worktree),'origin/main'],cwd=self.root,timeout=120)
-            if created.returncode:return self._record_block(item,state,classify_failure((created.stdout or '')+'\n'+(created.stderr or '')),created.stderr or 'Could not create delivery worktree.',False)
-        definition=json.dumps(item,ensure_ascii=False,sort_keys=True)
-        prompt=(f'Implement this delivery iteration definition: {definition}\n'
-                'Work only in this worktree. Preserve product safety boundaries. Run listed tests and commit the finished change. Do not push, create a PR, merge, tag, or release; the delivery controller owns those actions.')
-        result=self._command(['codex','exec','--approve-for-me',prompt],cwd=worktree,timeout=3600)
-        output=(result.stdout or '')+'\n'+(result.stderr or '')
-        if result.returncode:return self._record_block(item,state,classify_failure(output),output,False)
-        for command in item.get('tests',[]):
-            checked=self._command(command.split(),cwd=worktree,timeout=900)
-            if checked.returncode:return self._record_block(item,state,'validation-failed',(checked.stdout or '')+'\n'+(checked.stderr or ''),False)
-        pushed=self._command(['git','push','-u','origin',branch],cwd=worktree,timeout=180)
-        if pushed.returncode:return self._record_block(item,state,'delivery-failed',(pushed.stdout or '')+'\n'+(pushed.stderr or ''),False)
-        issue=self._issue_number(item,state)
-        body=f'Automated delivery implementation for `{item["id"]}`.\n\nCloses #{issue}.' if issue else f'Automated delivery implementation for `{item["id"]}`.'
-        opened=self._gh('pr','create','--repo',self.plan.data['repository'],'--base','main','--head',branch,'--title',f'[{item["id"]}] {item["summary"]}','--body',body)
-        match=re.search(r'https://github\.com/[^\s]+/pull/\d+',opened.stdout or '')
-        if opened.returncode or not match:return self._record_block(item,state,'delivery-failed',(opened.stdout or '')+'\n'+(opened.stderr or ''),False)
-        state['pr']=match.group(0)
-        merged=self._gh('pr','merge',state['pr'],'--repo',self.plan.data['repository'],'--squash','--delete-branch')
-        if merged.returncode:return self._record_block(item,state,'delivery-failed',(merged.stdout or '')+'\n'+(merged.stderr or ''),False)
-        return self._complete(item,state,dry_run=True)
+        return self._record_block(item,state,'manual-governance-execution-required',
+                                  'The legacy controller cannot run Codex, create branches, push, merge, or close a goal. Use the active goal workflow.',False)
 
     def _schedule_program(self):
         """Select the same runtime as the selected delivery-plan checkout."""
@@ -493,6 +428,7 @@ class DeliveryController:
         return [command] if command else [sys.executable,'-m','personal_agent.quickstart']
 
     def install_schedule(self):
+        raise DeliveryError('Managed delivery scheduling is disabled; use the one existing goal-resume heartbeat.')
         label='com.jongtae.personal-agentos.delivery';folder=Path.home()/'Library'/'LaunchAgents';path=folder/(label+'.plist')
         folder.mkdir(parents=True,exist_ok=True)
         source_mode=(self.root/'personal_agent'/'quickstart.py').is_file()

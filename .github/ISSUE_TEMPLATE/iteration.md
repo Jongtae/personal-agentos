@@ -8,14 +8,36 @@ labels: iteration
 
 ## Runtime impact
 
+## Goal-ready activation
+
+Active delivery-plan iteration, predecessors satisfied, and the explicit owner activation that authorizes this goal:
+
+## Allowed authority
+
+Files, runtime boundaries, repositories, and external systems this goal may change:
+
 ## Acceptance criteria
 
 - [ ]
 
 ## Non-goals
 
+## Ordered work units
+
+## Evidence and completion audit
+
+Map each acceptance criterion to automated fixtures/checks, review artifacts, required CI, and the merged PR/closeout evidence. A closed issue or local test alone is insufficient.
+
+## Delegation and independent review
+
+Record exclusive files, requested/accepted/observed model and reasoning settings, and the independent-review plan where applicable.
+
+## Blocked / restart rule
+
+Name the concrete external blocker, safe recovery attempts, changed condition required before retry, and the minimum next authority.
+
 ## Validation plan
 
 ## Branch
 
-`feature/`
+`codex/<issue>-<slug>`
