@@ -65,3 +65,5 @@ MP2 is proposed for [conversation-first settings](master-plan-02-proposal.en.md)
 The owner-local delivery state is reconciled and must not rerun merged UX, MP1, D-MP2-01, or I-MP2-01 work. Under the owner's autonomous-cycle delegation, its next action is `D-MP2-02`: select one bounded next MP2 owner friction, create a goal-ready design issue and branch, and continue without routine iteration review. It stops for the documented sensitive-boundary and MP2 cycle-completion reviews.
 
 D-MP2-02 selects reviewed capability discovery and recommendation as that bounded friction. It defines only an owner-local reviewed catalogue and read-only recommendation boundary; marketplace discovery, downloading, installation, activation, permission/scope grant, credentials, OAuth, external endpoints/actions, and operating deployment remain out of scope. I-MP2-02 requires a separate goal-ready issue.
+
+I-MP2-02 delivers the fixture-backed owner-local catalogue and read-only recommendation model with deterministic ranking and HTTP/Telegram parity. It remains development-only mock-contract evidence and does not claim any live recommendation source, connector, or installation.
