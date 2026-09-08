@@ -2,7 +2,7 @@
 
 Active work is executed only from a goal-ready issue and active delivery-plan entry under the [Goal Execution Contract](docs/goal-execution-contract.en.md). Status tables are trackers, not authority to activate reserved work.
 
-## Active repository maintenance
+## Completed repository maintenance
 
 | Work unit | Issue | Branch | Status |
 | --- | --- | --- | --- |

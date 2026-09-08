@@ -84,6 +84,6 @@ The design-to-implementation traceability governance is complete in [#246](https
 
 [GOV-01 / #263](https://github.com/Jongtae/personal-agentos/pull/263) permanently aligns the contribution rules, bilingual goal contract, templates, heartbeat instructions, and legacy delivery controller. Only a named active goal may resume; successor selection, automatic issue/branch/merge/release actions, duplicate scheduling, time-only retries, and evidence-free completion fail closed. This is governance and automated-test evidence only; it grants no product, provider, credential, or operating authority.
 
-## Active — STRUCT-01 repository structure
+## Completed — STRUCT-01 repository structure
 
 [WU-01](https://github.com/Jongtae/personal-agentos/issues/285), [WU-02](https://github.com/Jongtae/personal-agentos/issues/286), WU-03 through merged [PR #288](https://github.com/Jongtae/personal-agentos/pull/288), and WU-04 through merged [PR #292](https://github.com/Jongtae/personal-agentos/pull/292) are complete. The final STRUCT-01 requirement-to-evidence audit is complete in [WU-05 / #295](https://github.com/Jongtae/personal-agentos/issues/295) through merged [PR #296](https://github.com/Jongtae/personal-agentos/pull/296). This restructuring preserves existing CLI usage, persisted data format, approval boundaries, isolation boundaries, recovery behavior, the nested `agentos/` repository, and `.runtime/` owner data. Owner-controlled operating deployment remains separate and is not claimed here.
