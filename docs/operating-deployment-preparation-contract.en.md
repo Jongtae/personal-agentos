@@ -2,13 +2,13 @@
 
 ## Status and outcome
 
-`OP-01` prepares, but does not perform, one owner-approved operating deployment. The supported candidate is the released `v1.0.4` source checkout using the repository's Docker Compose path. It runs one non-root AgentOS container, stores owner state only in the named `agentos-data` volume, and binds the service only to `127.0.0.1:${AGENTOS_PORT:-8787}`.
+`OP-01` is historical preparation evidence only. Its former claim that released `v1.0.4` was a supported candidate has been corrected by active `OP-02`: that tag predates the stabilization and preflight work, and its Compose image has no safe subscription-engine path. Do not deploy it. See the OP-02 remediation contract for current, fail-closed status.
 
 The outcome is a credential-free, reproducible preparation package: exact install/start/configure/health/stop/recovery instructions, a machine-readable local preflight, and fixture evidence for its pass and failure states. This is not a claim that Docker, Telegram, Codex, Claude Code, or any provider is operating for an owner.
 
 ## Ordered owner procedure
 
-1. **Install and select:** the owner obtains Docker Compose and checks out the signed/released repository tag `v1.0.4`. The owner runs `python3 scripts/operating_preflight.py --root .`; it must report the same version, local-only port binding, named data volume, non-root container, health check, and required runbook scripts.
+1. **Install and select:** no checkout is currently a supported owner deployment candidate. The owner must wait for OP-02 closeout to name an immutable candidate. `python3 scripts/operating_preflight.py --root .` correctly fails closed while subscription-engine isolation is unimplemented.
 2. **Start:** after the owner approves an operating deployment, run `docker compose up -d --build`. The owner may set only `AGENTOS_PORT` to select a local port; no public host, host-home mount, Docker socket mount, or credential environment variable is part of this path.
 3. **Health and local claim:** wait for `http://127.0.0.1:${AGENTOS_PORT:-8787}/healthz` to return `{"ok": true}`. Open the local URL, claim the newly created runtime, and retain the generated local recovery material according to the UI instructions.
 4. **Credential gates, after the deployment approval:** the owner alone chooses an already-installed subscription CLI and confirms its official login in the local AgentOS settings. If Telegram is desired, the owner separately creates a dedicated bot and enters its token into the local private connection store, then completes owner pairing. These gates are not part of preflight and no token, OAuth client, endpoint, or external connection is created by this cycle.

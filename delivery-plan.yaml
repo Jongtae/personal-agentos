@@ -364,6 +364,16 @@
       "contract": "operating-deployment-preparation-contract.en.md",
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 scripts/operating_preflight.py --root .", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
       "summary": "Prepare the bounded v1.0.4 Docker Compose operating path, explicit owner gates, health, stop, and secret-free recovery without deploying it."
+    },
+    {
+      "id": "OP-02",
+      "milestone": "Operating Readiness Remediation",
+      "issue": 260,
+      "kind": "remediation",
+      "depends_on": ["OP-01"],
+      "contract": "op-02-operating-readiness-remediation-contract.en.md",
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 scripts/operating_preflight.py --root .", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "summary": "Correct OP-01's unsupported release/path claim with an immutable candidate, internal subscription-engine path, executable preflight, and recovery evidence."
     }
   ],
   "milestones": {
@@ -390,6 +400,9 @@
     },
     "Owner-Approved Operating Deployment Preparation": {
       "title": "Owner-Approved Operating Deployment Preparation"
+    },
+    "Operating Readiness Remediation": {
+      "title": "Operating Readiness Remediation"
     }
   },
   "completion_claims": {
@@ -423,9 +436,9 @@
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
-    "id": "OPERATING-MODE-DEPLOYMENT",
-    "status": "requires-explicit-owner-approval",
-    "action": "await one explicit owner approval before starting the prepared operating deployment",
-    "source": "docs/operating-deployment-preparation-contract.en.md"
+    "id": "OP-02",
+    "status": "active-owner-directed-remediation",
+    "action": "correct the operating-readiness evidence before any owner operating-deployment decision",
+    "source": "docs/op-02-operating-readiness-remediation-contract.en.md"
   }
 }

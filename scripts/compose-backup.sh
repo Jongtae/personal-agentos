@@ -27,5 +27,5 @@ docker compose run --rm --no-deps -T \
   --entrypoint python agentos -c '
 import sys
 from personal_agent.portable_state import export_owner_state
-print(export_owner_state("/data", "/backup/" + sys.argv[1]))
+print(export_owner_state("/state/data", "/backup/" + sys.argv[1]))
 ' "$archive_name"

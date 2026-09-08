@@ -2,13 +2,13 @@
 
 ## 상태와 결과
 
-`OP-01`은 소유자가 승인한 운영 배포 한 번을 준비하지만 실제로 수행하지는 않는다. 지원 후보는 저장소의 Docker Compose 경로를 사용하는 출시된 `v1.0.4` 소스 체크아웃이다. 이 경로는 non-root AgentOS 컨테이너 하나를 실행하고, 소유자 상태는 named `agentos-data` volume에만 보관하며, 서비스는 `127.0.0.1:${AGENTOS_PORT:-8787}`에만 바인딩한다.
+`OP-01`은 과거 preparation evidence일 뿐이다. release된 `v1.0.4`가 지원 candidate라는 과거 주장은 active `OP-02`에서 정정되었다. 해당 tag는 stabilization과 preflight 작업보다 앞서며 Compose image에는 안전한 subscription-engine path가 없다. 배포하지 말아야 한다. 현재 fail-closed 상태는 OP-02 remediation contract를 참조한다.
 
 결과물은 credential 없이 재현 가능한 준비 패키지이다. 정확한 설치·시작·설정·건강 검사·중단·복구 절차, machine-readable 로컬 preflight, 그리고 통과/실패 상태의 fixture 증거를 제공한다. 이는 Docker, Telegram, Codex, Claude Code 또는 어느 provider가 소유자에게 운영 중이라는 주장이 아니다.
 
 ## 순서가 있는 소유자 절차
 
-1. **설치와 선택:** 소유자는 Docker Compose를 준비하고 서명/출시된 저장소 tag `v1.0.4`를 체크아웃한다. 소유자는 `python3 scripts/operating_preflight.py --root .`를 실행하며, 같은 버전, local-only port binding, named data volume, non-root container, health check, 필수 runbook script를 보고해야 한다.
+1. **설치와 선택:** 현재 지원되는 owner deployment candidate는 없다. owner는 OP-02 closeout이 immutable candidate를 명시할 때까지 기다려야 한다. `python3 scripts/operating_preflight.py --root .`는 subscription-engine isolation 미구현 동안 올바르게 fail closed한다.
 2. **시작:** 소유자가 운영 배포를 승인한 뒤 `docker compose up -d --build`를 실행한다. 소유자는 local port를 선택하기 위해 `AGENTOS_PORT`만 설정할 수 있다. public host, host-home mount, Docker socket mount, credential environment variable은 이 경로에 포함되지 않는다.
 3. **건강 검사와 로컬 claim:** `http://127.0.0.1:${AGENTOS_PORT:-8787}/healthz`가 `{"ok": true}`를 반환할 때까지 기다린다. 로컬 URL을 열고 새 runtime을 claim하며, UI 지시에 따라 생성된 로컬 recovery material을 보관한다.
 4. **배포 승인 후 credential gate:** 소유자만 이미 설치된 subscription CLI를 선택하고 로컬 AgentOS 설정에서 공식 login을 확인한다. Telegram이 필요하면 소유자는 전용 bot을 별도로 만들고 token을 로컬 private connection store에 입력한 뒤 owner pairing을 완료한다. 이 gate는 preflight의 일부가 아니며 이 cycle은 token, OAuth client, endpoint, 외부 connection을 만들지 않는다.
