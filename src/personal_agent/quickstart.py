@@ -1,11 +1,13 @@
 """Launch a local personal agent and its browser setup, using only Python."""
 import argparse
 import fcntl
+import getpass
 import json
 import os
 from pathlib import Path
 import signal
 import secrets
+import stat
 import sys
 import threading
 import time
@@ -22,9 +24,40 @@ from .providers import ProviderError
 from .capabilities import CapabilityRegistry
 from .isolated_engine_gateway import IsolatedEngineGateway
 from .drive_web_oauth import DriveWebOAuthHandoff, EncryptedDriveSecretStore, DriveWebOAuthError
+from cryptography.fernet import Fernet
 
 WEB=Path(__file__).parent/'web'
 ISOLATED_MCP_PATH='/internal/isolated-engine/mcp'
+
+
+def local_drive_secret_values(store, environ):
+    """Load owner-local Drive credentials without putting them in process args.
+
+    The JSON file is intentionally outside AgentOS's data directory, owned by
+    the current user, a non-symlink regular file, and mode 0600.  It is a
+    runtime secret boundary for the Fernet key, OAuth client secret, and
+    browser-restricted Picker key; none of these values enter settings/status.
+    """
+    path_value=environ.get('AGENTOS_DRIVE_SECRET_FILE','')
+    if not path_value:
+        return {}
+    path=Path(path_value).expanduser()
+    try:
+        if not path.is_absolute():
+            raise ValueError
+        resolved=path.resolve(strict=True)
+        data_root=store.root.resolve()
+        details=resolved.stat()
+        if (not resolved.is_absolute() or data_root==resolved or data_root in resolved.parents
+                or not stat.S_ISREG(details.st_mode) or details.st_uid!=os.getuid()
+                or details.st_mode & 0o077):
+            raise ValueError
+        value=json.loads(resolved.read_text())
+    except (OSError, ValueError, json.JSONDecodeError):
+        raise ValueError('Drive secret file must be an owner-only regular JSON file outside AgentOS data.')
+    if not isinstance(value,dict):
+        raise ValueError('Drive secret file must contain a JSON object.')
+    return {key:value.get(key,'') for key in ('client_id','client_secret','encryption_key','picker_api_key')}
 
 
 def picker_page(config, grant):
@@ -87,7 +120,10 @@ def configured_service(store, environ=None):
     drive_read=None
     picker_config=None
     if environ.get('AGENTOS_DRIVE_LOCAL_ONLY')=='1':
-        client_id=environ.get('AGENTOS_DRIVE_CLIENT_ID',''); key=environ.get('AGENTOS_DRIVE_ENCRYPTION_KEY',''); client_secret=environ.get('AGENTOS_DRIVE_CLIENT_SECRET','')
+        secret_values=local_drive_secret_values(store,environ)
+        client_id=secret_values.get('client_id') or environ.get('AGENTOS_DRIVE_CLIENT_ID','')
+        key=secret_values.get('encryption_key') or environ.get('AGENTOS_DRIVE_ENCRYPTION_KEY','')
+        client_secret=secret_values.get('client_secret') or environ.get('AGENTOS_DRIVE_CLIENT_SECRET','')
         port=environ.get('AGENTOS_DRIVE_LOCAL_PORT','8787')
         if client_id and key and client_secret:
             base=f'http://localhost:{port}'
@@ -102,7 +138,7 @@ def configured_service(store, environ=None):
                 # bytes.  Callers keep the body in memory only.
                 with urlopen(Request(url, body, headers), timeout=20) as response:
                     return response.read()
-            picker_key=environ.get('AGENTOS_DRIVE_PICKER_API_KEY','')
+            picker_key=secret_values.get('picker_api_key') or environ.get('AGENTOS_DRIVE_PICKER_API_KEY','')
             if picker_key:
                 # Google Picker requires a browser-visible, referrer-restricted
                 # developer key.  It is not included in status/settings APIs.
@@ -367,6 +403,40 @@ def plugins_main(argv):
     print(json.dumps(result,ensure_ascii=False))
 
 
+def drive_config_main(argv):
+    """Create a local-only Drive secret file without printing its contents."""
+    parser=argparse.ArgumentParser(description='Create an owner-only local Google Drive credential file.')
+    parser.add_argument('--oauth-client-json',required=True)
+    parser.add_argument('--secret-file',required=True)
+    parser.add_argument('--picker-key-stdin',action='store_true',help='Read the restricted Picker API key from standard input.')
+    args=parser.parse_args(argv)
+    source=Path(args.oauth_client_json).expanduser().resolve(strict=True)
+    target=Path(args.secret_file).expanduser()
+    if not target.is_absolute():
+        parser.error('--secret-file must be an absolute path.')
+    try:
+        client=json.loads(source.read_text()).get('web',{})
+        client_id=client['client_id']; client_secret=client['client_secret']
+    except (OSError, ValueError, KeyError, TypeError):
+        parser.error('--oauth-client-json must be a Google web OAuth client download.')
+    picker_key=sys.stdin.read().strip() if args.picker_key_stdin else getpass.getpass('Restricted Google Picker API key: ').strip()
+    if not picker_key:
+        parser.error('A restricted Google Picker API key is required.')
+    values={'client_id':client_id,'client_secret':client_secret,'picker_api_key':picker_key,
+            'encryption_key':Fernet.generate_key().decode()}
+    try:
+        target.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+        if target.exists():
+            parser.error('Refusing to replace an existing Drive secret file.')
+        descriptor=os.open(target,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        with os.fdopen(descriptor,'w') as output:
+            json.dump(values,output,separators=(',',':'))
+        os.chmod(target,0o600)
+    except OSError as exc:
+        parser.error('Could not create the owner-only Drive secret file: '+str(exc))
+    print('Created owner-only local Drive credential file.',flush=True)
+
+
 def main():
     # Keep the normal server parser small while exposing delivery as a nested
     # command: `agentos delivery status`.
@@ -375,6 +445,8 @@ def main():
         return delivery_main(sys.argv[2:])
     if len(sys.argv)>1 and sys.argv[1]=='plugins':
         return plugins_main(sys.argv[2:])
+    if len(sys.argv)>1 and sys.argv[1]=='drive-config':
+        return drive_config_main(sys.argv[2:])
     if len(sys.argv)>1 and sys.argv[1]=='guide':
         guide=argparse.ArgumentParser(description='Show credential-free AgentOS onboarding and recovery guidance.')
         guide.add_argument('--data',default=os.environ.get('AGENTOS_DATA',str(Path.home()/'.local/share/agentos')))

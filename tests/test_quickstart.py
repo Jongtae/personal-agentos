@@ -3,6 +3,7 @@ import tempfile
 import threading
 import time
 import unittest
+import os
 from http.cookiejar import CookieJar
 from http.server import ThreadingHTTPServer
 from urllib.request import Request, build_opener, HTTPCookieProcessor, HTTPRedirectHandler
@@ -10,7 +11,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlsplit, parse_qs
 from personal_agent.quickstart_store import QuickStore
 from personal_agent.quickstart_service import AgentService, TELEGRAM_RESULT_PREVIEW_CHARS
-from personal_agent.quickstart import make_handler, configured_service
+from personal_agent.quickstart import make_handler, configured_service, local_drive_secret_values
 from personal_agent.drive_web_oauth import DriveWebOAuthHandoff, EncryptedDriveSecretStore
 from cryptography.fernet import Fernet
 from personal_agent.providers import ModelAdapter, ProviderError
@@ -143,6 +144,20 @@ class QuickstartTests(unittest.TestCase):
         })
         self.assertEqual(configured.drive_web_oauth.redirect_uri,'http://localhost:9123/oauth/google/callback')
         self.assertNotIn('never-return-this',json.dumps(configured.settings()))
+
+    def test_owner_only_drive_secret_file_configures_without_environment_secrets(self):
+        with tempfile.TemporaryDirectory() as external:
+            path=os.path.join(external,'drive-secrets.json')
+            values={'client_id':'client','client_secret':'secret-not-exposed','picker_api_key':'restricted-key',
+                    'encryption_key':Fernet.generate_key().decode()}
+            with open(path,'w') as output: json.dump(values,output)
+            os.chmod(path,0o600)
+            configured=configured_service(self.store,{'AGENTOS_DRIVE_LOCAL_ONLY':'1','AGENTOS_DRIVE_SECRET_FILE':path})
+            self.assertEqual(configured.drive_web_oauth.client_id,'client')
+            self.assertEqual(configured.drive_picker_config['developer_key'],'restricted-key')
+            self.assertNotIn('secret-not-exposed',json.dumps(configured.settings()))
+            with self.assertRaises(ValueError):
+                local_drive_secret_values(self.store,{'AGENTOS_DRIVE_SECRET_FILE':str(self.store.root/'inside.json')})
 
     def test_drive_status_is_authenticated_and_redacted(self):
         self.store.claim(self.store.bootstrap.read_text(),'long-password-test')
