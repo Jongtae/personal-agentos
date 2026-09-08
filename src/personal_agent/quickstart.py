@@ -149,6 +149,11 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 return self.reply(200,(WEB/filename).read_bytes(),mime)
             if path=='/api/status':
                 return self.reply(200,{'claimed':store.claimed(),'authenticated':store.session(self.token()),'local_access':self.local_setup() and store.config('local_access',False)})
+            if path=='/api/drive/status':
+                if not self.auth():return
+                handoff=service.drive_web_oauth
+                return self.reply(200,{'configured':bool(handoff),'local_only':bool(handoff),
+                                       'state':handoff.status()['state'] if handoff else 'not-configured'})
             if not self.auth():return
             if path=='/api/home':return self.reply(200,service.home())
             if path=='/api/capabilities':return self.reply(200,{'capabilities':CapabilityRegistry(store).list()})

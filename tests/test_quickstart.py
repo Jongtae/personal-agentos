@@ -144,6 +144,20 @@ class QuickstartTests(unittest.TestCase):
         self.assertEqual(configured.drive_web_oauth.redirect_uri,'http://localhost:9123/oauth/google/callback')
         self.assertNotIn('never-return-this',json.dumps(configured.settings()))
 
+    def test_drive_status_is_authenticated_and_redacted(self):
+        self.store.claim(self.store.bootstrap.read_text(),'long-password-test')
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(self.service));thread=threading.Thread(target=server.serve_forever);thread.start()
+        client=build_opener(HTTPCookieProcessor(CookieJar()));base='http://127.0.0.1:'+str(server.server_port)
+        try:
+            with self.assertRaises(HTTPError) as error: client.open(base+'/api/drive/status',timeout=3)
+            self.assertEqual(error.exception.code,401)
+            request=Request(base+'/api/login',data=json.dumps({'password':'long-password-test'}).encode(),headers={'Content-Type':'application/json'})
+            client.open(request,timeout=3).read()
+            with client.open(base+'/api/drive/status',timeout=3) as response: result=json.load(response)
+            self.assertEqual(result,{'configured':False,'local_only':False,'state':'not-configured'})
+        finally:
+            server.shutdown();thread.join();server.server_close()
+
     def test_local_drive_handoff_rejects_bad_callback_without_login(self):
         key=Fernet.generate_key()
         drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(self.store,key),'client',
