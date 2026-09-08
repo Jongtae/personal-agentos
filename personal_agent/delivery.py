@@ -97,6 +97,7 @@ class DeliveryPlan:
             return self.items[blocked]
         for item in self.data['iterations']:
             if item['id'] in completed:continue
+            if item.get('activation_status') == 'requires-goal-ready-issue':continue
             deps=item.get('depends_on',[])
             if all(dep in completed for dep in deps):return item
         return None

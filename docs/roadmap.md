@@ -69,3 +69,5 @@ D-MP2-02 selects reviewed capability discovery and recommendation as that bounde
 I-MP2-02 delivers the fixture-backed owner-local catalogue and read-only recommendation model with deterministic ranking and HTTP/Telegram parity. It remains development-only mock-contract evidence and does not claim any live recommendation source, connector, or installation.
 
 D-MP2-03 defines transparent owner-local Personal Space retrieval with source evidence and a separate explicit sharing boundary. It excludes external indexing, cloud sync, provider/OAuth/credentials, automatic long-term memory, document ingestion, external action, and operating deployment. I-MP2-03 requires a separate goal-ready issue.
+
+Design completion is not capability completion. The active plan now mechanically maps every Master Plan design entry to its named implementation, bilingual contract, and automated-evidence declaration. A `development_complete` Master Plan claim is rejected unless every declared implementation has documented completion; I-MP2-03 remains `requires-goal-ready-issue` and no knowledge-retrieval capability is claimed as delivered.
