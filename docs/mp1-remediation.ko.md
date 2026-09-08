@@ -2,7 +2,7 @@
 
 ## 상태
 
-**상태: proposed remediation.** 기존 D-01부터 I-06 작업은 경계 contract와 분리된 mock adapter를 만들었지만, 개인 비서 제품 흐름을 아직 증명하지 못한다. 아래 보완 iteration이 각각의 자동 acceptance와 함께 병합되기 전까지 MP1은 implementation incomplete다.
+**상태: complete remediation (mock-contract validated).** 기존 D-01부터 I-06 작업은 경계 contract와 분리된 mock adapter를 만들었다. 이어서 R-01부터 R-05가 각각의 자동 acceptance와 함께 병합되어 정책 소유 개인 비서 제품 흐름을 증명했다. 이는 개발 근거일 뿐이며, 운영 모드 배포는 별도다.
 
 ## 누락 분석
 

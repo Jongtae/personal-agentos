@@ -240,6 +240,7 @@
     {
       "id": "MP1-R-05",
       "milestone": "AgentOS Personal Assistant Core",
+      "issue": 224,
       "kind": "release",
       "depends_on": ["MP1-R-04"],
       "release_validation": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],

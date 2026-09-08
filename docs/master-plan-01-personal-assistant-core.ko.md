@@ -2,7 +2,7 @@
 
 ## 상태와 목표
 
-**상태: implementation incomplete.** D-01부터 I-06까지 의존 순서대로 병합됐지만, 검토 결과 분리된 adapter와 직접 fixture만으로 정책 소유 개인 비서 제품 흐름을 증명하지 못한다. 필요한 R-01부터 R-05 구현 순서는 [MP1 보완 계획](mp1-remediation.ko.md)에 정의한다. UX-05의 남은 수동 Telegram 관찰은 소유자 결정으로 해당 release gate에서 제외됐으며, 이 결정은 해당 관찰이 통과했다는 주장이 아니다. 외부 credential과 실제 connection 활성화는 소유자 제어 운영 모드 배포로 미룬다.
+**상태: development complete (mock-contract validated).** D-01부터 I-06은 historical boundary 작업으로 남고, 이어서 R-01부터 R-05가 의존 순서대로 병합되어 자동 fixture로 정책 소유 개인 비서 흐름을 증명했다. 해당 근거는 [MP1 보완 계획](mp1-remediation.ko.md)에 기록한다. UX-05의 남은 수동 Telegram 관찰은 소유자 결정으로 해당 release gate에서 제외됐으며, 이 결정은 해당 관찰이 통과했다는 주장이 아니다. 외부 credential과 실제 connection 활성화는 소유자 제어 운영 모드 배포로 미룬다.
 
 목표는 한 명의 사용자가 AgentOS 개인 공간에서 자연어로 결과를 요청하고, AgentOS가 개인 상태·승인·증거·복구를 소유한 채 검토된 연결만 조율하는 개인 비서 코어를 검증하는 것이다.
 

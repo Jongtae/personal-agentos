@@ -38,16 +38,25 @@ class A2ADelegation:
         rows = self._all(); row = rows.get(ident)
         if not row or row.get("owner") != owner: raise A2AError("Delegation not found.")
         if row["state"] in TERMINAL: return dict(row)
-        event = {"correlation_id": row["correlation_id"], "state": "timed-out"} if self.now() - row["created_at"] > self.timeout_seconds else self.peer.status(ident, row["correlation_id"])
-        if not isinstance(event, dict) or event.get("correlation_id") != row["correlation_id"] or event.get("state") not in STATES: raise A2AError("Peer status is invalid.")
-        if isinstance(event.get("progress"), str): row["progress"] = [*row["progress"], event["progress"][:240]][-20:]
-        state = event["state"]
-        if state == "completed":
-            artifact = event.get("artifact")
-            if not isinstance(artifact, dict) or set(artifact) - {"id", "text"} or not isinstance(artifact.get("id", "artifact"), str) or not isinstance(artifact.get("text"), str) or len(artifact["text"]) > MAX_ARTIFACT: state, row["error"] = "failed", "invalid-artifact"
-            else: row["artifacts"] = [{"id": artifact.get("id", "artifact"), "text": artifact["text"]}]
-        if state == "canceled" and row["state"] == "requested": row["error"] = "peer-canceled"
-        row["state"], row["updated_at"] = state, self.now(); rows[ident] = row; self._put(rows); return dict(row)
+        if self.now() - row["created_at"] > self.timeout_seconds:
+            events = [{"correlation_id": row["correlation_id"], "state": "timed-out"}]
+        else:
+            stream = getattr(self.peer, "events", None)
+            events = stream(ident, row["correlation_id"]) if callable(stream) else [self.peer.status(ident, row["correlation_id"])]
+        try: events = iter(events)
+        except TypeError as exc: raise A2AError("Peer status is invalid.") from exc
+        for event in events:
+            if not isinstance(event, dict) or event.get("correlation_id") != row["correlation_id"] or event.get("state") not in STATES: raise A2AError("Peer status is invalid.")
+            if isinstance(event.get("progress"), str): row["progress"] = [*row["progress"], event["progress"][:240]][-20:]
+            state = event["state"]
+            if state == "completed":
+                artifact = event.get("artifact")
+                if not isinstance(artifact, dict) or set(artifact) - {"id", "text"} or not isinstance(artifact.get("id"), str) or not artifact["id"] or not isinstance(artifact.get("text"), str) or len(artifact["text"]) > MAX_ARTIFACT: state, row["error"] = "failed", "invalid-artifact"
+                else: row["artifacts"] = [{"id": artifact["id"], "text": artifact["text"]}]
+            if state == "canceled" and row["state"] == "requested": row["error"] = "peer-canceled"
+            row["state"], row["updated_at"] = state, self.now()
+            if state in TERMINAL: break
+        rows[ident] = row; self._put(rows); return dict(row)
     def cancel(self, ident, owner):
         rows = self._all(); row = rows.get(ident)
         if not row or row.get("owner") != owner: raise A2AError("Delegation not found.")
