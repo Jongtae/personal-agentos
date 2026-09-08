@@ -4,6 +4,8 @@
 
 연결되지 않은 상태에서 연결된 Telegram 사용자가 Drive 자료를 요청하면 AgentOS는 HTTPS `Google Drive 연결하기` 버튼을 보낸다. 사용자는 일반 브라우저에서 직접 Google 로그인·동의를 수행하고, Telegram에서 민감정보 없는 연결 결과를 확인한다. Telegram 내장 브라우저는 OAuth 신뢰 경계가 아니다.
 
+사용자 로컬 callback 경계는 동일한 연결 Telegram 사용자에게 간단한 연결 완료 또는 복구 결과를 보낸다. 브라우저 callback을 Telegram 명령으로 받지 않으며, Telegram 메시지에 OAuth code·state·token·파일 데이터를 포함하지 않는다.
+
 권한은 `https://www.googleapis.com/auth/drive.file` 하나뿐이다. AgentOS는 전체 Drive를 검색하지 않는다. 사용자는 Google Picker에서 파일을 선택하고, 선택된 파일 ID만 읽어 로컬 컨텍스트로 사용할 수 있다. 쓰기·공유·삭제·Calendar·Gmail·서비스 계정·전체 Drive 권한은 거부한다.
 
 파일 본문은 Picker 선택 검증을 통과한 뒤에만 사용자 로컬 injected transport로 읽는다. 해당 요청에 대한 메모리 내 요약에만 쓰며, Drive OAuth 상태·감사 증거·로컬 설정·relay payload에 저장하지 않는다.

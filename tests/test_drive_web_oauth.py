@@ -71,6 +71,21 @@ class DriveWebOAuthTests(unittest.TestCase):
         self.assertEqual(sent["text"], "Google Drive 연결이 필요합니다. 선택한 파일만 읽을 수 있으며 전체 Drive 검색은 하지 않습니다.")
         self.assertTrue(sent["reply_markup"]["inline_keyboard"][0][0]["url"].startswith("https://"))
 
+    def test_callback_publishes_redacted_connected_and_denied_recovery_messages(self):
+        calls = []
+        def transport(url, body, headers=None, timeout=60):
+            calls.append((url, body)); return {"ok": True, "result": {"message_id": 1}}
+        self.store.secret("telegram_token", "test-token")
+        service = AgentService(self.store, telegram_transport=transport, drive_web_oauth=self.flow)
+        offer, state = self.begin()
+        service.complete_drive_web_oauth({"state": state, "code": "code"}, 42, lambda _request: {"access_token": "access-secret", "scope": DRIVE_FILE})
+        self.assertIn("연결되었습니다", calls[-1][1]["text"])
+        _offer, state = self.begin()
+        with self.assertRaises(DriveWebOAuthError):
+            service.complete_drive_web_oauth({"state": state, "error": "access_denied"}, 42, lambda _request: {})
+        self.assertIn("허용되지 않았습니다", calls[-1][1]["text"])
+        self.assertNotIn("access-secret", str(calls))
+
     def test_only_picker_selected_files_can_be_read_and_full_drive_search_is_blocked(self):
         self.connect()
         with self.assertRaises(DriveScopeError): self.flow.search("plan")

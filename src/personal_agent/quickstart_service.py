@@ -519,6 +519,28 @@ class AgentService:
         })
         return True
 
+    def publish_drive_connection_status(self, telegram_owner_id):
+        """Send only a redacted Drive lifecycle message to the paired owner."""
+        if not self.drive_web_oauth:
+            return False
+        self.telegram_method('sendMessage', {
+            'chat_id': telegram_owner_id,
+            'text': self.drive_web_oauth.telegram_status_message(),
+        })
+        return True
+
+    def complete_drive_web_oauth(self, callback, telegram_owner_id, exchange):
+        """Owner-local callback seam; neither callback code nor tokens are retained here."""
+        if not self.drive_web_oauth:
+            raise ValueError('Google Drive web OAuth is not configured.')
+        try:
+            result = self.drive_web_oauth.complete(callback, telegram_owner_id, exchange)
+        except ValueError:
+            self.publish_drive_connection_status(telegram_owner_id)
+            raise
+        self.publish_drive_connection_status(telegram_owner_id)
+        return result
+
     def connect_telegram(self, body):
         token=body.get('token','')
         if not isinstance(token,str) or not 10<=len(token)<=300 or not all(c.isalnum() or c in ':_-' for c in token):

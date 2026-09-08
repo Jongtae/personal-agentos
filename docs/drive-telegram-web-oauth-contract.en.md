@@ -4,6 +4,8 @@
 
 When paired Telegram requests need Drive context and no connection exists, AgentOS sends an HTTPS `Google Drive 연결하기` button. The owner opens it in a normal browser, signs in and consents directly with Google, and returns to Telegram for a redacted connection result. A browser embedded in Telegram is not an OAuth trust boundary.
 
+The owner-local callback seam publishes a concise connected or recovery result to the same paired Telegram owner. It accepts no browser callback as a Telegram command and does not include the OAuth code, state, token, or file data in the Telegram message.
+
 The connection requests only `https://www.googleapis.com/auth/drive.file`. AgentOS never searches the whole Drive. The owner selects files through Google Picker; only those file IDs may be read and supplied as bounded local context. A write, share, delete, Calendar, Gmail, service-account, or full-Drive request is rejected.
 
 File content is read through an owner-local injected transport only after the Picker selection check. It is available for in-memory summarization in response to the owner's request; it is not written to Drive OAuth status, audit evidence, local configuration, or relay payloads.
