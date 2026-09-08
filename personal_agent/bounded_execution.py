@@ -68,6 +68,18 @@ class AgentOSMcpTools:
         return self.capabilities.execute(name, arguments)
 
 
+class ReadOnlyAgentOSMcpTools(AgentOSMcpTools):
+    """Isolated-engine facade limited to the sole approved read operation."""
+
+    def definitions(self):
+        return json.loads(json.dumps((MCP_TOOLS[0],)))
+
+    def call(self, name, arguments):
+        if name != 'list_notes' or arguments != {}:
+            raise ExecutionError('격리 엔진에는 읽기 전용 메모 목록 도구만 허용됩니다.')
+        return self.capabilities.execute('list_notes', {})
+
+
 class BoundedExecutionAdapter:
     """Start an official subscription CLI with no shell and no inherited env.
 

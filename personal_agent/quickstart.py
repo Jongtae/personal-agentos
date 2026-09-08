@@ -18,8 +18,18 @@ from .quickstart_service import AgentService
 from .plugins import PluginRegistry
 from .providers import ProviderError
 from .capabilities import CapabilityRegistry
+from .isolated_engine_gateway import IsolatedEngineGateway
 
 WEB=Path(__file__).parent/'web'
+ISOLATED_MCP_PATH='/internal/isolated-engine/mcp'
+
+
+def configured_service(store, environ=None):
+    """Build the service with an explicitly configured isolated gateway."""
+    environ=os.environ if environ is None else environ
+    endpoint=environ.get('AGENTOS_ISOLATED_ENGINE_URL','')
+    isolated_engine=IsolatedEngineGateway(endpoint) if endpoint else None
+    return AgentService(store,isolated_engine_adapter=isolated_engine)
 
 
 def make_handler(service, public_hosts=(), public_access_token=''):
@@ -129,6 +139,28 @@ def make_handler(service, public_hosts=(), public_access_token=''):
 
         def do_POST(self):
             if not self.valid_host():return
+            parts=urlsplit(self.path)
+            if parts.path==ISOLATED_MCP_PATH:
+                # This is an internal engine callback, not a browser API.  A
+                # session cookie never authorizes it and public tunnel hosts
+                # cannot route it even when the bearer itself is valid.
+                if parts.query or parts.fragment or self.public_host() or self.headers.get('Origin'):
+                    return self.reply(403,{'error':'격리 엔진 전용 경로입니다.'})
+                if self.headers.get('Content-Type','').split(';')[0].strip().lower()!='application/json':
+                    return self.reply(415,{'error':'JSON 요청이 필요합니다.'})
+                authorization=self.headers.get('Authorization','')
+                prefix='Bearer '
+                token=authorization[len(prefix):] if authorization.startswith(prefix) else ''
+                task_id=self.headers.get('X-AgentOS-Task-ID','')
+                if not token or not task_id:
+                    return self.reply(401,{'error':'격리 엔진 인증이 필요합니다.'})
+                try:
+                    length=int(self.headers.get('Content-Length','0'))
+                    if not 0<length<=65536:raise ValueError
+                    raw=self.rfile.read(length)
+                except (TypeError,ValueError):
+                    return self.reply(400,{'error':'요청 크기가 올바르지 않습니다.'})
+                return self.reply(200,service.isolated_mcp_proxy.handle(raw,token=token,task_id=task_id))
             origin=self.headers.get('Origin')
             if origin and (urlsplit(origin).netloc!=self.headers.get('Host') or urlsplit(origin).scheme not in ('http','https')):
                 return self.reply(403,{'error':'다른 사이트에서의 요청은 허용하지 않습니다.'})
@@ -249,7 +281,7 @@ def main():
     instance_lock=(store.private/'instance.lock').open('a')
     try:fcntl.flock(instance_lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     except BlockingIOError:parser.exit(1,'이 데이터 폴더의 AgentOS가 이미 실행 중입니다.\n')
-    service=AgentService(store)
+    service=configured_service(store)
     public_hosts=args.public_tunnel_host
     public_token=args.public_access_token
     if public_hosts and not public_token:public_token=secrets.token_urlsafe(24)

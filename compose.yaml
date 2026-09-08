@@ -7,7 +7,11 @@ services:
       - "127.0.0.1:${AGENTOS_PORT:-8787}:8787"
     volumes:
       - agentos-data:/state
-      - agentos-engine-profile:/engine-profile
+    environment:
+      AGENTOS_ISOLATED_ENGINE_URL: http://engine:8766/execute
+    networks:
+      - default
+      - engine-internal
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -18,6 +22,39 @@ services:
       timeout: 5s
       start_period: 15s
       retries: 3
+  engine:
+    build:
+      context: .
+      dockerfile: Dockerfile.engine
+    image: personal-agentos-engine:local
+    restart: unless-stopped
+    command:
+      - python
+      - -m
+      - personal_agent.isolated_engine_sidecar
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8766"
+      - --callback
+      - http://agentos:8787/internal/isolated-engine/mcp
+    volumes:
+      - agentos-engine-profile:/engine-profile
+    networks:
+      - engine-internal
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+networks:
+  default:
+  # Runtime egress for Codex is intentionally absent. A future external
+  # connection requires an explicit owner-approved network design.
+  engine-internal:
+    internal: true
 volumes:
   agentos-data:
   agentos-engine-profile:

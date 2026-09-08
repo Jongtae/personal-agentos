@@ -1,11 +1,13 @@
 """Exercise credential-free product paths and fail closed on unsafe deployment gaps."""
 import argparse
 import json
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 import re
 import stat
 import sys
 import tempfile
+import threading
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 if str(REPOSITORY) not in sys.path:
@@ -15,12 +17,15 @@ REQUIRED_SCRIPTS = ("compose-backup.sh", "compose-restore.sh", "compose-update.s
 
 
 def _product_probe():
-    """Run the real queue, bounded adapter/MCP bridge, health, and restore path."""
-    from personal_agent.bounded_execution import BoundedExecutionAdapter
+    """Run the real isolated gateway/sidecar/MCP, health, and restore path."""
+    from personal_agent.isolated_engine_gateway import IsolatedEngineGateway
+    from personal_agent.isolated_engine_sidecar import IsolatedEngineSidecar
+    from personal_agent.isolated_engine_sidecar import make_handler as make_engine_handler
     from personal_agent.portable_state import export_owner_state, restore_owner_state
+    from personal_agent.quickstart import ISOLATED_MCP_PATH
+    from personal_agent.quickstart import make_handler as make_agentos_handler
     from personal_agent.quickstart_service import AgentService
     from personal_agent.quickstart_store import QuickStore
-    from personal_agent.subscription_engines import SubscriptionEngines
 
     with tempfile.TemporaryDirectory(prefix="agentos-preflight-") as folder:
         root = Path(folder)
@@ -28,28 +33,78 @@ def _product_probe():
         first_claim = not source.claimed() and source.bootstrap.is_file()
         with source.db() as db:
             db.execute("INSERT INTO notes VALUES (?,?,?)", ("fixture-note", "approved fixture note", 1))
-        engine = root / "fixture-claude"
+        engine = root / "codex"
         engine.write_text(f"""#!{sys.executable}
-import json, subprocess, sys
-config = json.loads(open(sys.argv[sys.argv.index('--mcp-config') + 1]).read())['mcpServers']['agentos']
-p = subprocess.Popen([config['command'], *config['args']], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
-try:
-    p.stdin.write(json.dumps({{'jsonrpc':'2.0','id':1,'method':'tools/call','params':{{'name':'list_notes','arguments':{{}}}}}}) + '\\n')
-    p.stdin.flush()
-    reply = json.loads(p.stdout.readline())
-    print(json.dumps({{'result': 'fixture engine received ' + reply['result']['content'][0]['text']}}))
-finally:
-    p.terminate(); p.wait(timeout=3)
+import json, os, subprocess, sys
+assert sys.argv[1:6] == ['exec', '--json', '--sandbox', 'read-only', '--skip-git-repo-check']
+assert os.listdir('.') == []
+settings = {{}}
+index = 6
+while index < len(sys.argv) - 1:
+    assert sys.argv[index] == '-c'
+    name, raw = sys.argv[index + 1].split('=', 1)
+    settings[name] = json.loads(raw)
+    index += 2
+p = subprocess.Popen(
+    [settings['mcp_servers.agentos.command'], *settings['mcp_servers.agentos.args']],
+    stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True,
+)
+def rpc(value):
+    p.stdin.write(json.dumps(value) + '\\n'); p.stdin.flush()
+    return json.loads(p.stdout.readline())
+tools = rpc({{'jsonrpc':'2.0','id':1,'method':'tools/list','params':{{}}}})
+assert [item['name'] for item in tools['result']['tools']] == ['list_notes']
+denied = rpc({{'jsonrpc':'2.0','id':2,'method':'tools/call','params':{{'name':'save_note','arguments':{{'content':'no'}}}}}})
+assert denied['error']['code'] == -32601
+reply = rpc({{'jsonrpc':'2.0','id':3,'method':'tools/call','params':{{'name':'list_notes','arguments':{{}}}}}})
+p.stdin.close(); p.wait(timeout=3)
+text = 'fixture engine received ' + reply['result']['content'][0]['text']
+print(json.dumps({{'type':'item.completed','item':{{'type':'agent_message','text':text}}}}))
 """, encoding="utf-8")
         engine.chmod(engine.stat().st_mode | stat.S_IXUSR)
-        finder = lambda command: str(engine) if command == "claude" else None
-        adapter = BoundedExecutionAdapter(finder=finder, runtime_root=root / "turns")
-        service = AgentService(source, subscription_engines=SubscriptionEngines(finder=finder), execution_adapter=adapter)
-        service.connect_subscription_engine({"engine": "claude-code", "officially_authenticated": True})
-        completed = source.enqueue("/summarize", "fixture-completed")
-        executed = service.run_one()
-        result = source.job(completed)
-        engine_round_trip = executed and result["status"] == "succeeded" and "approved fixture note" in result["response"]
+        sidecar = IsolatedEngineSidecar(
+            "http://127.0.0.1:1" + ISOLATED_MCP_PATH,
+            codex_binary=str(engine), timeout=5,
+        )
+        engine_server = ThreadingHTTPServer(("127.0.0.1", 0), make_engine_handler(sidecar))
+        engine_thread = threading.Thread(target=engine_server.serve_forever, daemon=True)
+        engine_thread.start()
+        gateway = IsolatedEngineGateway(
+            f"http://127.0.0.1:{engine_server.server_port}/execute", timeout=8,
+        )
+        service = AgentService(
+            source,
+            isolated_engine_adapter=gateway,
+        )
+        agentos_server = ThreadingHTTPServer(
+            ("127.0.0.1", 0), make_agentos_handler(service),
+        )
+        agentos_thread = threading.Thread(target=agentos_server.serve_forever, daemon=True)
+        agentos_thread.start()
+        sidecar.callback_url = (
+            f"http://127.0.0.1:{agentos_server.server_port}" + ISOLATED_MCP_PATH
+        )
+        try:
+            source.put("subscription_engine", {
+                "id": "codex",
+                "connected_at": 0,
+                "authentication": "fixture-only-no-login",
+            })
+            completed = source.enqueue("/summarize", "fixture-completed")
+            executed = service.run_one()
+            result = source.job(completed)
+            engine_round_trip = (
+                executed
+                and result["status"] == "succeeded"
+                and "approved fixture note" in result["response"]
+            )
+        finally:
+            agentos_server.shutdown()
+            agentos_server.server_close()
+            agentos_thread.join(timeout=2)
+            engine_server.shutdown()
+            engine_server.server_close()
+            engine_thread.join(timeout=2)
 
         health_service = AgentService(source)
         health_service.start()
@@ -75,7 +130,7 @@ finally:
         "first_claim": first_claim,
         "local_health": local_health,
         "clean_stop": stopped,
-        "bounded_engine_mcp_round_trip": engine_round_trip,
+        "isolated_engine_gateway_sidecar_mcp_round_trip": engine_round_trip,
         "restore_quarantines_incomplete_work": quarantined,
         "restored_request_is_duplicate_safe": duplicate_safe and replay_safe,
         "engine_profile_excluded_from_restore": profile_excluded,
@@ -95,6 +150,18 @@ def inspect(root, product_probe=None):
         failures.append("missing-project-version")
     compose_text = compose.read_text(encoding="utf-8") if compose.exists() else ""
     docker_text = dockerfile.read_text(encoding="utf-8") if dockerfile.exists() else ""
+    engine_section = compose_text.partition("\n  engine:\n")[2].partition("\nnetworks:\n")[0]
+    isolated_engine = all((
+        re.search(r"(?m)^  engine:\s*$", compose_text) is not None,
+        "AGENTOS_ISOLATED_ENGINE_URL: http://engine:8766/execute" in compose_text,
+        "personal_agent.isolated_engine_sidecar" in engine_section,
+        "http://agentos:8787/internal/isolated-engine/mcp" in engine_section,
+        "agentos-engine-profile:/engine-profile" in engine_section,
+        "agentos-data:/state" not in engine_section,
+        "read_only: true" in engine_section,
+        re.search(r"(?m)^      - engine-internal\s*$", engine_section) is not None,
+        "internal: true" in compose_text,
+    ))
     structural = {
         "loopback_binding": '127.0.0.1:${AGENTOS_PORT:-8787}:8787' in compose_text,
         "separate_owner_volume": "agentos-data:/state" in compose_text and "agentos-data:" in compose_text,
@@ -102,9 +169,11 @@ def inspect(root, product_probe=None):
         "nonroot_runtime": "USER agentos" in docker_text,
         "local_health_check": "healthcheck:" in compose_text and "/healthz" in compose_text,
         "recovery_scripts": all((root / "scripts" / script).is_file() for script in REQUIRED_SCRIPTS),
-        # Same-container CLIs can read the owner volume with container-level
-        # permissions. A dedicated IPC/isolation design is required first.
-        "subscription_engine_isolated": False,
+        "subscription_engine_isolated": isolated_engine,
+        # The internal-only network intentionally cannot reach the provider.
+        # Operating readiness requires a narrow, owner-approved egress policy;
+        # preflight must not mistake architecture evidence for live readiness.
+        "isolated_engine_external_egress_policy": False,
     }
     failure_names = {
         "loopback_binding": "unsafe-or-missing-loopback-binding",
@@ -114,6 +183,7 @@ def inspect(root, product_probe=None):
         "local_health_check": "missing-local-health-check",
         "recovery_scripts": "missing-recovery-scripts",
         "subscription_engine_isolated": "subscription-engine-isolation-design-required",
+        "isolated_engine_external_egress_policy": "isolated-engine-egress-policy-required",
     }
     failures.extend(failure_names[name] for name, passed in structural.items() if not passed)
     try:
@@ -126,13 +196,13 @@ def inspect(root, product_probe=None):
     return {
         "state": "ready" if not failures else "not-ready",
         "supported_version": version,
-        "execution_path": "unsupported-pending-isolated-subscription-engine",
+        "execution_path": "isolated-subscription-engine-pending-egress-policy",
         "checks": {**structural, **product},
         "recovery_actions": failures,
         "deferred_owner_gates": [
             "explicit operating-deployment approval",
             "local runtime claim",
-            "separate isolated subscription-engine installation and official login",
+            "owner-approved engine image build and official login after egress acceptance",
             "optional Telegram token entry and owner pairing",
         ],
     }
