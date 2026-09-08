@@ -1,8 +1,10 @@
 import importlib.util
 import json
 import os
+import errno
 import subprocess
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -10,6 +12,8 @@ from unittest.mock import patch
 ROOT = Path(__file__).parents[1]
 SPEC = importlib.util.spec_from_file_location("operating_preflight", ROOT / "scripts" / "operating_preflight.py")
 PREFLIGHT = importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(PREFLIGHT)
+COMPOSE_SPEC = importlib.util.spec_from_file_location("verify_compose_acceptance", ROOT / "scripts" / "verify_compose_acceptance.py")
+COMPOSE_ACCEPTANCE = importlib.util.module_from_spec(COMPOSE_SPEC); COMPOSE_SPEC.loader.exec_module(COMPOSE_ACCEPTANCE)
 
 
 class OperatingPreflightTests(unittest.TestCase):
@@ -125,3 +129,46 @@ class OperatingPreflightTests(unittest.TestCase):
         source=(ROOT/"scripts"/"verify_compose_acceptance.py").read_text()
         self.assertIn('"AGENTOS_PROVIDER_EGRESS_ALLOWLIST": ""',source)
         self.assertIn('temporary.chmod(0o777)',source)
+
+    def test_compose_acceptance_uses_an_unauthenticated_temp_docker_config_and_reaps_timeouts(self):
+        source=(ROOT/"scripts"/"verify_compose_acceptance.py").read_text()
+        self.assertIn('docker_config = temporary / "docker-config"',source)
+        self.assertIn('config = {"auths": {}}',source)
+        self.assertIn('"DOCKER_CONFIG": str(docker_config)',source)
+        self.assertIn('Path("/var/run/docker.sock")',source)
+        self.assertIn('"DOCKER_HOST": f"unix://{docker_socket}"',source)
+        self.assertIn('"COMPOSE_FILE": str(ROOT / "compose.yaml")',source)
+        self.assertIn('environment.pop("DOCKER_CONTEXT", None)',source)
+        self.assertIn('environment.pop("COMPOSE_PROFILES", None)',source)
+        self.assertIn('start_new_session=True',source)
+        self.assertIn('kill_process_group(process, signal.SIGTERM)',source)
+        self.assertIn('kill_process_group(process, signal.SIGKILL)',source)
+        self.assertNotIn('subprocess.run([*compose',source)
+
+    def test_compose_command_timeout_kills_a_sigterm_ignoring_child_process(self):
+        with tempfile.TemporaryDirectory() as folder:
+            pid_file = Path(folder) / "child.pid"
+            child = "import os,signal,time; signal.signal(signal.SIGTERM, signal.SIG_IGN); open(os.environ['PID_FILE'],'w').write(str(os.getpid())); time.sleep(60)"
+            parent = (
+                "import os,subprocess,sys,time; "
+                "subprocess.Popen([sys.executable,'-c',os.environ['CHILD']], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); "
+                "time.sleep(60)"
+            )
+            environment = {**os.environ, "PID_FILE": str(pid_file), "CHILD": child}
+            with self.assertRaisesRegex(RuntimeError, "process group was terminated"):
+                COMPOSE_ACCEPTANCE.run([os.sys.executable, "-c", parent], timeout=0.1, env=environment)
+            for _ in range(20):
+                if pid_file.exists():
+                    break
+                time.sleep(0.05)
+            self.assertTrue(pid_file.exists())
+            child_pid = int(pid_file.read_text())
+            for _ in range(100):
+                try:
+                    os.kill(child_pid, 0)
+                except OSError as error:
+                    self.assertEqual(error.errno, errno.ESRCH)
+                    break
+                time.sleep(0.05)
+            else:
+                self.fail("SIGKILL did not reap the timeout fixture child within five seconds")
