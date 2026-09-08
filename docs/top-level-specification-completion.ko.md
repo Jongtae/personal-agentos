@@ -12,11 +12,11 @@
 | --- | --- | --- | --- | --- |
 | CORE-01 | Root Hub v2 PRD: local-first subscription assistant가 state, policy, tool, queue, approval, evidence, recovery 소유 | Hub module/fixture test, MP1 R-01–R-05 issue #217–#225 | Current source link 조정과 final integration 재실행 | Operating mode의 official engine login |
 | CORE-02 | MP1: Personal Space, lifecycle, Drive, A2A, Calendar, ReAct, export/restore | Mock-contract evidence #180, #185, #191, #201, #205, #209, #217–#225 | Current integration regression; 새 feature 없음 | Drive/Calendar OAuth와 explicit action approval |
-| MP2-01 | 완료된 conversation setting, reviewed recommendation, owner-local retrieval | Automated evidence #235, #243, #251 | Stale MP2 status 조정; 다음 MP2 feature 선택 금지 | Marketplace/install/connection authority 없음 |
+| MP2-01 | 완료된 conversation setting, reviewed recommendation, owner-local retrieval | Automated evidence #235, #243, #251; status는 #270에서 조정 | 다음 MP2 feature 선택 금지 | Marketplace/install/connection authority 없음 |
 | STAB-01 | Telegram approved-note summary, bounded engine tool roundtrip, recovery | Fixture/CI evidence #255 | Current end-to-end mock path 재실행 | Telegram token/live provider는 owner-only |
 | DEPLOY-01 | OP-01/OP-02: isolated Compose, default-deny egress, health, restore/no replay | OP-02 source `18538eabc00a20de64f4c5f5a6ac004aeda2469e`; current main에 이후 safeguard 포함 | Credential-free Compose build/start/health/stop/restore validation과 exact current candidate | Exact DNS allowlist, claim, official login, optional Telegram pairing |
 | GOV-01 | Evidence-only delivery governance | Merged #263/#264와 controller test | 승인된 top-level inventory에만 확장 | 없음 |
-| STATUS-01 | README, MP2 proposal, open Hub/UX epic | v1.0.4 support claim, MP2 `proposed`, stale open epic 충돌 | Release claim 전 source-of-truth reconciliation | 없음 |
+| STATUS-01 | README, MP2 proposal, open Hub/UX epic | #270에서 조정: v1.0.4는 unsupported, MP2는 development complete, stale epic은 historical administrative record | TOP-03 audit까지 current claim 보존 | 없음 |
 | LEGACY-01 | `agentos/PRD.md` prototype | Hub v2와 충돌하고 current plan에 없음 | Decision-needed; 구현/복원 금지 | 별도 owner product decision |
 
 ## 상세 추적성
@@ -31,13 +31,13 @@
 | HUB-06 | Web research, connected-document read, note, reviewed delegation tool boundary | `test_agent_runtime.py`, `test_documents.py`, `test_mp1_release.py` |
 | HUB-07 | Connection secret을 제외한 portable export/restore | `test_operating_recovery.py`, `test_mp1_release.py` |
 | DEPLOY-01 | Owner setup이 아닌 current technical gap: container build/start/health/stop/restore proof 없음 | TOP-01은 isolated credential-free Compose validation 추가 또는 concrete environment blocker 기록 필요 |
-| STATUS-01 | Documentation/issue-state reconciliation은 inventory와 TOP-01 evidence에 의존 | Current source-of-truth audit, merged PR, CI; old epic을 조용히 close하지 않음 |
+| STATUS-01 | Documentation/issue-state reconciliation은 complete | PR #270과 required CI; old epic을 조용히 close하지 않음 |
 
 ## 순서 있는 substep
 
 | ID | 결과 | 선행조건 | 완료 evidence |
 | --- | --- | --- | --- |
-| TOP-00 | Inventory, governance transition, status-source reconciliation | #265 active | bilingual inventory, plan/controller/template check, CI |
+| TOP-00 | Inventory, governance transition, status-source reconciliation | #265 active | Complete: PR #266과 #270, bilingual inventory, plan/controller/template check, CI |
 | TOP-01 | Exact credential-free deployment candidate와 Compose lifecycle proof | TOP-00 merged | build/start/health/stop/restore fixture, preflight, independent review |
 | TOP-02 | Full current product integration regression 및 defect repair | TOP-01 candidate | full suite와 product-flow fixture |
 | TOP-03 | Final requirement-to-evidence audit와 owner operating checklist | TOP-02 merged | 모든 row mapping, unresolved review finding 없음, candidate/procedure current |
