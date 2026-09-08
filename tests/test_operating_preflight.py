@@ -36,8 +36,8 @@ class OperatingPreflightTests(unittest.TestCase):
             (root/"Dockerfile.egress").write_text(
                 'FROM python\nUSER egress\nCMD ["python", "-m", "personal_agent.limited_egress_proxy"]\n'
             )
-            (root/"personal_agent").mkdir()
-            (root/"personal_agent"/"limited_egress_proxy.py").write_text(
+            (root/"src"/"personal_agent").mkdir(parents=True)
+            (root/"src"/"personal_agent"/"limited_egress_proxy.py").write_text(
                 "parse_allowlist = None\n# hostname not in self.server.allowed_hosts\n"
             )
         for name in PREFLIGHT.REQUIRED_SCRIPTS:(root/"scripts"/name).write_text("#!/bin/sh\n")

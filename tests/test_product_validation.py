@@ -9,14 +9,14 @@ from personal_agent.product_validation import ProductValidator, markdown
 class ProductValidationTests(unittest.TestCase):
     def fixture(self):
         folder = tempfile.TemporaryDirectory(); root = Path(folder.name)
-        (root / "docs").mkdir(); (root / "personal_agent").mkdir()
+        (root / "docs").mkdir(); (root / "src/personal_agent").mkdir(parents=True)
         (root / "TASKS.md").write_text("# tasks\n")
         (root / "QUICKSTART.md").write_text("PDF and Office documents are supported.\n")
         (root / "docs/roadmap.md").write_text("## M3 — continuity and installation\nCompleted: yes\n## M4 — extensibility\nCompleted: yes\n## M5 — v1 release\nCompleted: yes\n")
-        (root / "personal_agent/quickstart_service.py").write_text("model_ready document_boundary connect_telegram")
-        (root / "personal_agent/agent_runtime.py").write_text("delegate_agent")
-        (root / "personal_agent/plugins.py").write_text("class PluginRegistry: pass")
-        (root / "personal_agent/quickstart.py").write_text("# no plugin interface")
+        (root / "src/personal_agent/quickstart_service.py").write_text("model_ready document_boundary connect_telegram")
+        (root / "src/personal_agent/agent_runtime.py").write_text("delegate_agent")
+        (root / "src/personal_agent/plugins.py").write_text("class PluginRegistry: pass")
+        (root / "src/personal_agent/quickstart.py").write_text("# no plugin interface")
         return folder, root
 
     def test_stale_documents_fail(self):

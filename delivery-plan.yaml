@@ -382,7 +382,7 @@
       "kind": "governance",
       "activation_status": "owner-activated-goal-ready",
       "depends_on": ["OP-02"],
-      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
       "summary": "Permanently align autonomous active-goal execution, delegation records, independent review, automation restrictions, and evidence-only closeout without starting a new product capability."
     },
     {
@@ -392,7 +392,7 @@
       "kind": "program-governance",
       "activation_status": "owner-activated-goal-ready",
       "depends_on": ["GOV-01"],
-      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
       "summary": "Establish the complete approved-specification inventory and a persistent top-level goal that advances validated substeps without selecting unapproved product scope."
     },
     {
@@ -402,7 +402,7 @@
       "kind": "program-governance",
       "activation_status": "owner-activated-goal-ready",
       "depends_on": ["TOP-00"],
-      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
       "summary": "Keep the owner-approved top-level Goal active across completed substeps until every inventory requirement has merged current evidence or is a genuine owner operating action or separate owner product decision."
     },
     {
@@ -429,7 +429,7 @@
       "issue": 276,
       "kind": "verification",
       "depends_on": ["TOP-02"],
-      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
       "summary": "Audit every active requirement, reject unsupported top-level completion claims, and record the exact immutable candidate plus separated owner operating actions."
     }
   ],

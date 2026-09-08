@@ -38,7 +38,7 @@ class DeliveryTests(unittest.TestCase):
 
     def test_packaged_delivery_plan_matches_repository_plan(self):
         root=Path(__file__).parents[1]
-        self.assertEqual(json.loads((root/'delivery-plan.yaml').read_text()), json.loads((root/'personal_agent/delivery-plan.yaml').read_text()))
+        self.assertEqual(json.loads((root/'delivery-plan.yaml').read_text()), json.loads((root/'src/personal_agent/delivery-plan.yaml').read_text()))
 
     def test_only_explicit_owner_activated_goal_can_be_selected(self):
         altered=json.loads((self.root/'delivery-plan.yaml').read_text())

@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 WORKDIR /app
 COPY pyproject.toml /app/
-COPY personal_agent /app/personal_agent
+COPY src/personal_agent /app/src/personal_agent
 RUN pip install --no-cache-dir . \
     && useradd --create-home --uid 10001 agentos \
     && mkdir -p /state/data \
