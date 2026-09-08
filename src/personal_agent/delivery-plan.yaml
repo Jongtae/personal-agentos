@@ -463,6 +463,17 @@
       "contract": "drive-telegram-web-oauth-contract.en.md",
       "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests"],
       "summary": "Deliver a mock-validated Telegram-to-browser Drive file-selection OAuth handoff with owner-local tokens, recovery, and no live provider operation."
+    },
+    {
+      "id": "DRIVE-LOCAL-OP-01",
+      "milestone": "Telegram Drive Web OAuth",
+      "issue": 308,
+      "kind": "operating-implementation",
+      "activation_status": "owner-activated-goal-ready",
+      "depends_on": ["DRIVE-TG-01"],
+      "contract": "drive-local-operating-test-contract.en.md",
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests"],
+      "summary": "Provide an explicitly configured localhost-only Google Drive OAuth operating path and owner-verifiable local test evidence without public hosting."
     }
   ],
   "milestones": {
@@ -557,9 +568,9 @@
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
-    "id": null,
-    "status": "paused",
-    "action": "DRIVE-TG-01 is development-complete on mock-contract evidence. No successor is selected. A separately goal-ready owner-approved iteration is required before any local operating OAuth deployment, provider login, credential entry, token exchange, Drive access, or external delivery.",
-    "source": "https://github.com/Jongtae/personal-agentos/issues/306"
+    "id": "DRIVE-LOCAL-OP-01",
+    "status": "active",
+    "action": "Owner activated #308 for a local-only Google Drive OAuth operating test. Use explicit localhost-only configuration and owner-local secrets. Do not add public hosting, tunnels, arbitrary redirects, phone localhost testing, broad Drive access, or external delivery.",
+    "source": "https://github.com/Jongtae/personal-agentos/issues/308"
   }
 }
