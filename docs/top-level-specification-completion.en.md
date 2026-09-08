@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-**Status: active under TOP-01 / issue #265.** This is the authoritative execution inventory for the owner-approved top-level Goal. It covers the root [Hub v2 PRD](../PRD.md), active delivery plan, current Master Plan and operating contracts, source code, and current GitHub evidence. Archived plans and the legacy `agentos/PRD.md` prototype are historical inputs, not implementation scope.
+**Status: active under TOP / issue #265.** This is the authoritative execution inventory for the owner-approved top-level Goal. It covers the root [Hub v2 PRD](../PRD.md), active delivery plan, current Master Plan and operating contracts, source code, and current GitHub evidence. Archived plans and the legacy `agentos/PRD.md` prototype are historical inputs, not implementation scope.
 
 The top-level Goal stays active while an approved row below has a safe next action. A substep issue, PR, or closeout completes only that substep. The Agent immediately advances to the next already-enumerated executable row when its predecessors and authority are satisfied. It cannot add a feature, revive a reserved proposal, widen a data or permission boundary, or perform operating deployment.
 
@@ -19,6 +19,20 @@ The top-level Goal stays active while an approved row below has a safe next acti
 | STATUS-01 | README, MP2 proposal, open Hub/UX epics | Conflicts: v1.0.4 support claim, MP2 `proposed`, stale open epics | Source-of-truth reconciliation before release claim | None |
 | LEGACY-01 | `agentos/PRD.md` prototype | Conflicts with Hub v2 and absent from current plans | Decision-needed; do not implement or revive | Separate owner product decision |
 
+## Detailed traceability
+
+| ID | Implementation state and predecessor | Verification and completion evidence |
+| --- | --- | --- |
+| HUB-01 | Codex and Claude subscription adapters; no predecessor remains | `test_subscription_engines.py`; fixture evidence, not official login |
+| HUB-02 | Paired Telegram request/progress/result/recovery; STAB-01 complete | `test_telegram*.py`, `test_isolated_engine_integration.py`; no token/pairing claim |
+| HUB-03 | Isolated owner runtime, bounded tools, queue, approvals, evidence/recovery; OP-02 complete | `test_agent_runtime.py`, `test_operating_recovery.py`, `test_isolated_engine_integration.py` |
+| HUB-04 | Opt-in clipboard/URL context with sensitive filtering and policy sharing | `test_context_inbox.py`; no external sharing is claimed |
+| HUB-05 | Curated personal-records, research/briefing, and project-review assistant policies | `test_mp1_release.py`; final current integration still TOP-02 |
+| HUB-06 | Web research, connected-document reads, notes, and reviewed delegation tool boundary | `test_agent_runtime.py`, `test_documents.py`, `test_mp1_release.py` |
+| HUB-07 | Portable export/restore excluding connection secrets | `test_operating_recovery.py`, `test_mp1_release.py` |
+| DEPLOY-01 | Current technical gap, not owner setup: no container build/start/health/stop/restore proof | TOP-01 must add isolated credential-free Compose validation or record a concrete environment blocker |
+| STATUS-01 | Documentation/issue-state reconciliation depends on this inventory and TOP-01 evidence | Current source-of-truth audit, merged PR, and CI; old epics are not silently closed |
+
 ## Ordered substeps
 
 | ID | Outcome | Preconditions | Completion evidence |
@@ -34,4 +48,4 @@ After TOP-03, the owner alone may approve operating deployment: review the exact
 
 ## Completion rule
 
-TOP-01 is complete only when every row has current merged implementation and verification evidence, or is explicitly classified as an owner operating setting or separate owner decision. A substep closeout, closed issue, local test, or release label alone cannot satisfy the top-level completion rule.
+TOP is complete only when every row has current merged implementation and verification evidence, or is explicitly classified as a genuine owner operating action (login, secret entry, live connection approval) or separate owner product decision. An implementation defect, missing technical environment proof, stale candidate, or unresolved review finding may never be classified as owner setup. A substep closeout, closed issue, local test, or release label alone cannot satisfy the top-level completion rule.

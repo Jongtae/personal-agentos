@@ -2,7 +2,7 @@
 
 ## 상태와 권한
 
-**상태: TOP-01 / issue #265 아래 active.** 이 문서는 소유자가 승인한 최상위 Goal의 권위 있는 실행 inventory다. Root [Hub v2 PRD](../PRD.md), 활성 delivery plan, 현재 Master Plan/operating contract, source code, 현재 GitHub evidence를 다룬다. Archived plan과 legacy `agentos/PRD.md` prototype은 historical input이며 구현 범위가 아니다.
+**상태: TOP / issue #265 아래 active.** 이 문서는 소유자가 승인한 최상위 Goal의 권위 있는 실행 inventory다. Root [Hub v2 PRD](../PRD.md), 활성 delivery plan, 현재 Master Plan/operating contract, source code, 현재 GitHub evidence를 다룬다. Archived plan과 legacy `agentos/PRD.md` prototype은 historical input이며 구현 범위가 아니다.
 
 승인된 row에 안전한 다음 행동이 남아 있으면 최상위 Goal은 active로 유지된다. Substep issue, PR, closeout은 그 substep만 끝낸다. Agent는 선행조건과 authority가 충족되면 이미 열거된 다음 실행 가능 row로 즉시 진행한다. 새 feature 추가, reserved proposal 복원, data/permission boundary 확대, operating deployment는 할 수 없다.
 
@@ -19,6 +19,20 @@
 | STATUS-01 | README, MP2 proposal, open Hub/UX epic | v1.0.4 support claim, MP2 `proposed`, stale open epic 충돌 | Release claim 전 source-of-truth reconciliation | 없음 |
 | LEGACY-01 | `agentos/PRD.md` prototype | Hub v2와 충돌하고 current plan에 없음 | Decision-needed; 구현/복원 금지 | 별도 owner product decision |
 
+## 상세 추적성
+
+| ID | 구현 상태와 선행조건 | Verification과 완료 evidence |
+| --- | --- | --- |
+| HUB-01 | Codex/Claude subscription adapter; 남은 predecessor 없음 | `test_subscription_engines.py`; official login이 아닌 fixture evidence |
+| HUB-02 | Paired Telegram request/progress/result/recovery; STAB-01 complete | `test_telegram*.py`, `test_isolated_engine_integration.py`; token/pairing claim 없음 |
+| HUB-03 | Isolated owner runtime, bounded tool, queue, approval, evidence/recovery; OP-02 complete | `test_agent_runtime.py`, `test_operating_recovery.py`, `test_isolated_engine_integration.py` |
+| HUB-04 | Sensitive filtering/policy sharing이 있는 opt-in clipboard/URL context | `test_context_inbox.py`; external sharing claim 없음 |
+| HUB-05 | Curated personal-records, research/briefing, project-review assistant policy | `test_mp1_release.py`; final current integration은 TOP-02 |
+| HUB-06 | Web research, connected-document read, note, reviewed delegation tool boundary | `test_agent_runtime.py`, `test_documents.py`, `test_mp1_release.py` |
+| HUB-07 | Connection secret을 제외한 portable export/restore | `test_operating_recovery.py`, `test_mp1_release.py` |
+| DEPLOY-01 | Owner setup이 아닌 current technical gap: container build/start/health/stop/restore proof 없음 | TOP-01은 isolated credential-free Compose validation 추가 또는 concrete environment blocker 기록 필요 |
+| STATUS-01 | Documentation/issue-state reconciliation은 inventory와 TOP-01 evidence에 의존 | Current source-of-truth audit, merged PR, CI; old epic을 조용히 close하지 않음 |
+
 ## 순서 있는 substep
 
 | ID | 결과 | 선행조건 | 완료 evidence |
@@ -34,4 +48,4 @@ TOP-03 뒤에만 owner가 operating deployment를 승인할 수 있다. Exact ca
 
 ## 완료 규칙
 
-모든 row가 current merged implementation/verification evidence를 갖거나 owner operating setting 또는 별도 owner decision으로 명시 분류될 때만 TOP-01은 complete다. Substep closeout, closed issue, local test, release label 하나만으로는 최상위 완료 규칙을 충족하지 않는다.
+모든 row가 current merged implementation/verification evidence를 갖거나 실제 owner operating action(login, secret entry, live connection approval) 또는 별도 owner product decision으로 명시 분류될 때만 TOP은 complete다. Implementation defect, missing technical environment proof, stale candidate, unresolved review finding은 owner setup으로 분류할 수 없다. Substep closeout, closed issue, local test, release label 하나만으로는 최상위 완료 규칙을 충족하지 않는다.
