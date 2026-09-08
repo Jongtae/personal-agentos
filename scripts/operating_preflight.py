@@ -14,6 +14,9 @@ from urllib.error import HTTPError
 from urllib.request import urlopen
 
 REPOSITORY = Path(__file__).resolve().parents[1]
+SOURCE = REPOSITORY / "src"
+if str(SOURCE) not in sys.path:
+    sys.path.insert(0, str(SOURCE))
 if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
@@ -173,7 +176,7 @@ def inspect(root, product_probe=None):
     docker_text = dockerfile.read_text(encoding="utf-8") if dockerfile.exists() else ""
     egress_dockerfile = root / "Dockerfile.egress"
     egress_docker_text = egress_dockerfile.read_text(encoding="utf-8") if egress_dockerfile.exists() else ""
-    proxy_source = root / "personal_agent" / "limited_egress_proxy.py"
+    proxy_source = root / "src" / "personal_agent" / "limited_egress_proxy.py"
     proxy_text = proxy_source.read_text(encoding="utf-8") if proxy_source.exists() else ""
 
     def service_section(name):

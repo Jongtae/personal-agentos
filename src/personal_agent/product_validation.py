@@ -75,14 +75,14 @@ class ProductValidator:
             self.add("DOC-001", "Published documents match v1 capability", "v1", "passed", "README, quickstart, tasks, and roadmap contain current v1 statements.")
 
     def source_contracts(self):
-        service = self.text("personal_agent/quickstart_service.py")
-        runtime = self.text("personal_agent/agent_runtime.py")
+        service = self.text("src/personal_agent/quickstart_service.py")
+        runtime = self.text("src/personal_agent/agent_runtime.py")
         if all(token in service for token in ("model_ready", "document_boundary", "connect_telegram")) and "delegate_agent" in runtime:
             self.add("RT-001", "Shared agent safety contracts are present", "v1", "passed", "Model readiness, document approval, Telegram pairing, and bounded delegation are implemented in the runtime.")
         else:
             self.add("RT-001", "Shared agent safety contracts are present", "v1", "failed", "One or more required runtime safeguards are absent.")
-        plugins = self.text("personal_agent/plugins.py")
-        quickstart = self.text("personal_agent/quickstart.py")
+        plugins = self.text("src/personal_agent/plugins.py")
+        quickstart = self.text("src/personal_agent/quickstart.py")
         reachable = "PluginRegistry" in quickstart or "/api/plugins" in quickstart or " plugins " in quickstart
         if "class PluginRegistry" in plugins and reachable:
             self.add("EXT-001", "Plugin lifecycle is reachable from AgentOS", "v1", "passed", "The manifest registry is reachable through a supported AgentOS surface.")

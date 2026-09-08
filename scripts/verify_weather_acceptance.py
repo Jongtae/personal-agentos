@@ -2,7 +2,7 @@
 import json,tempfile,time,sys
 from pathlib import Path
 if '--installed' in sys.argv:sys.path.insert(0,'/opt/homebrew/opt/agentos/libexec')
-else:sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+else:sys.path.insert(0,str(Path(__file__).resolve().parents[1] / 'src'))
 from personal_agent.quickstart_store import QuickStore
 from personal_agent.quickstart_service import AgentService
 source=QuickStore(Path.home()/'.local/share/agentos')

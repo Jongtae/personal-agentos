@@ -6,7 +6,7 @@ import tempfile
 import time
 from pathlib import Path
 
-sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0,str(Path(__file__).resolve().parents[1] / "src"))
 from personal_agent.agent_runtime import Capabilities
 from personal_agent.quickstart_store import QuickStore
 from personal_agent.quickstart_service import AgentService
