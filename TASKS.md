@@ -35,6 +35,7 @@ The original MP1 D/I iterations remain merged historical work, but their direct 
 | [MP1-R-01 / #216](https://github.com/Jongtae/personal-agentos/issues/216) | Deliver policy-owned ReAct orchestration, lifecycle invocation gate, redacted evidence, deterministic recovery, and shared HTTP/Telegram entry point | Complete; merged in #217 with automated mock validation |
 | [MP1-R-02 / #218](https://github.com/Jongtae/personal-agentos/issues/218) | Complete A2A Card, progress, timeout, cancellation, artifact, minimum-context, and portable-evidence contracts through the orchestrator | Complete; merged in #219 with automated mock validation |
 | [MP1-R-03 / #220](https://github.com/Jongtae/personal-agentos/issues/220) | Complete Calendar owner-bound draft, approval, create, failure-state, and portable-evidence contracts through the orchestrator | Complete; merged in #221 with automated mock validation |
+| [MP1-R-04 / #222](https://github.com/Jongtae/personal-agentos/issues/222) | Complete Drive selected-excerpt approval, re-auth, lifecycle recovery, and portable-evidence contracts through the orchestrator | Complete; merged in #223 with automated mock validation |
 
 ## Personal AgentOS v1 release delivery
 
