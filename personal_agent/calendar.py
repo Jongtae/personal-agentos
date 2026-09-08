@@ -13,6 +13,12 @@ class CalendarCreate:
   row=self._rows().get(ident)
   if not row:raise CalendarError('Draft not found.')
   return {'id':ident,'payload':dict(row['payload']),'state':row['state']}
+ def status(self,ident,owner=None):
+  row=self._rows().get(ident)
+  if not row or (owner is not None and row.get('owner') not in (None,owner)):raise CalendarError('Draft not found.')
+  if row.get('state')=='approved' and self.now()>row.get('expires',0):
+   rows=self._rows();row['state']='expired';rows[ident]=row;self._put(rows)
+  return {'id':ident,'state':row['state'],'payload_hash':row['hash'],'result':dict(row.get('result',{}))}
  def approve(self,ident,owner):
   rows=self._rows();row=rows.get(ident)
   if not row or not isinstance(owner,str) or not owner:raise CalendarError('Approval is invalid.')
@@ -20,8 +26,12 @@ class CalendarCreate:
   row.update(state='approved',owner=owner,approval=secrets.token_urlsafe(16),expires=self.now()+900);rows[ident]=row;self._put(rows);return {'approval_id':row['approval'],'payload_hash':row['hash']}
  def create(self,ident,approval,owner):
   rows=self._rows();row=rows.get(ident)
-  if not row or row.get('owner')!=owner or row.get('approval')!=approval or row.get('state') not in ('approved','created') or self.now()>row.get('expires',0):raise CalendarError('Exact approval is required.')
+  if not row or row.get('owner')!=owner or row.get('approval')!=approval or row.get('state') not in ('approved','created') or self.now()>row.get('expires',0):
+   if row and row.get('state')=='approved':row['state']='expired';rows[ident]=row;self._put(rows)
+   raise CalendarError('Exact approval is required.')
   if row['state']=='created':return dict(row['result'])
-  result=self.transport('/calendars/primary/events',row['payload'],{'Idempotency-Key':hashlib.sha256((approval+row['hash']).encode()).hexdigest()})
+  try:result=self.transport('/calendars/primary/events',row['payload'],{'Idempotency-Key':hashlib.sha256((approval+row['hash']).encode()).hexdigest()})
+  except Exception:
+   row['state']='failed';row['error']='transport-error';rows[ident]=row;self._put(rows);raise CalendarError('Calendar create failed.')
   if not isinstance(result,dict) or not isinstance(result.get('id'),str):row['state']='failed';rows[ident]=row;self._put(rows);raise CalendarError('Calendar create failed.')
   row.update(state='created',result={'id':result['id'],'summary':row['payload']['summary']});rows[ident]=row;self._put(rows);return dict(row['result'])

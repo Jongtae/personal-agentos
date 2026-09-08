@@ -10,3 +10,6 @@ class T(unittest.TestCase):
   d=self.c.draft({'summary':'x','start':'a','end':'b','timezone':'z'})
   with self.assertRaises(CalendarError):self.c.create(d['id'],'no','owner')
   self.assertFalse(self.calls)
+ def test_status_expiry_foreign_owner_and_transport_recovery(self):
+  clock=[0];c=CalendarCreate(QuickStore(self.tmp.name),lambda *_:(_ for _ in ()).throw(TimeoutError()),now=lambda:clock[0]);d=c.draft({'summary':'x','start':'a','end':'b','timezone':'z'});a=c.approve(d['id'],'owner');clock[0]=901;self.assertEqual(c.status(d['id'],'owner')['state'],'expired')
+  with self.assertRaises(CalendarError):c.create(d['id'],a['approval_id'],'other')
