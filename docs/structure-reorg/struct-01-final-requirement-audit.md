@@ -17,7 +17,7 @@ Audit date: 2026-09-08
 | 제품 패키지 `src/personal_agent/` 전환 | PR #288, merge `1699bbc`, WU-03 record, `pyproject.toml`, web assets | 충족 |
 | 설치와 CLI 유지 | editable install, `agentos --help`, `package_data_ok`, PR #288 CI run `34217734559` | 충족 |
 | 도구·Docker·CI·테스트 경로 정렬 | PR #292, merge `dc73ff8`, `scripts/verify_src_layout.py`, WU-04 CI run `34218738406` | 충족 |
-| Compose 및 기존 테스트 | local Compose acceptance, pytest `248 passed` plus `46 subtests`, unittest `219 tests OK`, required CI | 충족 |
+| Compose 및 기존 테스트 | local Compose acceptance, pytest `248 passed` plus `46 subtests`, unittest `219 tests OK`, required CI; test-only stability fix merged in PR #300 | 충족 |
 | CLI·저장 데이터·승인·격리·복구 경계 보존 | WU-01 exception rules, WU-03/WU-04 scope records, independent review artifact | 충족 |
 | nested `agentos/`와 `.runtime/` 보호 | WU-01 inventory/exception rules and every implementation issue non-goal | 충족 |
 | 새 기능·OP-03·외부 연결·운영 배포 제외 | issues #285/#287/#291/#295 non-goals, PR bodies, ledger operating limitations | 충족 |
