@@ -4,7 +4,7 @@
 
 **상태: proposed.** MP1은 mock-contract evidence로 development complete이며, 소유자는 issue #230에서 대화 우선 설정을 다음 설계 마찰로 명시 선택했다. D-MP2-01과 I-MP2-01은 automated mock-contract evidence로 complete이며, live connection이나 운영 모드 capability를 주장하지 않는다.
 
-후보는 활성 delivery-plan iteration으로 승격되고 [Goal 실행 계약](goal-execution-contract.ko.md)에 따른 goal-ready issue가 생긴 뒤에만 실행 가능한 goal이 된다. 후보를 기록하는 일은 구현 authority를 주지 않는다.
+후보는 활성 delivery-plan iteration으로 승격되고 [Goal 실행 계약](goal-execution-contract.ko.md)에 따른 goal-ready issue가 생긴 뒤에만 실행 가능한 goal이 된다. 소유자의 자율 사이클 위임은 Agent가 이 bounded 승격과 D/I sequence 완료를 routine iteration review 없이 수행하게 하지만, 자동 설치·권한 상승·운영 모드 authority를 주지는 않는다.
 
 ## 승격 조건
 

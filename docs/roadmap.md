@@ -62,4 +62,4 @@ The owner closed UX-05 after deciding its remaining manual Telegram observations
 
 MP2 is proposed for [conversation-first settings](master-plan-02-proposal.en.md). [D-MP2-01](d-mp2-01-conversation-settings-contract.en.md) and I-MP2-01 are complete on automated mock-contract evidence: conversation and the local companion share a policy-owned, redacted settings read and exact lifecycle preview/confirm boundary. This does not configure a credential, OAuth flow, provider connection, or live external capability.
 
-The owner-local delivery state is reconciled and must not rerun merged UX, MP1, D-MP2-01, or I-MP2-01 work. Its next action is `MP2-REVIEW-01`: review the I-MP2-01 evidence and nominate one next owner friction before a new implementation goal is created.
+The owner-local delivery state is reconciled and must not rerun merged UX, MP1, D-MP2-01, or I-MP2-01 work. Under the owner's autonomous-cycle delegation, its next action is `D-MP2-02`: select one bounded next MP2 owner friction, create a goal-ready design issue and branch, and continue without routine iteration review. It stops for the documented sensitive-boundary and MP2 cycle-completion reviews.

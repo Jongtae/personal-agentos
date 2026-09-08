@@ -32,6 +32,12 @@ Goal을 활성화하기 전에 issue와 원본 계획은 다음을 모두 식별
 6. Automated evidence와 operating evidence를 구분한 PR을 만들고, merge·issue close·`TASKS.md`/`docs/roadmap.md`/ledger 갱신을 함께 수행한다.
 7. Completion audit를 한다. 그 뒤에만 goal complete를 보고한다.
 
+## 자율 개발 사이클 위임
+
+소유자가 명시적으로 위임한 Master Plan 사이클에서는 Agent가 매 작은 D/I iteration 뒤 소유자 리뷰를 기다리지 않는다. Agent는 vision, 활성 delivery plan, proposal, 설계 contract의 범위 안에서 다음 **하나의 bounded owner friction**을 선택하고, 필요한 design→implementation→automated validation→PR merge→closeout를 순서대로 연쇄 실행할 수 있다.
+
+이 위임은 자동 설치·자동 권한 상승·운영 모드 전환 권한이 아니다. credential 또는 OAuth 구성, 새 외부 connection/endpoint, permission/scope 확대, consequential external action, 개인 데이터 경계 확대, security/governance boundary 변경, 또는 Master Plan 사이클 완료는 반드시 중단하고 종합 리뷰를 요청한다. 다음 선택이 문서화된 범위를 넘거나 둘 이상의 동등한 사용자 결과 사이의 제품 판단이면, Agent는 구현을 시작하지 않고 후보와 근거를 보고한다.
+
 ## 종료 상태 규율
 
 - Goal은 현재 권위 있는 state가 모든 완료 항목을 증명할 때만 **complete**다. Intent, 부분 fixture, 병합되지 않은 branch, 좁은 test는 더 넓은 주장을 증명하지 못한다.
