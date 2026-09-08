@@ -45,6 +45,12 @@ Goal을 활성화하기 전에 issue와 원본 계획은 다음을 모두 식별
 - 같은 구체적 외부 blocker가 세 goal turn에 걸쳐 반복되고 의미 있는 안전한 진행이 없을 때만 **blocked**다. 보고에는 blocker, evidence, 필요한 최소 다음 입력을 적는다.
 - Goal은 routine owner manual test, 실제 credential, live provider를 개발 blocker로 취급하지 않는다. 활성 goal이 운영 모드 작업을 명시 승인하지 않는 한 이는 별도 운영 모드 배포에 속한다.
 
+## 설계–구현 추적성
+
+완료된 설계 contract는 interface와 acceptance boundary가 명세되었다는 증거일 뿐 capability가 존재한다는 증거는 아니다. 모든 Master Plan 설계 entry는 의존 구현 entry와 한·영 동등 contract를 이름으로 지정해야 한다. 구현 entry는 설계로 다시 연결되고 automated evidence를 선언해야 하며, goal-ready issue가 권한을 부여할 때까지 비활성으로 남는다.
+
+Delivery-plan verifier는 이 mapping이 없는 설계를 거절한다. 또한 선언된 모든 구현이 mapped automated evidence와 함께 documented complete가 아니면 Master Plan 또는 capability의 `development_complete` claim을 거절한다. `design_complete`, `in_progress`, `requires-goal-ready-issue`는 의도적으로 더 좁은 상태이며, 사용자 표시 capability 완료 또는 운영 claim으로 표현해서는 안 된다.
+
 ## 문서 routing
 
 | 문서 종류 | Goal 동작 |

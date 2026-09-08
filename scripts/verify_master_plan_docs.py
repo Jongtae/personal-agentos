@@ -2,6 +2,7 @@
 """Verify the bilingual Master Plan documents remain structurally equivalent."""
 from pathlib import Path
 import re
+import json
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,6 +30,28 @@ def phase_table_ids(text):
     return tuple(re.findall(r"\b[DI]-\d{2}\b", "\n".join(rows)))
 
 
+def verify_traceability(plan):
+    iterations={item["id"]:item for item in plan["iterations"]}
+    for ident, item in iterations.items():
+        if item.get("kind") != "design":
+            continue
+        implementation=item.get("implementation_id")
+        contract=item.get("contract")
+        if not isinstance(implementation,str) or implementation not in iterations or not isinstance(contract,str) or not (DOCS / contract).is_file():
+            raise SystemExit(f"design traceability failure: {ident}")
+        delivery=iterations[implementation]
+        if delivery.get("kind") not in {"implementation", "release"} or delivery.get("design_id") != ident or delivery.get("contract") != contract or not delivery.get("automated_evidence"):
+            raise SystemExit(f"implementation traceability failure: {implementation}")
+    claims=plan.get("completion_claims", {})
+    completed=set(plan.get("history", {}).get("documented_completed_iterations", []))
+    for claim_id, claim in claims.items():
+        if not isinstance(claim, dict) or claim.get("status") != "development_complete":
+            continue
+        required=claim.get("required_implementation_ids", [])
+        if not isinstance(required, list) or not required or any(ident not in iterations or ident not in completed for ident in required):
+            raise SystemExit(f"completion claim lacks implemented automated evidence: {claim_id}")
+
+
 def main():
     for korean, english in PAIRS:
         ko = (DOCS / korean).read_text(encoding="utf-8")
@@ -46,6 +69,8 @@ def main():
             raise SystemExit(f"MP1 phase table sequence failure: {source}")
     if phase_table_ids(mp1_ko) != phase_table_ids(mp1_en):
         raise SystemExit("MP1 phase parity failure")
+    plan=json.loads((ROOT / "delivery-plan.yaml").read_text(encoding="utf-8"))
+    verify_traceability(plan)
     print("Master Plan bilingual documents verified")
 
 

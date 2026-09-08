@@ -104,6 +104,8 @@
       "milestone": "AgentOS Personal Assistant Core",
       "issue": 176,
       "kind": "design",
+      "implementation_id": "MP1-I-01",
+      "contract": "mp1-d01-personal-space-contract.en.md",
       "depends_on": [
         "UX-06"
       ],
@@ -117,6 +119,9 @@
       "milestone": "AgentOS Personal Assistant Core",
       "issue": 179,
       "kind": "implementation",
+      "design_id": "MP1-D-01",
+      "contract": "mp1-d01-personal-space-contract.en.md",
+      "automated_evidence": ["python3 -m pytest -q tests"],
       "depends_on": ["MP1-D-01"],
       "tests": ["python3 -m pytest -q tests"],
       "summary": "Deliver owner-local Personal Space and the single-assistant UX."
@@ -126,6 +131,8 @@
       "milestone": "AgentOS Personal Assistant Core",
       "issue": 182,
       "kind": "design",
+      "implementation_id": "MP1-I-02",
+      "contract": "mp1-d02-capability-lifecycle.en.md",
       "depends_on": ["MP1-I-01"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Define reviewed MCP, A2A, and runtime capability lifecycle contracts."
@@ -135,6 +142,9 @@
       "milestone": "AgentOS Personal Assistant Core",
       "issue": 184,
       "kind": "implementation",
+      "design_id": "MP1-D-02",
+      "contract": "mp1-d02-capability-lifecycle.en.md",
+      "automated_evidence": ["python3 -m pytest -q tests"],
       "depends_on": ["MP1-D-02"],
       "tests": ["python3 -m pytest -q tests"],
       "summary": "Deliver reviewed capability registry enable, pause, disconnect, and audit flows."
@@ -144,6 +154,8 @@
       "milestone": "AgentOS Personal Assistant Core",
       "issue": 188,
       "kind": "design",
+      "implementation_id": "MP1-I-03",
+      "contract": "mp1-d03-drive-contract.en.md",
       "depends_on": ["MP1-I-02"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Define the Google Drive read-only connector contract."
@@ -153,6 +165,9 @@
       "milestone": "AgentOS Personal Assistant Core",
       "issue": 190,
       "kind": "implementation",
+      "design_id": "MP1-D-03",
+      "contract": "mp1-d03-drive-contract.en.md",
+      "automated_evidence": ["python3 -m pytest -q tests"],
       "depends_on": ["MP1-D-03"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Deliver the mock-validated Google Drive read-only connector."
@@ -161,6 +176,8 @@
       "id": "MP1-D-04",
       "milestone": "AgentOS Personal Assistant Core",
       "kind": "design",
+      "implementation_id": "MP1-I-04",
+      "contract": "mp1-d04-a2a-delegation-contract.en.md",
       "depends_on": ["MP1-I-03"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Define compatibility A2A peer delegation contracts."
@@ -169,6 +186,9 @@
       "id": "MP1-I-04",
       "milestone": "AgentOS Personal Assistant Core",
       "kind": "implementation",
+      "design_id": "MP1-D-04",
+      "contract": "mp1-d04-a2a-delegation-contract.en.md",
+      "automated_evidence": ["python3 -m pytest -q tests"],
       "depends_on": ["MP1-D-04"],
       "tests": ["python3 -m pytest -q tests"],
       "summary": "Deliver explicit delegation through a compatibility A2A test peer."
@@ -177,6 +197,8 @@
       "id": "MP1-D-05",
       "milestone": "AgentOS Personal Assistant Core",
       "kind": "design",
+      "implementation_id": "MP1-I-05",
+      "contract": "mp1-d05-calendar-contract.en.md",
       "depends_on": ["MP1-I-04"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Define Google Calendar create-event approval contracts."
@@ -185,6 +207,9 @@
       "id": "MP1-I-05",
       "milestone": "AgentOS Personal Assistant Core",
       "kind": "implementation",
+      "design_id": "MP1-D-05",
+      "contract": "mp1-d05-calendar-contract.en.md",
+      "automated_evidence": ["python3 -m pytest -q tests"],
       "depends_on": ["MP1-D-05"],
       "tests": ["python3 -m pytest -q tests"],
       "summary": "Deliver mock-validated Google Calendar new-event creation."
@@ -193,6 +218,8 @@
       "id": "MP1-D-06",
       "milestone": "AgentOS Personal Assistant Core",
       "kind": "design",
+      "implementation_id": "MP1-I-06",
+      "contract": "mp1-d06-react-release-contract.en.md",
       "depends_on": ["MP1-I-05"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Define the integrated ReAct policy, fallback, and release contract."
@@ -201,6 +228,9 @@
       "id": "MP1-I-06",
       "milestone": "AgentOS Personal Assistant Core",
       "kind": "release",
+      "design_id": "MP1-D-06",
+      "contract": "mp1-d06-react-release-contract.en.md",
+      "automated_evidence": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "depends_on": ["MP1-D-06"],
       "release_validation": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Release the Personal Assistant Core through automated integrated acceptance."
@@ -251,6 +281,8 @@
       "milestone": "AgentOS Conversation-First Settings",
       "issue": 230,
       "kind": "design",
+      "implementation_id": "I-MP2-01",
+      "contract": "d-mp2-01-conversation-settings-contract.en.md",
       "depends_on": ["MP1-R-05"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Define the conversation-first settings intent, preview/confirm, redaction, parity, recovery, and local companion contract before implementation."
@@ -260,6 +292,9 @@
       "milestone": "AgentOS Conversation-First Settings",
       "issue": 234,
       "kind": "implementation",
+      "design_id": "D-MP2-01",
+      "contract": "d-mp2-01-conversation-settings-contract.en.md",
+      "automated_evidence": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "depends_on": ["D-MP2-01"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Implement policy-owned conversation settings read, lifecycle preview/confirm, channel parity, redacted audit/export, and local companion navigation."
@@ -269,6 +304,8 @@
       "milestone": "AgentOS Reviewed Capability Discovery",
       "issue": 240,
       "kind": "design",
+      "implementation_id": "I-MP2-02",
+      "contract": "d-mp2-02-capability-discovery-contract.en.md",
       "depends_on": ["I-MP2-01"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Define reviewed capability discovery, deterministic recommendation, redaction, and future explicit install handoff without installation authority."
@@ -278,6 +315,9 @@
       "milestone": "AgentOS Reviewed Capability Discovery",
       "issue": 242,
       "kind": "implementation",
+      "design_id": "D-MP2-02",
+      "contract": "d-mp2-02-capability-discovery-contract.en.md",
+      "automated_evidence": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "depends_on": ["D-MP2-02"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Implement owner-local read-only reviewed capability recommendations without installation authority."
@@ -287,9 +327,23 @@
       "milestone": "AgentOS Owner-Local Knowledge Retrieval",
       "issue": 244,
       "kind": "design",
+      "implementation_id": "I-MP2-03",
+      "contract": "d-mp2-03-personal-knowledge-retrieval-contract.en.md",
       "depends_on": ["I-MP2-02"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Define transparent owner-local Personal Space retrieval with source evidence and no external sharing."
+    },
+    {
+      "id": "I-MP2-03",
+      "milestone": "AgentOS Owner-Local Knowledge Retrieval",
+      "kind": "implementation",
+      "activation_status": "requires-goal-ready-issue",
+      "design_id": "D-MP2-03",
+      "contract": "d-mp2-03-personal-knowledge-retrieval-contract.en.md",
+      "automated_evidence": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
+      "depends_on": ["D-MP2-03"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
+      "summary": "Implement fixture-backed owner-local retrieval with source evidence, redaction, audit/export safety, and channel parity."
     }
   ],
   "milestones": {
@@ -304,6 +358,22 @@
     },
     "AgentOS Conversation-First Settings": {
       "title": "AgentOS Conversation-First Settings"
+    },
+    "AgentOS Reviewed Capability Discovery": {
+      "title": "AgentOS Reviewed Capability Discovery"
+    },
+    "AgentOS Owner-Local Knowledge Retrieval": {
+      "title": "AgentOS Owner-Local Knowledge Retrieval"
+    }
+  },
+  "completion_claims": {
+    "MP1": {
+      "status": "development_complete",
+      "required_implementation_ids": ["MP1-I-01", "MP1-I-02", "MP1-I-03", "MP1-I-04", "MP1-I-05", "MP1-I-06", "MP1-R-01", "MP1-R-02", "MP1-R-03", "MP1-R-04", "MP1-R-05"]
+    },
+    "MP2": {
+      "status": "in_progress",
+      "required_implementation_ids": ["I-MP2-01", "I-MP2-02", "I-MP2-03"]
     }
   },
   "history": {

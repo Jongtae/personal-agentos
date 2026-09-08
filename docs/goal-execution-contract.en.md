@@ -45,6 +45,12 @@ This delegation is not authority for automatic installation, permission escalati
 - A goal is **blocked** only after the same concrete external blocker has recurred across three goal turns and no meaningful safe progress remains. The report must name the blocker, evidence, and the smallest required next input.
 - A goal never treats a routine owner manual test, real credential, or live provider as a development blocker. Those belong to the separately documented operating-mode deployment unless the active goal explicitly authorizes it.
 
+## Design–implementation traceability
+
+A completed design contract is evidence that an interface and acceptance boundary were specified; it is not evidence that the capability exists. Every Master Plan design entry must name its dependent implementation entry and bilingual contract. That implementation must link back to the design, declare automated evidence, and remain inactive until a goal-ready issue authorizes it.
+
+The delivery-plan verifier rejects a design without this mapping. It also rejects a Master Plan or capability `development_complete` claim unless every declared implementation is documented complete with its mapped automated evidence. `design_complete`, `in_progress`, and `requires-goal-ready-issue` are intentionally narrower states and must never be rendered as a user-facing capability completion or operating claim.
+
 ## Document routing
 
 | Document kind | Goal behavior |
