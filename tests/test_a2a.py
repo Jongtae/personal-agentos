@@ -28,3 +28,11 @@ class Tests(unittest.TestCase):
   with self.assertRaises(A2AError):self.a.delegate({"explicit":True,"owner":"owner","prompt":"x"})
   self.peer.card=lambda:{"protocol":"a2a/1","skill":"bounded-research","artifact_schema":"text"};self.peer.event={"state":"completed","artifact":{"id":"a","text":"ok","extra":"no"}}
   row=self.a.delegate({"explicit":True,"owner":"owner","prompt":"x"});self.assertEqual(self.a.status(row["id"],"owner")["state"],"failed")
+ def test_sse_progress_and_duplicate_terminal_event_are_normalized(self):
+  self.peer.event={"state":"working"};row=self.a.delegate({"explicit":True,"owner":"owner","prompt":"x"})
+  self.peer.events=lambda ident,correlation:iter(({"correlation_id":correlation,"state":"working","progress":"one"},{"correlation_id":correlation,"state":"completed","artifact":{"id":"a","text":"ok"}},{"correlation_id":correlation,"state":"completed","artifact":{"id":"b","text":"duplicate"}}));row=self.a.status(row["id"],"owner")
+  self.assertEqual(row["state"],"completed");self.assertEqual(row["progress"],["one"]);self.assertEqual(row["artifacts"],[{"id":"a","text":"ok"}])
+  self.assertEqual(self.a.status(row["id"],"owner")["state"],"completed")
+ def test_sse_correlation_mismatch_is_rejected(self):
+  self.peer.event={"state":"working"};row=self.a.delegate({"explicit":True,"owner":"owner","prompt":"x"});self.peer.events=lambda ident,correlation:iter(({"correlation_id":"wrong","state":"working"},))
+  with self.assertRaises(A2AError):self.a.status(row["id"],"owner")
