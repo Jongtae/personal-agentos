@@ -476,6 +476,26 @@
     "MP2": {
       "status": "development_complete",
       "required_implementation_ids": ["I-MP2-01", "I-MP2-02", "I-MP2-03"]
+    },
+    "TOP": {
+      "status": "development_complete",
+      "required_implementation_ids": ["TOP-00", "TOP-01", "TOP-02", "TOP-03"],
+      "implementation_requirement_ids": ["CORE-01", "CORE-02", "MP2-01", "STAB-01", "DEPLOY-01", "GOV-01", "STATUS-01"],
+      "owner_operating_requirement_ids": ["OWNER-01"],
+      "separate_owner_product_decision_ids": ["LEGACY-01"],
+      "requirements": {
+        "CORE-01": {"status": "merged-current-evidence", "evidence": ["PR #277 merge 53912eeb1357ced37031234b1e5376f024dd0a96; main validate 34204797899"]},
+        "CORE-02": {"status": "merged-current-evidence", "evidence": ["MP1 implementation/remediation PRs #180, #185, #191, #201, #205, #209, #217-#225; main validate 34204797899"]},
+        "MP2-01": {"status": "merged-current-evidence", "evidence": ["PRs #235, #243, #251; status closeout #270/#271"]},
+        "STAB-01": {"status": "merged-current-evidence", "evidence": ["PR #255 fixture recovery/tool roundtrip; main validate 34204797899"]},
+        "DEPLOY-01": {"status": "merged-current-evidence", "evidence": ["PR #272 Compose acceptance; PR #277 isolated connection repair; main validate 34204797899"]},
+        "GOV-01": {"status": "merged-current-evidence", "evidence": ["PR #263/#264 governance and controller tests"]},
+        "STATUS-01": {"status": "merged-current-evidence", "evidence": ["PR #270/#271 reconciliation"]},
+        "OWNER-01": {"status": "owner-operating-action", "action": "approve operating deployment; set exact provider DNS allowlist, claim runtime, complete official login, optionally enter Telegram/OAuth settings, and observe a live task"},
+        "LEGACY-01": {"status": "separate-owner-product-decision", "decision": "decide whether the archived conflicting agentos/PRD.md prototype should ever be promoted; it is not revived by TOP"}
+      },
+      "deployment_candidate": {"commit": "53912eeb1357ced37031234b1e5376f024dd0a96", "required_ci": [{"name": "validate", "conclusion": "success", "commit": "53912eeb1357ced37031234b1e5376f024dd0a96", "run": "34204797899"}]},
+      "unresolved_review_findings": []
     }
   },
   "history": {
@@ -495,13 +515,13 @@
       "V1-05"
     ],
     "reason": "v1.0.4 delivered the runtime and release baseline. Version 5 tracks the approved DM-first consumer experience.",
-    "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01","I-MP2-01","D-MP2-02","I-MP2-02","D-MP2-03","I-MP2-03","STAB-01","OP-01","OP-02","GOV-01","TOP-00","TOP-01"],
+    "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01","I-MP2-01","D-MP2-02","I-MP2-02","D-MP2-03","I-MP2-03","STAB-01","OP-01","OP-02","GOV-01","TOP-00","TOP-01","TOP-02","TOP-03"],
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
     "id": "TOP",
     "status": "active",
-    "action": "continue only top-level Goal #265 with its next documented executable substep TOP-02 for full current product integration regression and bounded defect repair; TOP-01 is complete on PR #272 credential-free Compose lifecycle evidence; do not activate new product scope or claim or configure provider credentials, live connections, or operating deployment",
+    "action": "TOP implementation is complete on current evidence. Do not activate a successor; preserve the immutable candidate and await only OWNER-01 operating deployment approval or the separate LEGACY-01 product decision.",
     "source": "https://github.com/Jongtae/personal-agentos/issues/265"
   }
 }

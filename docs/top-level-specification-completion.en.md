@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-**Status: active under TOP / issue #265.** This is the authoritative execution inventory for the owner-approved top-level Goal. It covers the root [Hub v2 PRD](../PRD.md), active delivery plan, current Master Plan and operating contracts, source code, and current GitHub evidence. Archived plans and the legacy `agentos/PRD.md` prototype are historical inputs, not implementation scope.
+**Status: development complete, pending owner operating approval under TOP / issue #265.** The immutable deployment candidate is `53912eeb1357ced37031234b1e5376f024dd0a96`; its `main` `validate` run `34204797899` passed. Archived plans and the legacy `agentos/PRD.md` prototype are historical inputs, not implementation scope.
 
 The top-level Goal stays active while an approved row below has a safe next action. A substep issue, PR, or closeout completes only that substep. The Agent immediately advances to the next already-enumerated executable row when its predecessors and authority are satisfied. It cannot add a feature, revive a reserved proposal, widen a data or permission boundary, or perform operating deployment.
 
@@ -39,8 +39,8 @@ The top-level Goal stays active while an approved row below has a safe next acti
 | --- | --- | --- | --- |
 | TOP-00 | Inventory, governance transition, and status-source reconciliation | #265 active | Complete: PRs #266 and #270, bilingual inventory, plan/controller/template checks, CI |
 | TOP-01 | Exact credential-free deployment candidate and Compose lifecycle proof | TOP-00 merged | Complete: PR #272 / runtime merge `410a003a1332ceb2ec6dd32a74146b0422ac1d42`, actual isolated build/health/recreate/restore/cleanup, required CI, independent review |
-| TOP-02 | Full current product integration regression and defect repair | TOP-01 candidate | full suite and product-flow fixtures |
-| TOP-03 | Final requirement-to-evidence audit and owner operating checklist | TOP-02 merged | every row mapped; no unresolved review finding; candidate/procedure current |
+| TOP-02 | Full current product integration regression and defect repair | TOP-01 candidate | Complete: PR #275 and #277; full fixtures, isolated API connection regression, independent review |
+| TOP-03 | Final requirement-to-evidence audit and owner operating checklist | TOP-02 merged | Complete: candidate `53912eeb1357ced37031234b1e5376f024dd0a96`, main validate `34204797899`, mechanical claim gate, no unresolved development review finding |
 
 ## Owner operating checklist
 

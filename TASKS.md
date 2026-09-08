@@ -6,7 +6,7 @@ Active work is executed only from a goal-ready issue and active delivery-plan en
 
 | Goal | Issue | Status |
 | --- | --- | --- |
-| TOP | [#265](https://github.com/Jongtae/personal-agentos/issues/265) | Active. The authoritative requirement inventory is [top-level specification completion](docs/top-level-specification-completion.en.md); completed substeps do not complete TOP. TOP-01 completed in #272 with actual credential-free lifecycle evidence; TOP-02 integration is next. |
+| TOP | [#265](https://github.com/Jongtae/personal-agentos/issues/265) | Development complete on immutable candidate `53912eeb1357ced37031234b1e5376f024dd0a96` and main `validate` run `34204797899`; await only explicit owner operating approval or the separate LEGACY-01 product decision. |
 
 ## Maintained baseline
 
