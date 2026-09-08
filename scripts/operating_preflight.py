@@ -9,12 +9,31 @@ import stat
 import sys
 import tempfile
 import threading
+import time
+from urllib.error import HTTPError
+from urllib.request import urlopen
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 if str(REPOSITORY) not in sys.path:
     sys.path.insert(0, str(REPOSITORY))
 
 REQUIRED_SCRIPTS = ("compose-backup.sh", "compose-restore.sh", "compose-update.sh")
+
+
+def _wait_for_http_handler(url: str, timeout: float = 2.0) -> None:
+    """Wait until a bound local server is actually dispatching HTTP requests."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            urlopen(url, timeout=0.2).read()
+            return
+        except HTTPError:
+            # The probe's service is intentionally not started yet, so its
+            # health endpoint returns 503. That still proves handler readiness.
+            return
+        except OSError:
+            time.sleep(0.02)
+    raise RuntimeError("local AgentOS HTTP handler did not become ready")
 
 
 def _product_probe():
@@ -82,10 +101,11 @@ print(json.dumps({{'type':'item.completed','item':{{'type':'agent_message','text
         )
         agentos_thread = threading.Thread(target=agentos_server.serve_forever, daemon=True)
         agentos_thread.start()
-        sidecar.callback_url = (
-            f"http://127.0.0.1:{agentos_server.server_port}" + ISOLATED_MCP_PATH
-        )
         try:
+            _wait_for_http_handler(f"http://127.0.0.1:{agentos_server.server_port}/healthz")
+            sidecar.callback_url = (
+                f"http://127.0.0.1:{agentos_server.server_port}" + ISOLATED_MCP_PATH
+            )
             source.put("subscription_engine", {
                 "id": "codex",
                 "connected_at": 0,
