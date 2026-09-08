@@ -120,3 +120,8 @@ class OperatingPreflightTests(unittest.TestCase):
         self.assertNotIn("subscription-engine-isolation-design-required",report["recovery_actions"])
         self.assertEqual(report["execution_path"],"isolated-subscription-engine-policy-proxy-owner-configuration-deferred")
         self.assertFalse(report["checks"]["provider_egress_reachable"])
+
+    def test_compose_acceptance_forces_empty_provider_allowlist(self):
+        source=(ROOT/"scripts"/"verify_compose_acceptance.py").read_text()
+        self.assertIn('"AGENTOS_PROVIDER_EGRESS_ALLOWLIST": ""',source)
+        self.assertIn('temporary.chmod(0o777)',source)

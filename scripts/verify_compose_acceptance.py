@@ -25,7 +25,11 @@ with tempfile.TemporaryDirectory() as temporary:
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0)); port = sock.getsockname()[1]
     project = "agentosvalidation" + str(int(time.time()))
-    environment = {**os.environ, "AGENTOS_PORT": str(port), "COMPOSE_PROJECT_NAME": project}
+    # This development acceptance must not inherit a developer's provider
+    # allowlist or credential-like Compose configuration. The empty policy
+    # keeps engine egress default-deny while exercising local lifecycle only.
+    environment = {**os.environ, "AGENTOS_PORT": str(port), "COMPOSE_PROJECT_NAME": project,
+                   "AGENTOS_PROVIDER_EGRESS_ALLOWLIST": ""}
     compose = ["docker", "compose", "-p", project, "-f", str(ROOT / "compose.yaml")]
     try:
         run([*compose, "up", "--build", "-d"], env=environment)
