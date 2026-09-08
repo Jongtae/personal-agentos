@@ -24,6 +24,7 @@ Active work is executed only from a goal-ready issue and active delivery-plan en
 | [#238](https://github.com/Jongtae/personal-agentos/issues/238) | Adopt autonomous MP2 delivery-cycle governance | Complete; merged in #239; iteration review is delegated within documented boundaries |
 | [D-MP2-02 / #240](https://github.com/Jongtae/personal-agentos/issues/240) | Define reviewed capability discovery and recommendation before any install authority | Complete; merged in #241; I-MP2-02 requires a goal-ready issue |
 | [I-MP2-02 / #242](https://github.com/Jongtae/personal-agentos/issues/242) | Implement owner-local read-only reviewed capability recommendations | Complete; merged in #243; next action is autonomous D-MP2-03 selection |
+| [D-MP2-03 / #244](https://github.com/Jongtae/personal-agentos/issues/244) | Define owner-local Personal Space knowledge retrieval before any external sharing | Complete; merged in #245; I-MP2-03 requires a goal-ready issue |
 | [MP1-D-01 / #176](https://github.com/Jongtae/personal-agentos/issues/176) | Define the Personal Space memory, source, evidence, sharing, and I-01 acceptance contract | Complete; merged in #177, design only and no runtime behavior change |
 | [MP1-I-01 / #179](https://github.com/Jongtae/personal-agentos/issues/179) | Deliver Personal Space and the single-assistant UX | Complete; merged in #180 with owner-attested live acceptance |
 | [MP1-D-02 / #182](https://github.com/Jongtae/personal-agentos/issues/182) | Define reviewed capability lifecycle | Complete; merged in #183, design only |
