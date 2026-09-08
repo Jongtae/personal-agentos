@@ -374,6 +374,16 @@
       "contract": "op-02-operating-readiness-remediation-contract.en.md",
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 scripts/operating_preflight.py --root .", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
       "summary": "Correct OP-01's unsupported release/path claim with an immutable candidate, internal subscription-engine path, executable preflight, and recovery evidence."
+    },
+    {
+      "id": "GOV-01",
+      "milestone": "Autonomous Goal Governance Alignment",
+      "issue": 168,
+      "kind": "governance",
+      "activation_status": "owner-activated-goal-ready",
+      "depends_on": ["OP-02"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "summary": "Permanently align autonomous active-goal execution, delegation records, independent review, automation restrictions, and evidence-only closeout without starting a new product capability."
     }
   ],
   "milestones": {
@@ -403,6 +413,9 @@
     },
     "Operating Readiness Remediation": {
       "title": "Operating Readiness Remediation"
+    },
+    "Autonomous Goal Governance Alignment": {
+      "title": "Autonomous Goal Governance Alignment"
     }
   },
   "completion_claims": {
@@ -436,9 +449,9 @@
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
-    "id": "OP-02",
-    "status": "requires-explicit-owner-approval",
-    "action": "owner may configure the exact provider DNS allowlist and perform one operating deployment",
-    "source": "docs/op-02-operating-readiness-remediation-contract.en.md"
+    "id": "GOV-01",
+    "status": "active",
+    "action": "continue only issue #168 on codex/168-governance-autonomy-alignment; do not select a successor or operating deployment",
+    "source": "https://github.com/Jongtae/personal-agentos/issues/168"
   }
 }

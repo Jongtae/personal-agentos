@@ -19,7 +19,9 @@ Goal을 활성화하기 전에 issue와 원본 계획은 다음을 모두 식별
 | Non-goals | Agent가 더 쉬운 결과나 더 넓은 결과로 대체하지 못하게 의도적으로 제외한 인접 작업 |
 | Work units | 각각 관찰 가능한 결과를 갖는 작은 순서 있는 deliverable. 의존 구현 전에 설계 작업이 contract를 확정한다. |
 | Evidence | 정확한 automated check, fixture, review artifact, 그리고 운영 모드에서만 deployment health evidence. Mock과 운영 증거를 따로 이름 붙인다. |
-| Completion rule | 약속한 모든 artifact, state transition, check를 증명하는 요구사항별 audit |
+| 위임 기록 | 위임한 각 work unit의 배타적 file ownership, 요청한 model/reasoning, 가능한 경우 tool이 수락한 설정, 관찰한 결과, 독립 위임 사유 |
+| 독립 검토 | 관련 security, recovery, external boundary, final-completion 작업의 필수 review artifact. Routine owner manual-test gate가 아니다. |
+| Completion rule | merged artifact, 필수 CI, tracker/roadmap/ledger closeout을 포함해 약속한 모든 artifact, state transition, check를 증명하는 현재 요구사항-증거 audit |
 | Blocked rule | 진행을 막는 구체적 외부 조건, 이미 시도한 recovery, 필요한 다음 권한 또는 state change |
 
 ## 실행 lifecycle
@@ -27,20 +29,28 @@ Goal을 활성화하기 전에 issue와 원본 계획은 다음을 모두 식별
 1. 현재 repository, issue, branch, plan, 이전 evidence를 검사한다. 이전 대화에만 의존하지 않는다.
 2. Goal-ready record에서 checklist를 도출한다. 모든 명시 요구사항과 의존성을 보존한다.
 3. 구현 또는 문서를 바꾸기 전에 필요한 issue와 `codex/` branch를 만든다. Commit은 의도적이고 범위를 지킨다.
-4. 순서 있는 work unit을 완료한다. Material change 뒤에는 다음 작업으로 가기 전에 관련 contract를 시험한다.
+4. 순서 있는 work unit을 완료한다. Material change 뒤에는 다음 작업으로 가기 전에 관련 contract를 시험한다. 기록한 model, ownership, review 경계 안에서만 위임한다.
 5. 원본 plan이 요구할 경우 plan/doc parity, local-link, ledger, full-suite를 포함한 선언된 전체 validation을 실행한다.
 6. Automated evidence와 operating evidence를 구분한 PR을 만들고, merge·issue close·`TASKS.md`/`docs/roadmap.md`/ledger 갱신을 함께 수행한다.
 7. Completion audit를 한다. 그 뒤에만 goal complete를 보고한다.
 
 ## 자율 개발 사이클 위임
 
-소유자가 명시적으로 위임한 Master Plan 사이클에서는 Agent가 매 작은 D/I iteration 뒤 소유자 리뷰를 기다리지 않는다. Agent는 vision, 활성 delivery plan, proposal, 설계 contract의 범위 안에서 다음 **하나의 bounded owner friction**을 선택하고, 필요한 design→implementation→automated validation→PR merge→closeout를 순서대로 연쇄 실행할 수 있다.
+소유자가 명시적으로 위임한 사이클에서는 Agent가 매 작은 work unit 뒤 소유자 리뷰를 기다리지 않는다. Agent는 명시적으로 active인 하나의 goal-ready iteration과 그 순서 있는 design→implementation→automated validation→PR merge→closeout만 계속 실행할 수 있다.
 
-이 위임은 자동 설치·자동 권한 상승·운영 모드 전환 권한이 아니다. credential 또는 OAuth 구성, 새 외부 connection/endpoint, permission/scope 확대, consequential external action, 개인 데이터 경계 확대, security/governance boundary 변경, 또는 Master Plan 사이클 완료는 반드시 중단하고 종합 리뷰를 요청한다. 다음 선택이 문서화된 범위를 넘거나 둘 이상의 동등한 사용자 결과 사이의 제품 판단이면, Agent는 구현을 시작하지 않고 후보와 근거를 보고한다.
+이 위임은 자동 설치·자동 권한 상승·운영 모드 전환 권한이 아니다. Agent는 후속 goal을 선택해서는 안 되며, 새 feature를 시작하거나 replacement issue를 만들거나 reserved proposal을 재활성화해서는 안 된다. credential 또는 OAuth 구성, 새 외부 connection/endpoint, permission/scope 확대, consequential external action, 개인 데이터 경계 확대, security/governance boundary 변경, 또는 Master Plan 사이클 완료는 반드시 중단하고 종합 리뷰를 요청한다. 다음 선택이 필요하면 구현을 시작하지 않고 후보와 근거를 보고한다.
+
+## 위임 및 독립 검토
+
+활성 issue는 독립 검토가 가능한 경우에만 역할 기반 model 위임을 기록한다. 탐색/문서 확인에는 낮은 비용의 읽기 역할, 제한된 구현에는 구현 역할, security/recovery/final completion 검토에는 독립 검토 역할을 사용할 수 있다. 이는 요청한 model이 사용 가능했다는 주장이 아니다. 기록은 요청·수락·관찰 설정을 구분하고, 두 구현자가 같은 file을 동시에 수정하지 않도록 file을 배정한다.
+
+Goal이 security, recovery, external boundary, automation/authority control, completion claim을 변경하면 complete 전에 독립 review artifact가 필요하다. Reviewer는 현재 diff와 evidence를 점검하고 미해결 finding을 이름으로 남기며, 가짜 product success나 routine owner manual test를 대신하지 않는다.
+
+하나의 기존 delivery automation만 issue, branch, plan, contract, task state를 확인한 뒤 이름 붙은 active goal을 재개할 수 있다. 후속 goal을 선택해서는 안 되며, automation을 만들거나 이미 active인 task와 동시에 실행해서는 안 된다. Active goal이 없거나 closeout 뒤에는 paused 상태로 유지하고, retry에는 의미 있는 조건 변화가 필요하다.
 
 ## 종료 상태 규율
 
-- Goal은 현재 권위 있는 state가 모든 완료 항목을 증명할 때만 **complete**다. Intent, 부분 fixture, 병합되지 않은 branch, 좁은 test는 더 넓은 주장을 증명하지 못한다.
+- Goal은 현재 요구사항-증거 audit가 모든 완료 항목, merged artifact, 필수 CI 결과, tracker/roadmap/ledger closeout을 증명할 때만 **complete**다. Intent, 부분 fixture, closed issue, 병합되지 않은 branch, 좁은 test는 더 넓은 주장을 증명하지 못한다.
 - 안전한 다음 행동이 남아 있으면, 작업이 어렵거나 미완성이라도 goal은 **active**로 남는다.
 - 같은 구체적 외부 blocker가 세 goal turn에 걸쳐 반복되고 의미 있는 안전한 진행이 없을 때만 **blocked**다. 보고에는 blocker, evidence, 필요한 최소 다음 입력을 적는다.
 - Goal은 routine owner manual test, 실제 credential, live provider를 개발 blocker로 취급하지 않는다. 활성 goal이 운영 모드 작업을 명시 승인하지 않는 한 이는 별도 운영 모드 배포에 속한다.
@@ -72,7 +82,7 @@ Goal을 활성화할 때 다음 template을 사용한다.
 
 명시된 선행조건, non-goal, 데이터/권한 경계, 운영 모드 분리를 보존한다. 문서화된 authority 안에서만 작업한다. 순서 있는 work unit을 구현한 뒤 선언된 모든 validation을 실행하고, 현재 repository와 PR state를 기준으로 요구사항별 completion audit를 수행한다.
 
-Issue, branch, PR merge, tracker/roadmap/ledger closeout, 모든 선언된 evidence가 현재 상태가 되기 전에는 goal complete로 표시하지 않는다. 이 특정 goal이 운영 모드 작업을 명시 승인하지 않는 한 live credential, 실제 provider, owner 수동 검증은 범위 밖이다. 안전한 recovery를 시도한 뒤 하나의 외부 blocker가 세 goal turn 동안 지속되면 evidence와 함께 blocked로 표시하고, 그렇지 않으면 계속 진행한다.
+Issue, branch, PR merge, 필수 CI, 요구사항-증거 audit, tracker/roadmap/ledger closeout, 모든 선언된 evidence가 현재 상태가 되기 전에는 goal complete로 표시하지 않는다. 이 active goal만 계속하고 후속 goal을 선택해서는 안 된다. 이 특정 goal이 운영 모드 작업을 명시 승인하지 않는 한 live credential, 실제 provider, owner 수동 검증은 범위 밖이다. 안전한 recovery를 시도한 뒤 하나의 외부 blocker가 세 goal turn 동안 지속되면 evidence와 함께 blocked로 표시하고, 그렇지 않으면 계속 진행한다.
 ```
 
 ## 필요한 최종 보고

@@ -33,6 +33,34 @@ The active delivery order is `delivery-plan.yaml`. Historical v1/P7 plans are ar
 
 Every active iteration must also satisfy the bilingual [Goal Execution Contract](docs/goal-execution-contract.en.md): establish its goal-ready record before activation, preserve declared authority and non-goals, and close only with current evidence. Vision and reserved proposals never activate implementation work by themselves.
 
+## Autonomous goal execution
+
+An owner may explicitly activate one goal-ready iteration and delegate its
+delivery cycle. The Agent then continues safe, in-scope work without waiting
+for routine owner review or a manual automation trigger. It may not select a
+successor, start a new feature, create a replacement issue, reactivate a
+reserved proposal, or widen authority merely because the active goal ends.
+
+There is one existing delivery heartbeat. It may resume only the explicitly
+active goal after inspecting current repository and GitHub state; it must not
+create another automation or concurrent execution. It stays paused when no
+goal is active and after closeout. A changed external condition is required
+before retrying a recorded authentication, permission, environment, or usage
+failure.
+
+Use role-appropriate delegation only for independent bounded work. Record the
+requested model and reasoning level, the tool-accepted setting when available,
+the observed execution result, and exclusive file ownership. Do not claim a
+model change that was not accepted or observed. Relevant security, recovery,
+external-boundary, and final-completion work requires an independent review
+artifact; this is an automated/agent review, not a routine owner live-test
+gate.
+
+Completion is rejected unless a current requirement-to-evidence audit maps
+every acceptance criterion to merged artifacts, required CI, and tracker,
+roadmap, and ledger closeout. A local command, fixture, closed issue, branch,
+or PR alone never proves completion.
+
 ## Truthfulness and safety
 
 The canonical process is [development governance](docs/development-governance.en.md). It applies to all repository work; Master Plan delivery adds its own phase contracts on top of it.
