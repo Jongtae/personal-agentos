@@ -12,6 +12,10 @@ labels: iteration
 
 Active delivery-plan iteration, predecessors satisfied, and the explicit owner activation that authorizes this goal:
 
+## Top-level goal / substep
+
+Parent top-level goal and enumerated substep ID (or `not applicable`):
+
 ## Allowed authority
 
 Files, runtime boundaries, repositories, and external systems this goal may change:

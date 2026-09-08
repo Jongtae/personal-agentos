@@ -12,7 +12,7 @@ Before activating a goal, its issue and source plan must identify all of the fol
 
 | Field | Required meaning |
 | --- | --- |
-| Objective | One user-visible outcome, including the scope that must be true at completion. |
+| Objective | One user-visible outcome, including the scope that must be true at completion. A top-level objective may name finite, ordered substeps. |
 | Source of truth | The issue, active `delivery-plan.yaml` iteration, and governing contract documents. The active delivery plan decides order. |
 | State and predecessors | `active` work has satisfied dependencies. `reserved`, `proposed`, archived, and blocked work is not silently activated. |
 | Allowed authority | Files, runtime boundaries, repositories, and external systems the goal may change. Read-only inspection is allowed; new credentials, external actions, or scope expansion require an explicit contract. |
@@ -36,9 +36,9 @@ Before activating a goal, its issue and source plan must identify all of the fol
 
 ## Autonomous delivery-cycle delegation
 
-For a cycle explicitly delegated by the owner, the Agent does not wait for owner review after every small work unit. It may continue only the one explicitly active, goal-ready iteration and its ordered design → implementation → automated validation → PR merge → closeout sequence.
+For a cycle explicitly delegated by the owner, the Agent does not wait for owner review after every small work unit. It may continue the explicitly active, goal-ready iteration, or the finite ordered substeps of an explicitly active top-level goal, through design → implementation → automated validation → PR merge → closeout.
 
-This delegation is not authority for automatic installation, permission escalation, or an operating-mode transition. The Agent must not select a successor, start a new feature, create a replacement issue, or reactivate a reserved proposal. It must stop before credential or OAuth configuration, a new external connection/endpoint, permission or scope expansion, a consequential external action, expansion of a personal-data boundary, a security/governance boundary change, or Master Plan cycle completion unless that exact action is explicitly authorized in the active goal-ready record. If a next selection would be needed, it reports candidates and evidence instead of starting implementation.
+This delegation is not authority for automatic installation, permission escalation, or an operating-mode transition. The Agent may create an issue and `codex/` branch only for an already enumerated, dependency-satisfied substep of the active top-level goal. It must not select an unlisted successor, start a new feature, or reactivate a reserved proposal. It must stop before credential or OAuth configuration, a new external connection/endpoint, permission or scope expansion, a consequential external action, expansion of a personal-data boundary, a security/governance boundary change, or Master Plan cycle completion unless that exact action is explicitly authorized in the active goal-ready record. If a next selection would be needed, it reports candidates and evidence instead of starting implementation.
 
 ## Delegation and independent review
 
@@ -46,11 +46,11 @@ The active issue records model-routed delegation only where it makes work indepe
 
 An independent review artifact is required before completion when a goal changes security, recovery, an external boundary, automation/authority controls, or its completion claim. The reviewer checks the current diff and evidence, names unresolved findings, and does not substitute a fake product success or routine owner manual test.
 
-The single existing delivery automation may resume only the named active goal after checking issue, branch, plan, contract, and task state. It must not select a successor, create an automation, or run concurrently with an already active task. It remains paused when there is no active goal and after closeout; retries require a meaningful changed condition.
+The single existing delivery automation reads this contract and may resume only the named active goal after checking issue, branch, plan, contract, and task state. It may advance only to an already enumerated substep, must not create another automation, and must not run concurrently with an already active task. It remains paused when there is no active top-level goal and after top-level closeout; retries require a meaningful changed condition.
 
 ## Terminal-state discipline
 
-- A goal is **complete** only when a current requirement-to-evidence audit proves every completion item, merged artifact, required CI result, and tracker/roadmap/ledger closeout. Intent, a partial fixture, a closed issue, an unmerged branch, or a narrow test cannot prove a broader claim.
+- A goal is **complete** only when a current requirement-to-evidence audit proves every completion item, merged artifact, required CI result, and tracker/roadmap/ledger closeout. A top-level goal additionally proves every enumerated substep and requirement is complete, owner-setting-only, or separately decision-required. Intent, a partial fixture, a closed issue, an unmerged branch, or a narrow test cannot prove a broader claim.
 - A goal remains **active** while a safe next action exists, even if work is difficult or incomplete.
 - A goal is **blocked** only after the same concrete external blocker has recurred across three goal turns and no meaningful safe progress remains. The report must name the blocker, evidence, and the smallest required next input.
 - A goal never treats a routine owner manual test, real credential, or live provider as a development blocker. Those belong to the separately documented operating-mode deployment unless the active goal explicitly authorizes it.

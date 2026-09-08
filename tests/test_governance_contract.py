@@ -35,11 +35,12 @@ def test_agents_declares_permanent_autonomous_delivery_guards() -> None:
         "requested model",
         "observed execution result",
         "requirement-to-evidence audit",
-        "select a successor",
+        "enumerated, dependency-satisfied substep",
+        "top-level goal",
         "declared authority",
         "non-goals",
     )
-    _assert_any(agents, "must not select", "may not select")
+    _assert_any(agents, "must not select an unlisted", "may advance only")
     _assert_any(agents, "accepted setting", "tool-accepted setting")
 
 
@@ -51,14 +52,16 @@ def test_bilingual_goal_contracts_define_equivalent_delegation_guards() -> None:
         english,
         "## Delegation and independent review",
         "requested, accepted, and observed",
-        "must not select a successor",
+        "already enumerated, dependency-satisfied substep",
+        "top-level goal",
         "requirement-to-evidence audit",
     )
     _assert_all(
         korean,
         "## 위임 및 독립 검토",
         "요청·수락·관찰",
-        "후속 goal을 선택해서는 안 된다",
+        "이미 열거되고 dependency가 충족된 substep",
+        "최상위 Goal",
         "요구사항-증거 audit",
     )
 
@@ -87,6 +90,7 @@ def test_iteration_issue_template_collects_the_execution_contract() -> None:
         "## Evidence and completion audit",
         "## Delegation and independent review",
         "## Blocked / restart rule",
+        "## Top-level goal / substep",
         "## Non-goals",
         "codex/",
     )

@@ -12,7 +12,7 @@ Goal을 활성화하기 전에 issue와 원본 계획은 다음을 모두 식별
 
 | 항목 | 필요한 의미 |
 | --- | --- |
-| Objective | 완료 시 참이어야 할 범위를 포함한 하나의 사용자 표시 결과 |
+| Objective | 완료 시 참이어야 할 범위를 포함한 하나의 사용자 표시 결과. 최상위 objective는 유한하고 순서 있는 substep을 이름으로 지정할 수 있다. |
 | Source of truth | Issue, 활성 `delivery-plan.yaml` iteration, 적용 contract 문서. 활성 delivery plan이 순서를 정한다. |
 | State와 선행조건 | `active` 작업은 의존성을 충족한다. `reserved`, `proposed`, archived, blocked 작업은 조용히 활성화하지 않는다. |
 | Allowed authority | Goal이 바꿀 수 있는 file, runtime boundary, repository, 외부 system. Read-only inspection은 허용되지만 새 credential, 외부 action, scope 확장은 명시 contract가 필요하다. |
@@ -36,9 +36,9 @@ Goal을 활성화하기 전에 issue와 원본 계획은 다음을 모두 식별
 
 ## 자율 개발 사이클 위임
 
-소유자가 명시적으로 위임한 사이클에서는 Agent가 매 작은 work unit 뒤 소유자 리뷰를 기다리지 않는다. Agent는 명시적으로 active인 하나의 goal-ready iteration과 그 순서 있는 design→implementation→automated validation→PR merge→closeout만 계속 실행할 수 있다.
+소유자가 명시적으로 위임한 사이클에서는 Agent가 매 작은 work unit 뒤 소유자 리뷰를 기다리지 않는다. Agent는 명시적으로 active인 goal-ready iteration 또는 명시적으로 active인 최상위 Goal의 유한하고 순서 있는 substep을 design→implementation→automated validation→PR merge→closeout로 계속 실행할 수 있다.
 
-이 위임은 자동 설치·자동 권한 상승·운영 모드 전환 권한이 아니다. Agent는 후속 goal을 선택해서는 안 되며, 새 feature를 시작하거나 replacement issue를 만들거나 reserved proposal을 재활성화해서는 안 된다. credential 또는 OAuth 구성, 새 외부 connection/endpoint, permission/scope 확대, consequential external action, 개인 데이터 경계 확대, security/governance boundary 변경, 또는 Master Plan 사이클 완료는 해당 action이 active goal-ready record에서 정확히 명시 승인되지 않은 한 중단해야 한다. 다음 선택이 필요하면 구현을 시작하지 않고 후보와 근거를 보고한다.
+이 위임은 자동 설치·자동 권한 상승·운영 모드 전환 권한이 아니다. Agent는 active 최상위 Goal의 이미 열거되고 dependency가 충족된 substep에 한해 issue와 `codex/` branch를 만들 수 있다. 열거되지 않은 후속 goal을 선택하거나 새 feature를 시작하거나 reserved proposal을 재활성화해서는 안 된다. credential 또는 OAuth 구성, 새 외부 connection/endpoint, permission/scope 확대, consequential external action, 개인 데이터 경계 확대, security/governance boundary 변경, 또는 Master Plan 사이클 완료는 해당 action이 active goal-ready record에서 정확히 명시 승인되지 않은 한 중단해야 한다. 다음 선택이 필요하면 구현을 시작하지 않고 후보와 근거를 보고한다.
 
 ## 위임 및 독립 검토
 
@@ -46,11 +46,11 @@ Goal을 활성화하기 전에 issue와 원본 계획은 다음을 모두 식별
 
 Goal이 security, recovery, external boundary, automation/authority control, completion claim을 변경하면 complete 전에 독립 review artifact가 필요하다. Reviewer는 현재 diff와 evidence를 점검하고 미해결 finding을 이름으로 남기며, 가짜 product success나 routine owner manual test를 대신하지 않는다.
 
-하나의 기존 delivery automation만 issue, branch, plan, contract, task state를 확인한 뒤 이름 붙은 active goal을 재개할 수 있다. 후속 goal을 선택해서는 안 되며, automation을 만들거나 이미 active인 task와 동시에 실행해서는 안 된다. Active goal이 없거나 closeout 뒤에는 paused 상태로 유지하고, retry에는 의미 있는 조건 변화가 필요하다.
+하나의 기존 delivery automation은 contract를 읽고 issue, branch, plan, task state를 확인한 뒤 이름 붙은 active goal만 재개할 수 있다. 이미 열거된 substep만 진행할 수 있고, 다른 automation을 만들거나 이미 active인 task와 동시에 실행해서는 안 된다. Active 최상위 Goal이 없거나 최상위 closeout 뒤에는 paused 상태로 유지하고, retry에는 의미 있는 조건 변화가 필요하다.
 
 ## 종료 상태 규율
 
-- Goal은 현재 요구사항-증거 audit가 모든 완료 항목, merged artifact, 필수 CI 결과, tracker/roadmap/ledger closeout을 증명할 때만 **complete**다. Intent, 부분 fixture, closed issue, 병합되지 않은 branch, 좁은 test는 더 넓은 주장을 증명하지 못한다.
+- Goal은 현재 요구사항-증거 audit가 모든 완료 항목, merged artifact, 필수 CI 결과, tracker/roadmap/ledger closeout을 증명할 때만 **complete**다. 최상위 Goal은 모든 열거된 substep과 requirement가 complete, owner-setting-only, 또는 별도 decision-required임도 증명한다. Intent, 부분 fixture, closed issue, 병합되지 않은 branch, 좁은 test는 더 넓은 주장을 증명하지 못한다.
 - 안전한 다음 행동이 남아 있으면, 작업이 어렵거나 미완성이라도 goal은 **active**로 남는다.
 - 같은 구체적 외부 blocker가 세 goal turn에 걸쳐 반복되고 의미 있는 안전한 진행이 없을 때만 **blocked**다. 보고에는 blocker, evidence, 필요한 최소 다음 입력을 적는다.
 - Goal은 routine owner manual test, 실제 credential, live provider를 개발 blocker로 취급하지 않는다. 활성 goal이 운영 모드 작업을 명시 승인하지 않는 한 이는 별도 운영 모드 배포에 속한다.

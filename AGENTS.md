@@ -35,18 +35,21 @@ Every active iteration must also satisfy the bilingual [Goal Execution Contract]
 
 ## Autonomous goal execution
 
-An owner may explicitly activate one goal-ready iteration and delegate its
-delivery cycle. The Agent then continues safe, in-scope work without waiting
-for routine owner review or a manual automation trigger. It may not select a
-successor, start a new feature, create a replacement issue, reactivate a
-reserved proposal, or widen authority merely because the active goal ends.
+An owner may explicitly activate one goal-ready iteration or one goal-ready
+top-level program and delegate its delivery cycle. The Agent then continues
+safe, in-scope work without waiting for routine owner review or a manual
+automation trigger. A top-level program may advance only to its already
+enumerated, dependency-satisfied substep; substep closeout does not end the
+top-level goal. It may not select an unlisted successor, start a new feature,
+reactivate a reserved proposal, or widen authority merely because a substep
+ends.
 
 There is one existing delivery heartbeat. It may resume only the explicitly
 active goal after inspecting current repository and GitHub state; it must not
 create another automation or concurrent execution. It stays paused when no
-goal is active and after closeout. A changed external condition is required
-before retrying a recorded authentication, permission, environment, or usage
-failure.
+top-level goal is active or after top-level closeout, not after an in-scope
+substep closeout. A changed external condition is required before retrying a
+recorded authentication, permission, environment, or usage failure.
 
 Use role-appropriate delegation only for independent bounded work. Record the
 requested model and reasoning level, the tool-accepted setting when available,
