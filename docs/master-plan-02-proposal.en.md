@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status: proposed.** MP1 is development complete on mock-contract evidence, and the owner explicitly selected conversation-first settings as the next design friction in issue #230. D-MP2-01 and I-MP2-01 are complete on automated mock-contract evidence; no live connection or operating-mode capability is claimed.
+**Status: development complete on automated mock-contract evidence; no successor selected.** The selected conversation-first-settings proposal was delivered through D-MP2-01/I-MP2-01, reviewed capability recommendations through D-MP2-02/I-MP2-02, and owner-local knowledge retrieval through D-MP2-03/I-MP2-03. No live connection or operating-mode capability is claimed. A further MP2 candidate is not active and cannot be selected by this document.
 
 A candidate becomes an executable goal only after promotion to an active delivery-plan iteration and a goal-ready issue under the [Goal Execution Contract](goal-execution-contract.en.md). The owner's autonomous-cycle delegation permits the Agent to make that bounded promotion and complete its D/I sequence without routine iteration review; it never grants automatic installation, permission escalation, or operating-mode authority.
 
@@ -38,9 +38,9 @@ A capability-acquisition proposal additionally records source and pinned version
 
 MP2 is not a next-feature list. It is the decision record that selects one next personal-assistant friction from MP1 real-use evidence.
 
-## Candidate record — conversation-first settings
+## Historical candidate record — conversation-first settings
 
-**Candidate status: selected and proposed for D-MP2-01 design.** The owner identified a likely next friction: a personal assistant should not force its owner to leave conversation merely to understand or manage its own configuration. The explicit selection and MP1 completion promote the design work, not runtime implementation or a live capability claim.
+**Candidate status: delivered on automated mock-contract evidence.** The owner identified a likely next friction: a personal assistant should not force its owner to leave conversation merely to understand or manage its own configuration. The resulting D-MP2-01/I-MP2-01 work is complete; this historical record does not promote a successor, runtime implementation, or live capability claim.
 
 | Field | Candidate record |
 | --- | --- |
@@ -51,7 +51,7 @@ MP2 is not a next-feature list. It is the decision record that selects one next 
 | Data and permission boundary | Reads may answer directly from redacted state. Changes create an owner-bound, short-lived pending change that names its exact target, before/after state, effect, and recovery. Only a matching explicit confirmation may apply it. Secrets, OAuth authorization codes, tokens, passwords, raw paths, approval IDs, and whole Personal Space records are never accepted or displayed in conversation. OAuth or sensitive credential entry hands off to authenticated local web/OS browser flow. |
 | Non-goals | No arbitrary configuration mutation from natural language; no silent enable, pause, disconnect, credential replacement, or external action; no secret collection in chat; no remote hosted settings control plane; no replacement of the local manual settings screen. |
 | Design iteration | [D-MP2-01 contract](d-mp2-01-conversation-settings-contract.en.md) fixes the intent vocabulary; pending-change state machine; confirmation, expiry, idempotency, cancellation, and owner binding; per-setting risk tiers; HTTP/Telegram parity; redaction; audit/export/restore; threat model; and local settings navigation/read model. |
-| Implementation iteration | `I-MP2-01` may only follow the merged D-MP2-01 contract and a new goal-ready issue. It would implement a small reviewed read/change vocabulary for existing capability lifecycle state, one preview/confirm controller, and the companion settings categories. New provider connections and credentials remain separate approved flows. |
+| Implementation iteration | `I-MP2-01` followed the merged D-MP2-01 contract and goal-ready issue #234. It implemented a small reviewed read/change vocabulary for existing capability lifecycle state, one preview/confirm controller, and the companion settings categories. New provider connections and credentials remain separate approved flows. |
 | Automated validation | Fixtures must prove read-only answers, exact preview/confirm, expired/foreign/replayed confirmation rejection, no mutation on ambiguous language, lifecycle gate enforcement, HTTP/Telegram parity, redacted transcript/evidence/export, settings navigation read model, and deterministic recovery. |
-| Live acceptance | Not required for this design iteration and not claimed. I-MP2-01 must define a credential-safe operating-mode observation before any live connection claim. |
+| Live acceptance | Not claimed. The completed mock-contract work does not prove a live connection; any future candidate must define credential-safe operating-mode observation before a live connection claim. |
 | Rollout/recovery | Begin with read-only conversational status. Ship change drafts behind explicit confirmation. Every change exposes its inverse or named recovery action; the manual local settings view remains available if the conversation path fails. |

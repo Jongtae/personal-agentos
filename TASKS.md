@@ -2,6 +2,12 @@
 
 Active work is executed only from a goal-ready issue and active delivery-plan entry under the [Goal Execution Contract](docs/goal-execution-contract.en.md). Status tables are trackers, not authority to activate reserved work.
 
+## Active top-level program
+
+| Goal | Issue | Status |
+| --- | --- | --- |
+| TOP | [#265](https://github.com/Jongtae/personal-agentos/issues/265) | Active. The authoritative requirement inventory is [top-level specification completion](docs/top-level-specification-completion.en.md); completed substeps do not complete TOP. TOP-01 has a recorded technical Compose-registry blocker, while independent enumerated work may continue. |
+
 ## Maintained baseline
 
 | Track | Goal | Status |
@@ -13,21 +19,21 @@ Active work is executed only from a goal-ready issue and active delivery-plan en
 
 | Issue | Goal | Status |
 | --- | --- | --- |
-| [#170](https://github.com/Jongtae/personal-agentos/issues/170) | Localize README navigation and prevent direct integration-branch changes | Complete; awaiting PR merge |
+| [#170](https://github.com/Jongtae/personal-agentos/issues/170) | Localize README navigation and prevent direct integration-branch changes | Complete; merged in #171 |
 | [#172](https://github.com/Jongtae/personal-agentos/issues/172) | Position AgentOS as an owner-controlled personal AI control plane and record the next proposed Hub v2 outcome | Complete; merged in #173, documentation only |
 | [#174](https://github.com/Jongtae/personal-agentos/issues/174) | Add bilingual personal-assistant vision and Master Plan hierarchy | Complete; merged in #175, activated MP1 documentation and reserved MP2 |
 | [#226](https://github.com/Jongtae/personal-agentos/issues/226) | Record a reserved MP2 candidate for conversation-first settings and a Chrome Settings-like local companion | Complete; documentation only |
-| [D-MP2-01 / #230](https://github.com/Jongtae/personal-agentos/issues/230) | Define the conversation-first settings and Chrome Settings-like companion contract before implementation | Complete; merged in #231 with automated documentation validation; I-MP2-01 remains inactive |
-| [#232](https://github.com/Jongtae/personal-agentos/issues/232) | Reconcile owner-local delivery state with documented merged UX/MP1/D-MP2-01 work | Complete; merged in #233; next action is creation of a goal-ready I-MP2-01 issue |
-| [I-MP2-01 / #234](https://github.com/Jongtae/personal-agentos/issues/234) | Implement conversation-first settings lifecycle through the shared policy boundary | Complete; merged in #235 with automated mock-contract validation only; next action is MP2-REVIEW-01 evidence review |
-| [#236](https://github.com/Jongtae/personal-agentos/issues/236) | Reconcile the merged I-MP2-01 closeout in owner-local delivery state | Complete; merged in #237; superseded next action is autonomous D-MP2-02 selection |
-| [#238](https://github.com/Jongtae/personal-agentos/issues/238) | Adopt autonomous MP2 delivery-cycle governance | Complete; merged in #239; iteration review is delegated within documented boundaries |
-| [D-MP2-02 / #240](https://github.com/Jongtae/personal-agentos/issues/240) | Define reviewed capability discovery and recommendation before any install authority | Complete; merged in #241; I-MP2-02 requires a goal-ready issue |
-| [I-MP2-02 / #242](https://github.com/Jongtae/personal-agentos/issues/242) | Implement owner-local read-only reviewed capability recommendations | Complete; merged in #243; next action is autonomous D-MP2-03 selection |
-| [D-MP2-03 / #244](https://github.com/Jongtae/personal-agentos/issues/244) | Define owner-local Personal Space knowledge retrieval before any external sharing | Complete; merged in #245; I-MP2-03 requires a goal-ready issue |
+| [D-MP2-01 / #230](https://github.com/Jongtae/personal-agentos/issues/230) | Define the conversation-first settings and Chrome Settings-like companion contract before implementation | Complete; merged in #231 with automated documentation validation |
+| [#232](https://github.com/Jongtae/personal-agentos/issues/232) | Reconcile owner-local delivery state with documented merged UX/MP1/D-MP2-01 work | Complete; merged in #233; its former next action is historical |
+| [I-MP2-01 / #234](https://github.com/Jongtae/personal-agentos/issues/234) | Implement conversation-first settings lifecycle through the shared policy boundary | Complete; merged in #235 with automated mock-contract validation only |
+| [#236](https://github.com/Jongtae/personal-agentos/issues/236) | Reconcile the merged I-MP2-01 closeout in owner-local delivery state | Complete; merged in #237; its superseded next action is historical |
+| [#238](https://github.com/Jongtae/personal-agentos/issues/238) | Adopt autonomous MP2 delivery-cycle governance | Complete; merged in #239; its MP2-specific selection rule is superseded by TOP |
+| [D-MP2-02 / #240](https://github.com/Jongtae/personal-agentos/issues/240) | Define reviewed capability discovery and recommendation before any install authority | Complete; merged in #241 |
+| [I-MP2-02 / #242](https://github.com/Jongtae/personal-agentos/issues/242) | Implement owner-local read-only reviewed capability recommendations | Complete; merged in #243 |
+| [D-MP2-03 / #244](https://github.com/Jongtae/personal-agentos/issues/244) | Define owner-local Personal Space knowledge retrieval before any external sharing | Complete; merged in #245 |
 | [#246](https://github.com/Jongtae/personal-agentos/issues/246) | Enforce Master Plan design-to-implementation traceability | Complete; merged in #247; design completion cannot satisfy a capability or Master Plan development-complete claim |
 | [#254](https://github.com/Jongtae/personal-agentos/issues/254) | Stabilize subscription-engine Telegram memory summaries | Complete; merged in #255 with CI `validate` required for `main`; fixture evidence only, no live engine/provider claim |
-| [#257](https://github.com/Jongtae/personal-agentos/issues/257) | Prepare owner-approved operating deployment | Complete; merged in #258; `v1.0.4` Compose preflight/runbook is fixture-backed and awaits explicit owner approval for any actual deployment |
+| [#257](https://github.com/Jongtae/personal-agentos/issues/257) | Prepare owner-approved operating deployment | Historical; merged in #258, but its `v1.0.4` candidate is unsupported and replaced by TOP-01 validation |
 | [OP-02 / #260](https://github.com/Jongtae/personal-agentos/issues/260) | Correct the unsupported OP-01 candidate and prepare isolated subscription execution | Complete; merged in #261 as immutable commit `18538eabc00a20de64f4c5f5a6ac004aeda2469e`; fixture/CI evidence only, with provider allowlist, image build, official login, and one owner operating deployment explicitly deferred |
 | [GOV-01 / #168](https://github.com/Jongtae/personal-agentos/issues/168) | Permanently align autonomous active-goal execution and evidence-only completion | Complete; merged in #263 as `d92a61693d557db80ff8378e5b6c46cca46b0e98`; controller and heartbeat now fail closed outside one explicit goal, with automated governance evidence only |
 | [I-MP2-03 / #250](https://github.com/Jongtae/personal-agentos/issues/250) | Implement owner-local Personal Space knowledge retrieval | Complete; merged in #251 with fixture-backed automated evidence only; no external index, provider, credential, sharing, or operating deployment |
@@ -45,7 +51,7 @@ Active work is executed only from a goal-ready issue and active delivery-plan en
 | [MP1-I-06 / #208](https://github.com/Jongtae/personal-agentos/issues/208) | Release Personal Assistant Core | Complete; merged in #209 with automated integrated acceptance |
 | [#192](https://github.com/Jongtae/personal-agentos/issues/192) | Adopt contract-first, mock-driven, CI-gated delivery governance | Complete; merged in #193, documentation and verification policy only |
 
-## Active: MP1 remediation
+## Historical: MP1 remediation
 
 The original MP1 D/I iterations remain merged historical work. [#214](https://github.com/Jongtae/personal-agentos/issues/214) recorded the remediation: R-01 ReAct orchestration, R-02 A2A completion, R-03 Calendar completion, R-04 Drive completion, and R-05 end-to-end release acceptance have now merged in order. MP1 is development complete on mock-contract evidence; operating-mode configuration remains separate.
 
@@ -55,35 +61,35 @@ The original MP1 D/I iterations remain merged historical work. [#214](https://gi
 | [MP1-R-04 / #222](https://github.com/Jongtae/personal-agentos/issues/222) | Complete Drive selected-excerpt approval, re-auth, lifecycle recovery, and portable-evidence contracts through the orchestrator | Complete; merged in #223 with automated mock validation |
 | [MP1-R-05 / #224](https://github.com/Jongtae/personal-agentos/issues/224) | Verify the full new owner-local Personal Space, Drive, A2A, Calendar, lifecycle, fallback, and export/restore journey through the service/orchestrator | Complete; merged in #225 with automated mock validation |
 
-## Personal AgentOS v1 release delivery
+## Historical: Personal AgentOS v1 release delivery
 
 | Iteration | Goal | Status |
 | --- | --- | --- |
-| [V1-02 / #137](https://github.com/Jongtae/personal-agentos/issues/137) | Telegram daily-work task cards, approvals, cancellation, and truthful recovery | Implementation complete; delivery-controller validation and closeout pending |
-| [V1-03 / #138](https://github.com/Jongtae/personal-agentos/issues/138) | Opt-in local documents and context in Telegram work with source evidence and external-sharing approval | Implementation complete; delivery-controller validation and closeout pending |
-| [V1-04 / #139](https://github.com/Jongtae/personal-agentos/issues/139) | Docker Compose VPS health, update, backup/restore, and Telegram continuity boundaries | Implementation complete; delivery-controller validation and closeout pending |
+| [V1-02 / #137](https://github.com/Jongtae/personal-agentos/issues/137) | Telegram daily-work task cards, approvals, cancellation, and truthful recovery | Historical implementation record; it is not an active delivery selector |
+| [V1-03 / #138](https://github.com/Jongtae/personal-agentos/issues/138) | Opt-in local documents and context in Telegram work with source evidence and external-sharing approval | Historical implementation record; it is not an active delivery selector |
+| [V1-04 / #139](https://github.com/Jongtae/personal-agentos/issues/139) | Docker Compose VPS health, update, backup/restore, and Telegram continuity boundaries | Historical implementation record; it is not an active delivery selector |
 
-## Active: AgentOS Hub v2
+## Historical: AgentOS Hub v2
 
 | Milestone | Goal | Issue | Status |
 | --- | --- | --- | --- |
-| M0 | Record Hub v2 product basis and delivery sequence | [#103](https://github.com/Jongtae/personal-agentos/issues/103) | In progress |
-| M1 | Connect subscription engines without API-key setup | [#104](https://github.com/Jongtae/personal-agentos/issues/104) | Complete |
-| M1.5 | Isolate each personal AgentOS runtime from the Mac host | [#109](https://github.com/Jongtae/personal-agentos/issues/109) | Planned |
-| M2 | Run subscription engines through AgentOS-owned tools | [#105](https://github.com/Jongtae/personal-agentos/issues/105) | Complete |
-| M3 | Deliver first work through an owner-created BotFather personal bot | [#106](https://github.com/Jongtae/personal-agentos/issues/106) | In progress |
-| M4 | Build an opt-in local context inbox | [#107](https://github.com/Jongtae/personal-agentos/issues/107) | Planned |
-| M5 | Provide trusted assistants and portable personal state | [#108](https://github.com/Jongtae/personal-agentos/issues/108) | In progress |
+| M0 | Record Hub v2 product basis and delivery sequence | [#103](https://github.com/Jongtae/personal-agentos/issues/103) | Historical tracker; top-level inventory is authoritative |
+| M1 | Connect subscription engines without API-key setup | [#104](https://github.com/Jongtae/personal-agentos/issues/104) | Complete on fixture evidence |
+| M1.5 | Isolate each personal AgentOS runtime from the Mac host | [#109](https://github.com/Jongtae/personal-agentos/issues/109) | Complete on fixture evidence; operating verification remains TOP-01 |
+| M2 | Run subscription engines through AgentOS-owned tools | [#105](https://github.com/Jongtae/personal-agentos/issues/105) | Complete on fixture evidence |
+| M3 | Deliver first work through an owner-created BotFather personal bot | [#106](https://github.com/Jongtae/personal-agentos/issues/106) | Complete on fixture evidence; live token pairing is owner operating work |
+| M4 | Build an opt-in local context inbox | [#107](https://github.com/Jongtae/personal-agentos/issues/107) | Complete on fixture evidence |
+| M5 | Provide trusted assistants and portable personal state | [#108](https://github.com/Jongtae/personal-agentos/issues/108) | Complete on fixture evidence |
 
-The Hub v2 Epic is [#102](https://github.com/Jongtae/personal-agentos/issues/102). The current delivery loop selects this ordered sequence only; historical v1 records remain in the ledger.
+The Hub v2 Epic is [#102](https://github.com/Jongtae/personal-agentos/issues/102). Its still-open GitHub state is an administrative reconciliation item, not an active delivery selector. The top-level inventory and active delivery plan select work; historical v1 records remain in the ledger.
 
-## Active: AgentOS UX v1.1
+## Historical: AgentOS UX v1.1
 
-The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) turns the delivered runtime into a minimalist personal-agent DM. Delivery follows [UX-01](https://github.com/Jongtae/personal-agentos/issues/150) through [UX-05](https://github.com/Jongtae/personal-agentos/issues/154): DM home, opt-in workspaces, Telegram continuity, human-readable safety and recovery, a guided Telegram context-selection repair, then release acceptance. UX-04 now adds redacted result-source labels and user-facing recovery next actions. UX-05 cannot tag, release, or update Homebrew until the redacted paired-Telegram acceptance also passes. See [the UX product basis](docs/ux-v1.1-personal-agent-dm.ko.md).
+The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) records the delivered minimalist personal-agent DM: [UX-01](https://github.com/Jongtae/personal-agentos/issues/150) through [UX-05](https://github.com/Jongtae/personal-agentos/issues/154) cover DM home, opt-in workspaces, Telegram continuity, safety/recovery language, context selection, and release acceptance. Its still-open GitHub epic is an administrative reconciliation item, not work to restart. See [the UX product basis](docs/ux-v1.1-personal-agent-dm.ko.md).
 
-## Planned: Telegram Conversation UX v1.2
+## Historical: Telegram Conversation UX v1.2
 
-[UX-06 / #162](https://github.com/Jongtae/personal-agentos/issues/162) follows UX-05 acceptance. It makes the paired Telegram chat a deliberate assistant conversation: a concise acknowledgement, progress only when needed, one readable terminal answer, optional detail, and private owner-bound actions with truthful recovery.
+[UX-06 / #162](https://github.com/Jongtae/personal-agentos/issues/162) is delivered historical work. It makes the paired Telegram chat a deliberate assistant conversation: a concise acknowledgement, progress only when needed, one readable terminal answer, optional detail, and private owner-bound actions with truthful recovery.
 
 ### UX-06 — Telegram conversation bubbles
 

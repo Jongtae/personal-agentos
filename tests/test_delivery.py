@@ -51,6 +51,24 @@ class DeliveryTests(unittest.TestCase):
         (self.root/'delivery-plan.yaml').write_text(json.dumps(altered))
         self.assertIsNone(DeliveryPlan(self.root/'delivery-plan.yaml').select({}))
 
+    def test_top_goal_stays_selectable_after_its_inventory_substep_closes(self):
+        plan=DeliveryPlan(self.root/'delivery-plan.yaml')
+        self.assertIn('TOP-00', plan.documented_completed())
+        self.assertEqual(plan.next_goal()['id'], 'TOP')
+        self.assertEqual(plan.select({})['id'], 'TOP')
+
+    def test_top_goal_migrates_a_documented_legacy_block_before_resuming(self):
+        StateStore(self.state).write({
+            'active':'UX-05', 'blocked':'UX-05', 'status':'blocked-validation-failed',
+            'issues':{'UX-05':154},
+        })
+        runner=Runner([SimpleNamespace(returncode=0, stdout='OPEN\n', stderr='')])
+        result=self.controller(runner).run_once()
+        self.assertEqual(result['status'], 'manual-governance-execution-required')
+        self.assertEqual(result['active'], 'TOP')
+        self.assertNotIn('blocked', result)
+        self.assertIn('TOP-00', result['completed'])
+
     def test_no_active_goal_refuses_automatic_selection_or_issue_creation(self):
         plan={'repository':'Jongtae/personal-agentos','iterations':[{'id':'NEW','issue':99,'milestone':'test','summary':'new work'}], 'next_goal':{}}
         (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))

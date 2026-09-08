@@ -394,6 +394,16 @@
       "depends_on": ["GOV-01"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
       "summary": "Establish the complete approved-specification inventory and a persistent top-level goal that advances validated substeps without selecting unapproved product scope."
+    },
+    {
+      "id": "TOP",
+      "milestone": "Approved Specification Completion",
+      "issue": 265,
+      "kind": "program-governance",
+      "activation_status": "owner-activated-goal-ready",
+      "depends_on": ["TOP-00"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "summary": "Keep the owner-approved top-level Goal active across completed substeps until every inventory requirement has merged current evidence or is a genuine owner operating action or separate owner product decision."
     }
   ],
   "milestones": {
@@ -437,7 +447,7 @@
       "required_implementation_ids": ["MP1-I-01", "MP1-I-02", "MP1-I-03", "MP1-I-04", "MP1-I-05", "MP1-I-06", "MP1-R-01", "MP1-R-02", "MP1-R-03", "MP1-R-04", "MP1-R-05"]
     },
     "MP2": {
-      "status": "in_progress",
+      "status": "development_complete",
       "required_implementation_ids": ["I-MP2-01", "I-MP2-02", "I-MP2-03"]
     }
   },
@@ -458,13 +468,13 @@
       "V1-05"
     ],
     "reason": "v1.0.4 delivered the runtime and release baseline. Version 5 tracks the approved DM-first consumer experience.",
-    "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01","I-MP2-01","D-MP2-02","I-MP2-02","D-MP2-03","I-MP2-03","STAB-01","OP-01","OP-02","GOV-01"],
+    "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01","I-MP2-01","D-MP2-02","I-MP2-02","D-MP2-03","I-MP2-03","STAB-01","OP-01","OP-02","GOV-01","TOP-00"],
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
-    "id": "TOP-00",
+    "id": "TOP",
     "status": "active",
-    "action": "continue only the top-level Goal #265 and its documented executable substeps; do not activate new product scope",
+    "action": "continue only top-level Goal #265 and its documented executable substeps; TOP-01 retains its technical Compose-registry blocker while independent STATUS-01 and later dependency-satisfied work may proceed; do not activate new product scope",
     "source": "https://github.com/Jongtae/personal-agentos/issues/265"
   }
 }
