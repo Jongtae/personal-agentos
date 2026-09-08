@@ -128,6 +128,20 @@ class DriveWebOAuthHandoff:
                            "code_challenge_method": "S256", "state": pending["state"]})
         return AUTHORIZATION_ENDPOINT + "?" + query
 
+    def authorization_url_for_state(self, state):
+        """Resolve the owner only from the encrypted, one-time local state."""
+        pending = self.store.secret(PENDING_KEY)
+        if not isinstance(pending, dict):
+            raise DriveWebOAuthError("No pending Google Drive connection exists.")
+        return self.authorization_url(state, pending.get("owner"))
+
+    def callback_owner(self, state):
+        pending = self.store.secret(PENDING_KEY)
+        if not isinstance(pending, dict):
+            raise DriveWebOAuthError("No pending Google Drive connection exists.")
+        self._pending(state, pending.get("owner"))
+        return pending["owner"]
+
     def complete(self, callback, telegram_owner_id, exchange):
         if not isinstance(callback, dict):
             raise DriveWebOAuthError("Google callback is invalid.")

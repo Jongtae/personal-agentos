@@ -7,6 +7,7 @@ from cryptography.fernet import Fernet
 from personal_agent.drive_web_oauth import DRIVE_FILE, EncryptedDriveSecretStore, DriveScopeError, DriveWebOAuthError, DriveWebOAuthHandoff
 from personal_agent.quickstart_store import QuickStore
 from personal_agent.quickstart_service import AgentService
+from personal_agent.providers import ProviderError
 
 
 class DriveWebOAuthTests(unittest.TestCase):
@@ -104,6 +105,14 @@ class DriveWebOAuthTests(unittest.TestCase):
         self.assertEqual(self.flow.status()["state"], "callback-failed")
         self.assertIn("완료하지 못했습니다", calls[-1]["text"])
 
+    def test_telegram_notification_failure_does_not_fail_completed_oauth(self):
+        self.store.secret("telegram_token", "test-token")
+        service=AgentService(self.store, telegram_transport=lambda *_args, **_kwargs: (_ for _ in ()).throw(ProviderError("offline")), drive_web_oauth=self.flow)
+        _offer, state=self.begin()
+        result=service.complete_drive_web_oauth({"state": state, "code": "code"}, 42,
+                                                lambda _request: {"access_token": "token", "scope": DRIVE_FILE})
+        self.assertEqual(result["state"], "connected")
+
     def test_drive_request_waits_for_picker_then_resumes_exact_job(self):
         calls=[]
         def transport(url, body, headers=None, timeout=60):
@@ -111,7 +120,7 @@ class DriveWebOAuthTests(unittest.TestCase):
         self.store.secret("telegram_token", "test-token")
         self.store.put("telegram", {"enabled": True, "generation": "g", "user_id": 42, "cursor": 0})
         service=AgentService(self.store, telegram_transport=transport, drive_web_oauth=self.flow)
-        service.ingest_update({"update_id": 1, "message": {"from": {"id": 42}, "chat": {"id": 42, "type": "private"}, "text": "구글 드라이브 자료를 찾아줘"}}, "g")
+        service.ingest_update({"update_id": 1, "message": {"from": {"id": 42}, "chat": {"id": 42, "type": "private"}, "text": "구글 드라이브 연결해 보자"}}, "g")
         job=self.store.jobs()[0]
         self.assertEqual(job["status"], "awaiting_drive")
         state=parse_qs(urlparse(next(body for body in calls if "reply_markup" in body)["reply_markup"]["inline_keyboard"][0][0]["url"]).query)["state"][0]

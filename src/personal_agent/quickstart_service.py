@@ -506,7 +506,7 @@ class AgentService:
             return False
         normalized = text.lower()
         return ('google drive' in normalized or '구글 드라이브' in normalized or '드라이브' in normalized) and any(
-            word in normalized for word in ('찾', '읽', '자료', 'file', '파일', '요약', 'search'))
+            word in normalized for word in ('연결', 'connect', '찾', '읽', '자료', 'file', '파일', '요약', 'search'))
 
     def offer_drive_connection(self, telegram_owner_id, pending_job_id=None):
         if not self.drive_web_oauth:
@@ -536,9 +536,11 @@ class AgentService:
         try:
             result = self.drive_web_oauth.complete(callback, telegram_owner_id, exchange)
         except ValueError:
-            self.publish_drive_connection_status(telegram_owner_id)
+            try:self.publish_drive_connection_status(telegram_owner_id)
+            except ProviderError:pass
             raise
-        self.publish_drive_connection_status(telegram_owner_id)
+        try:self.publish_drive_connection_status(telegram_owner_id)
+        except ProviderError:pass
         return result
 
     def select_drive_files(self, telegram_owner_id, files):
