@@ -78,6 +78,11 @@ class DriveWebOAuthTests(unittest.TestCase):
         selected = self.flow.select_files(42, [{"id": "picked", "name": "meeting plan"}])
         self.assertEqual(selected["files"], [{"id": "picked", "name": "meeting plan"}])
         self.assertTrue(self.flow.assert_selected(42, "picked"))
+        calls = []
+        content = self.flow.read_selected(42, "picked", lambda url, body, headers: calls.append((url, body, headers)) or "local file body")
+        self.assertEqual(content, "local file body")
+        self.assertIn("/picked?alt=media", calls[0][0])
+        self.assertNotIn("local file body", str(self.flow.status()))
 
     def test_expired_access_token_requires_reauthentication(self):
         self.connect(); self.clock[0] += 61

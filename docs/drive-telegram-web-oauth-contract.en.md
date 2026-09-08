@@ -6,6 +6,8 @@ When paired Telegram requests need Drive context and no connection exists, Agent
 
 The connection requests only `https://www.googleapis.com/auth/drive.file`. AgentOS never searches the whole Drive. The owner selects files through Google Picker; only those file IDs may be read and supplied as bounded local context. A write, share, delete, Calendar, Gmail, service-account, or full-Drive request is rejected.
 
+File content is read through an owner-local injected transport only after the Picker selection check. It is available for in-memory summarization in response to the owner's request; it is not written to Drive OAuth status, audit evidence, local configuration, or relay payloads.
+
 ## Local and relay boundary
 
 The owner's local runtime creates PKCE verifier/challenge, a random HMAC-signed one-time state, expiry, and Telegram-owner binding. The browser callback is accepted only after state, owner, expiry, and single-use checks. The local runtime exchanges the code and writes tokens only to its encrypted secret store. The Drive handoff fails closed when given the ordinary `QuickStore`; its `EncryptedDriveSecretStore` uses authenticated encryption and receives its key from an owner-local keychain or runtime secret boundary, never from the data directory. Status/evidence contains state names and times only—never OAuth code, verifier, token, client secret, Telegram message body, file body, or selected excerpt.

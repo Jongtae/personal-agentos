@@ -10,7 +10,7 @@ import hmac
 import json
 import secrets
 import time
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -21,6 +21,7 @@ PENDING_KEY = "drive_web_oauth_pending"
 TOKEN_KEY = "drive_web_oauth_tokens"
 STATUS_KEY = "drive_web_oauth_status"
 SELECTED_FILES_KEY = "drive_web_oauth_selected_files"
+FILES_ENDPOINT = "https://www.googleapis.com/drive/v3/files"
 
 
 class DriveWebOAuthError(ValueError):
@@ -168,6 +169,23 @@ class DriveWebOAuthHandoff:
         if selected.get("owner") != telegram_owner_id or file_id not in {row["id"] for row in selected.get("files", [])}:
             raise DriveScopeError("Choose this file in Google Picker before reading it.")
         return True
+
+    def read_selected(self, telegram_owner_id, file_id, transport):
+        """Read one Picker-authorized file without retaining its body.
+
+        The injected transport is the owner-local Drive boundary.  Callers may
+        summarize its returned content in memory, but must not place it in
+        status/audit/configuration records or relay payloads.
+        """
+        self.assert_selected(telegram_owner_id, file_id)
+        tokens = self.store.secret(TOKEN_KEY)
+        if not callable(transport):
+            raise DriveWebOAuthError("An owner-local Drive transport is required.")
+        return transport(
+            FILES_ENDPOINT + "/" + quote(file_id, safe="") + "?alt=media",
+            None,
+            {"Authorization": "Bearer " + tokens["access_token"]},
+        )
 
     def search(self, *_args, **_kwargs):
         raise DriveScopeError("drive.file does not allow arbitrary or full-Drive search; choose a file first.")
