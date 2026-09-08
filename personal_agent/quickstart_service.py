@@ -16,6 +16,7 @@ from .bounded_execution import AgentOSMcpTools, BoundedExecutionAdapter, Executi
 from .personal_assistant import PersonalAssistantOrchestrator
 from .settings_orchestrator import SettingsOrchestrator, SettingsError
 from .capability_recommendations import CapabilityRecommendationOrchestrator
+from .personal_knowledge import PersonalKnowledgeOrchestrator
 
 SYSTEM = ('You are the user’s personal AgentOS assistant. Respond in the user’s language. '
           'This preview supports conversation, notes, connected local documents, and local read-only web search and weather tools. '
@@ -92,6 +93,7 @@ class AgentService:
         self.assistant_orchestrator=assistant_orchestrator or PersonalAssistantOrchestrator(store)
         self.settings_orchestrator=SettingsOrchestrator(store)
         self.recommendation_orchestrator=CapabilityRecommendationOrchestrator(store)
+        self.personal_knowledge_orchestrator=PersonalKnowledgeOrchestrator(store)
         self.lock=threading.RLock()
         self.worker_lock=threading.Lock()
         self.local_tools=LocalTools()
@@ -137,6 +139,11 @@ class AgentService:
     def capability_recommendation_request(self, body, owner_id='local-owner', channel='http'):
         if not isinstance(body,dict) or body.get('operation','recommend')!='recommend': raise ValueError('검토된 capability 추천 요청을 확인하세요.')
         return self.recommendation_orchestrator.recommend(owner_id,body.get('outcome'))
+
+    def personal_knowledge_request(self, body, owner_id='local-owner', channel='http'):
+        if not isinstance(body,dict) or body.get('operation','retrieve')!='retrieve':
+            raise ValueError('개인 지식 검색 요청을 확인하세요.')
+        return self.personal_knowledge_orchestrator.retrieve(owner_id,channel,body.get('query'))
 
     @staticmethod
     def settings_response(result):
@@ -875,6 +882,10 @@ class AgentService:
                 elif prompt.startswith('/recommend '):
                     result=self.capability_recommendation_request({'outcome':prompt[len('/recommend '):].strip()},owner_id=f"channel:{job['channel']}:{job.get('chat_id') or 'local'}",channel=job['channel'])
                     response='\n'.join(f"{row['name']} · {row['reason']} · {row['approval_handoff']}" for row in result['recommendations']) or '검토된 추천이 없습니다.'
+                elif prompt.startswith('/knowledge '):
+                    result=self.personal_knowledge_request({'query':prompt[len('/knowledge '):].strip()}, owner_id=f"channel:{job['channel']}:{job.get('chat_id') or 'local'}", channel=job['channel'])
+                    response='\n'.join(f"{row['source']} · {row['excerpt']}" for row in result.get('results',[])) or result['response']
+                    outcome='succeeded' if result['state'] in ('completed','empty') else 'failed'
                 elif prompt.startswith('/settings '):
                     result=self.conversation_settings_request({'operation':'text','text':prompt[len('/settings '):]},
                                                               owner_id=f"channel:{job['channel']}:{job.get('chat_id') or 'local'}", channel=job['channel'])

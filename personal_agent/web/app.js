@@ -62,6 +62,7 @@ function showContextInbox(inbox){
 function showPersonalSpace(space){
  let box=$('personal-space-items');if(!box){const section=element('section');section.id='personal-space';section.append(element('h2','개인 공간'),element('p','명시적으로 저장한 메모와 결과만 관리합니다. 임시 컨텍스트 원문과 실행 세부 내용은 표시하지 않습니다.'));box=element('div');box.id='personal-space-items';section.append(box);$('workspace-management').before(section);}
  box.replaceChildren();box.append(element('p',`메모 ${space.memory_count}개 · 저장한 결과 ${space.result_count}개 · 임시 컨텍스트 ${space.context_count}개`));
+ const form=element('form');const input=element('input');input.placeholder='개인 공간에서 찾기';input.maxLength=160;input.required=true;const button=element('button','로컬에서 찾기');button.type='submit';const output=element('div');output.setAttribute('role','status');form.append(input,button);form.onsubmit=async e=>{e.preventDefault();await busy(button,async()=>{try{const result=await api('/api/personal-knowledge',{query:input.value});output.replaceChildren(element('p',result.response));for(const row of result.results||[])output.append(element('p',`${row.source} · ${row.excerpt} · ${row.match_reason}`));}catch(e){output.replaceChildren(element('p',e.message||String(e)));}});};box.append(form,output);
  for(const item of [...(space.memories||[]),...(space.results||[])].slice(0,8))box.append(element('p',item.content));
 }
 function showConversationSettings(model){

@@ -65,6 +65,14 @@ def _portable_db(source, target):
                 safe = [{key: item[key] for key in ('at','draft_ref','target','before','after','terminal','error_class') if key in item}
                         for item in audit if isinstance(item, dict)]
                 copy.execute("UPDATE config SET value=? WHERE key='settings_audit'", (json.dumps(safe, sort_keys=True),))
+        row = copy.execute("SELECT value FROM config WHERE key='personal_knowledge_audit'").fetchone()
+        if row:
+            try: audit = json.loads(row[0])
+            except ValueError: audit = []
+            if isinstance(audit, list):
+                safe = [{key: item[key] for key in ('at','categories','terminal','error_class','recovery') if key in item}
+                        for item in audit if isinstance(item, dict)]
+                copy.execute("UPDATE config SET value=? WHERE key='personal_knowledge_audit'", (json.dumps(safe, sort_keys=True),))
         copy.commit();copy.execute("VACUUM")
 
 def export_owner_state(data, archive):
