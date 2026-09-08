@@ -53,6 +53,17 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(persisted['status'],'ready-to-run')
         self.assertNotIn('next_retry_at',persisted)
 
+    def test_closed_ux05_state_reconciles_to_documented_mp2_next_goal(self):
+        StateStore(self.state).write({'active':'UX-05','blocked':'UX-05','completed':['UX-01','UX-02','UX-03','UX-03a','UX-04'],'status':'blocked-validation-failed','next_retry_at':self.clock[0]+21600,'last_error':'historical failure'})
+        result=self.controller(Runner()).status()
+        self.assertIsNone(result['active'])
+        self.assertEqual(result['status'],'reconciled-documentation')
+        self.assertEqual(result['next_goal']['id'],'I-MP2-01')
+        self.assertEqual(result['next_action'],'create goal-ready I-MP2-01 issue before implementation')
+        self.assertIn('D-MP2-01',result['completed'])
+        persisted=StateStore(self.state).read()
+        self.assertNotIn('active',persisted);self.assertNotIn('blocked',persisted);self.assertNotIn('next_retry_at',persisted)
+
     def test_valid_ux_block_is_not_migrated(self):
         StateStore(self.state).write({'active':'UX-02','blocked':'UX-02','status':'blocked-validation-failed','next_retry_at':self.clock[0]+21600})
         result=self.controller(Runner()).status()
@@ -237,7 +248,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertNotIn('active',result)
         self.assertNotIn('milestone',result)
         self.assertNotIn('issue',result)
-        self.assertEqual(self.controller(Runner()).status()['next_action'],'delivery plan complete')
+        self.assertEqual(self.controller(Runner()).status()['next_action'],'create goal-ready I-MP2-01 issue before implementation')
 
     def test_created_ux_issue_uses_its_configured_milestone(self):
         plan=json.loads((self.root/'delivery-plan.yaml').read_text())
