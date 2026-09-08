@@ -94,6 +94,7 @@ def test_doctor_defaults_port_from_agentos_port(monkeypatch):
 
 def test_doctor_recommends_safe_candidate_checkout_when_mismatched(monkeypatch):
     monkeypatch.setattr(DOCTOR.operating_preflight, "inspect", ready_preflight)
+    monkeypatch.setattr(DOCTOR, "_candidate_from_plan", lambda _root: "a" * 40)
     monkeypatch.setattr(DOCTOR, "_port_available", lambda _: True)
     runner = Runner({
         ("git", "rev-parse", "HEAD"): "b" * 40 + "\n",
@@ -105,3 +106,34 @@ def test_doctor_recommends_safe_candidate_checkout_when_mismatched(monkeypatch):
     assert report["state"] == "blocked"
     assert report["checks"]["candidate_checkout"] is False
     assert any("git worktree add --detach" in cmd for cmd in report["safe_next_commands"])
+
+
+def test_candidate_request_rejects_non_plan_immutable_candidate(monkeypatch):
+    monkeypatch.setattr(DOCTOR.operating_preflight, "inspect", ready_preflight)
+    monkeypatch.setattr(DOCTOR, "_candidate_from_plan", lambda _root: "c" * 40)
+    monkeypatch.setattr(DOCTOR, "_port_available", lambda _: True)
+    runner = Runner({
+        ("git", "rev-parse", "HEAD"): "a" * 40 + "\n",
+        ("git", "status", "--porcelain"): "",
+        ("docker", "version", "--format", "{{.Server.Version}}"): "29.0\n",
+        ("docker", "compose", "version"): "Docker Compose v2\n",
+    })
+    report = DOCTOR.inspect(ROOT, "a" * 40, runner=runner, disk_usage=lambda _: disk())
+    assert report["state"] == "blocked"
+    assert "candidate-not-top-supported" in report["blocked"]
+    assert report["checks"]["candidate_supported"] is False
+
+
+def test_supported_candidate_is_accepted_when_matching_plan(monkeypatch):
+    monkeypatch.setattr(DOCTOR.operating_preflight, "inspect", ready_preflight)
+    monkeypatch.setattr(DOCTOR, "_candidate_from_plan", lambda _root: "a" * 40)
+    monkeypatch.setattr(DOCTOR, "_port_available", lambda _: True)
+    runner = Runner({
+        ("git", "rev-parse", "HEAD"): "a" * 40 + "\n",
+        ("git", "status", "--porcelain"): "",
+        ("docker", "version", "--format", "{{.Server.Version}}"): "29.0\n",
+        ("docker", "compose", "version"): "Docker Compose v2\n",
+    })
+    report = DOCTOR.inspect(ROOT, "a" * 40, runner=runner, disk_usage=lambda _: disk())
+    assert report["state"] == "ready"
+    assert report["checks"]["candidate_supported"] is True

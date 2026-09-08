@@ -92,7 +92,8 @@ def _diagnostic_environment(temporary):
 def inspect(root, candidate=None, port=None, runner=_run, disk_usage=shutil.disk_usage):
     root = Path(root).resolve()
     plan_candidate = _candidate_from_plan(root)
-    expected_candidate = candidate
+    configured_candidate = plan_candidate if candidate is None else candidate
+    candidate_requested = candidate is not None
     checks, blocked, actions = {}, [], []
 
     with tempfile.TemporaryDirectory(prefix="agentos-doctor-") as temporary:
@@ -102,16 +103,21 @@ def inspect(root, candidate=None, port=None, runner=_run, disk_usage=shutil.disk
         env_file.write_text("", encoding="utf-8")
 
         head = _git_head(runner, root, env=environment)
-        if candidate is None:
-            candidate = head
-        checks["candidate_checkout"] = True if candidate is None else bool(head == candidate)
+        checks["candidate_checkout"] = bool(head and head == configured_candidate)
+        checks["candidate_supported"] = True if not candidate_requested else candidate == plan_candidate
+        if candidate_requested and not checks["candidate_supported"]:
+            blocked.append("candidate-not-top-supported")
+            actions.append(
+                f"Only the immutable TOP deployment candidate is supported: {plan_candidate}; "
+                "remove --candidate to use the default supported target"
+            )
         if not checks["candidate_checkout"]:
-            candidate_for_check = expected_candidate or plan_candidate
             blocked.append("candidate-checkout-mismatch")
+            safe_candidate = plan_candidate if candidate_requested and not checks["candidate_supported"] else configured_candidate
             actions.append(
                 "git worktree add --detach /tmp/agentos-doctor-checkout "
-                f"{candidate_for_check} && cp scripts/agentos_doctor.py /tmp/agentos-doctor-checkout/scripts/agentos_doctor.py && "
-                f"python3 /tmp/agentos-doctor-checkout/scripts/agentos_doctor.py --root /tmp/agentos-doctor-checkout --candidate {candidate_for_check}"
+                f"{safe_candidate} && cp scripts/agentos_doctor.py /tmp/agentos-doctor-checkout/scripts/agentos_doctor.py && "
+                f"python3 /tmp/agentos-doctor-checkout/scripts/agentos_doctor.py --root /tmp/agentos-doctor-checkout --candidate {safe_candidate}"
             )
 
         dirty = runner(["git", "status", "--porcelain"], root, env=environment)
@@ -180,8 +186,8 @@ def inspect(root, candidate=None, port=None, runner=_run, disk_usage=shutil.disk
         actions.append("free at least 5 GiB before building local images")
 
     checks["plan_candidate"] = plan_candidate
-    checks["configured_candidate"] = candidate
-    checks["candidate_requested"] = expected_candidate is not None
+    checks["configured_candidate"] = configured_candidate
+    checks["candidate_requested"] = candidate_requested
 
     preflight = operating_preflight.inspect(root)
     checks["agentos_preflight"] = preflight["state"] == "ready"
@@ -191,7 +197,7 @@ def inspect(root, candidate=None, port=None, runner=_run, disk_usage=shutil.disk
 
     return {
         "state": "ready" if not blocked else "blocked",
-        "candidate": candidate,
+        "candidate": configured_candidate,
         "port": port,
         "checks": checks,
         "blocked": blocked,
