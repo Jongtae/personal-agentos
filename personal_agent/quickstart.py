@@ -106,6 +106,7 @@ def make_handler(service, public_hosts=(), public_access_token=''):
             if not self.auth():return
             if path=='/api/home':return self.reply(200,service.home())
             if path=='/api/capabilities':return self.reply(200,{'capabilities':CapabilityRegistry(store).list()})
+            if path=='/api/settings':return self.reply(200,service.conversation_settings_request({'operation':'read'}))
             if path=='/api/personal-space':return self.reply(200,store.personal_space())
             if path=='/api/workspaces':return self.reply(200,{'workspaces':service.store.workspaces()})
             if path.startswith('/api/workspaces/'):
@@ -173,14 +174,10 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 if path=='/api/context-inbox/share-policy':return self.reply(200,service.context_inbox().set_policy(body))
                 if path=='/api/context-inbox/share':return self.reply(200,service.context_inbox().share(body))
                 if path=='/api/assistant/request':return self.reply(200,service.personal_assistant_request(body))
+                if path=='/api/settings/request':return self.reply(200,service.conversation_settings_request(body))
                 if path=='/api/context-inbox/telegram-policy':return self.reply(200,service.set_context_telegram_policy(body))
                 if path=='/api/documents/approval':return self.reply(200,service.set_document_approval(body))
                 if path=='/api/model':return self.reply(200,service.save_model(body))
-                if path.startswith('/api/capabilities/'):
-                    parts=path.split('/')
-                    if len(parts)==5 and parts[4] in ('enable','pause','disconnect'):
-                        target={'enable':'enabled','pause':'paused','disconnect':'disconnected'}[parts[4]]
-                        return self.reply(200,CapabilityRegistry(store).transition(parts[3],target,body.get('approved_scopes',())))
                 if path=='/api/model/test':return self.reply(200,service.test_model())
                 if path=='/api/telegram':return self.reply(200,service.connect_telegram(body))
                 if path=='/api/telegram/pair':return self.reply(200,service.pair_telegram())

@@ -2,7 +2,7 @@
 
 ## 상태
 
-**상태: proposed.** MP1은 mock-contract evidence로 development complete이며, 소유자는 issue #230에서 대화 우선 설정을 다음 설계 마찰로 명시 선택했다. D-MP2-01은 문서화된 automated evidence로 complete이며, I-MP2-01은 활성 상태가 아니고 별도 goal-ready issue가 필요하다.
+**상태: proposed.** MP1은 mock-contract evidence로 development complete이며, 소유자는 issue #230에서 대화 우선 설정을 다음 설계 마찰로 명시 선택했다. D-MP2-01과 I-MP2-01은 automated mock-contract evidence로 complete이며, live connection이나 운영 모드 capability를 주장하지 않는다.
 
 후보는 활성 delivery-plan iteration으로 승격되고 [Goal 실행 계약](goal-execution-contract.ko.md)에 따른 goal-ready issue가 생긴 뒤에만 실행 가능한 goal이 된다. 후보를 기록하는 일은 구현 authority를 주지 않는다.
 

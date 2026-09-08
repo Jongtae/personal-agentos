@@ -2,7 +2,7 @@
 
 ## Status
 
-**Status: proposed.** MP1 is development complete on mock-contract evidence, and the owner explicitly selected conversation-first settings as the next design friction in issue #230. D-MP2-01 is complete on documented automated evidence; I-MP2-01 is not active and requires a separate goal-ready issue.
+**Status: proposed.** MP1 is development complete on mock-contract evidence, and the owner explicitly selected conversation-first settings as the next design friction in issue #230. D-MP2-01 and I-MP2-01 are complete on automated mock-contract evidence; no live connection or operating-mode capability is claimed.
 
 A candidate becomes an executable goal only after promotion to an active delivery-plan iteration and a goal-ready issue under the [Goal Execution Contract](goal-execution-contract.en.md). Recording a candidate never grants implementation authority.
 

@@ -14,6 +14,7 @@ from .providers import ModelAdapter, ProviderError, request_json, validate_model
 from .subscription_engines import SubscriptionEngines
 from .bounded_execution import AgentOSMcpTools, BoundedExecutionAdapter, ExecutionError
 from .personal_assistant import PersonalAssistantOrchestrator
+from .settings_orchestrator import SettingsOrchestrator, SettingsError
 
 SYSTEM = ('You are the user’s personal AgentOS assistant. Respond in the user’s language. '
           'This preview supports conversation, notes, connected local documents, and local read-only web search and weather tools. '
@@ -88,6 +89,7 @@ class AgentService:
         # Capability adapters never receive an HTTP or Telegram endpoint.  A
         # caller may supply reviewed adapters only through this policy owner.
         self.assistant_orchestrator=assistant_orchestrator or PersonalAssistantOrchestrator(store)
+        self.settings_orchestrator=SettingsOrchestrator(store)
         self.lock=threading.RLock()
         self.worker_lock=threading.Lock()
         self.local_tools=LocalTools()
@@ -111,6 +113,37 @@ class AgentService:
             return self.assistant_orchestrator.create_calendar(request)
         return self.assistant_orchestrator.handle(request)
 
+    def conversation_settings_request(self, body, owner_id='local-owner', channel='http'):
+        """The only settings policy entry point for every local channel."""
+        if not isinstance(body, dict):
+            raise ValueError('설정 요청을 확인하세요.')
+        operation=body.get('operation', 'text')
+        if operation == 'read':
+            return self.settings_orchestrator.read(owner_id, body.get('category'))
+        if operation == 'draft':
+            return self.settings_orchestrator.draft(owner_id, channel, body.get('intent'))
+        if operation == 'confirm':
+            return self.settings_orchestrator.confirm(owner_id, channel, body.get('draft_id'), body.get('digest'))
+        if operation == 'cancel':
+            return self.settings_orchestrator.cancel(owner_id, channel, body.get('draft_id'))
+        if operation == 'recovery':
+            return self.settings_orchestrator.recovery(owner_id, body.get('subject'))
+        if operation == 'text':
+            return self.settings_orchestrator.handle_text(owner_id, channel, body.get('text'))
+        raise ValueError('검토된 설정 요청을 확인하세요.')
+
+    @staticmethod
+    def settings_response(result):
+        if result.get('response'): return result['response']
+        if result.get('state') == 'read':
+            rows=result.get('capabilities', [])
+            return '\n'.join(f"{row['id']} · {row['state']} · {row['recovery']}" for row in rows) or '검토된 연결이 없습니다.'
+        if result.get('state') == 'applied':
+            return f"{result['result']['target']}을(를) {result['result']['state']} 상태로 변경했습니다."
+        if result.get('state') == 'canceled': return '설정 초안을 취소했습니다.'
+        if result.get('state') == 'recovery': return result['action']
+        return '설정 요청을 처리했습니다.'
+
     def settings(self):
         with self.lock:
             model=self.store.config('model',{})
@@ -123,6 +156,7 @@ class AgentService:
             packages=PluginRegistry(self.store.root).declared_packages()
             from .telegram_task_card_acceptance import report as task_card_report
             return {'model':model,'has_api_key':bool(self.store.secret('model_key')),
+                    'conversation_settings':self.settings_orchestrator.read('local-owner'),
                     'subscription_engines':self.subscription_engine_status(),
                     'subscription_execution':{'mode':'bounded-agentos-mcp','tools':['list_notes','save_note','web_search']},
                     'telegram':{'enabled':tg.get('enabled',False),'mode':tg.get('mode','owner-token'),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
@@ -831,6 +865,17 @@ class AgentService:
                 prompt=job['message'].strip()
                 if prompt in ('/start','/help'):
                     response='개인 AgentOS에 연결되었습니다. 하고 싶은 일을 자연스럽게 적어 주세요. 웹과 Telegram은 같은 대화 기록을 사용합니다.'
+                elif prompt.startswith('/settings '):
+                    result=self.conversation_settings_request({'operation':'text','text':prompt[len('/settings '):]},
+                                                              owner_id=f"channel:{job['channel']}:{job.get('chat_id') or 'local'}", channel=job['channel'])
+                    response=self.settings_response(result)
+                elif (prompt in ('/settings', '무엇이 연결되어 있어?', '무엇을 바꿀 수 있어?')
+                      or ('상태 보여' in prompt and any(word in prompt.lower() for word in ('drive','a2a','calendar','드라이브','캘린더')))
+                      or (any(word in prompt.lower() for word in ('pause','disconnect','resume','일시 정지','연결 해제','다시 시작','재개'))
+                          and any(word in prompt.lower() for word in ('drive','a2a','calendar','드라이브','캘린더')))):
+                    result=self.conversation_settings_request({'operation':'text','text':prompt},
+                                                              owner_id=f"channel:{job['channel']}:{job.get('chat_id') or 'local'}", channel=job['channel'])
+                    response=self.settings_response(result)
                 elif prompt.startswith('/assistant '):
                     # Web and paired Telegram jobs share this exact policy
                     # path.  The command is intentionally explicit while the

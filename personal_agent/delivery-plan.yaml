@@ -254,6 +254,15 @@
       "depends_on": ["MP1-R-05"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
       "summary": "Define the conversation-first settings intent, preview/confirm, redaction, parity, recovery, and local companion contract before implementation."
+    },
+    {
+      "id": "I-MP2-01",
+      "milestone": "AgentOS Conversation-First Settings",
+      "issue": 234,
+      "kind": "implementation",
+      "depends_on": ["D-MP2-01"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests"],
+      "summary": "Implement policy-owned conversation settings read, lifecycle preview/confirm, channel parity, redacted audit/export, and local companion navigation."
     }
   ],
   "milestones": {
@@ -287,13 +296,13 @@
       "V1-05"
     ],
     "reason": "v1.0.4 delivered the runtime and release baseline. Version 5 tracks the approved DM-first consumer experience.",
-    "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01"],
+    "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01","I-MP2-01"],
     "reconcile_state_when_active": ["UX-05"]
   },
   "next_goal": {
-    "id": "I-MP2-01",
-    "status": "requires-goal-ready-issue",
-    "action": "create goal-ready I-MP2-01 issue before implementation",
-    "source": "docs/d-mp2-01-conversation-settings-contract.en.md"
+    "id": "MP2-REVIEW-01",
+    "status": "requires-evidence-review",
+    "action": "review I-MP2-01 mock-contract evidence and nominate the next single MP2 owner friction before creating another implementation goal",
+    "source": "docs/master-plan-02-proposal.en.md"
   }
 }
