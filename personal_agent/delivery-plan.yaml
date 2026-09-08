@@ -384,6 +384,16 @@
       "depends_on": ["OP-02"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
       "summary": "Permanently align autonomous active-goal execution, delegation records, independent review, automation restrictions, and evidence-only closeout without starting a new product capability."
+    },
+    {
+      "id": "TOP-00",
+      "milestone": "Approved Specification Completion",
+      "issue": 265,
+      "kind": "program-governance",
+      "activation_status": "owner-activated-goal-ready",
+      "depends_on": ["GOV-01"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "summary": "Establish the complete approved-specification inventory and a persistent top-level goal that advances validated substeps without selecting unapproved product scope."
     }
   ],
   "milestones": {
@@ -416,6 +426,9 @@
     },
     "Autonomous Goal Governance Alignment": {
       "title": "Autonomous Goal Governance Alignment"
+    },
+    "Approved Specification Completion": {
+      "title": "Approved Specification Completion"
     }
   },
   "completion_claims": {
@@ -449,9 +462,9 @@
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
-    "id": "OP-02",
-    "status": "requires-explicit-owner-approval",
-    "action": "owner may configure the exact provider DNS allowlist and perform one operating deployment",
-    "source": "docs/op-02-operating-readiness-remediation-contract.en.md"
+    "id": "TOP-00",
+    "status": "active",
+    "action": "continue only the top-level Goal #265 and its documented executable substeps; do not activate new product scope",
+    "source": "https://github.com/Jongtae/personal-agentos/issues/265"
   }
 }
