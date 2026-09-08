@@ -5,6 +5,7 @@ import errno
 import subprocess
 import tempfile
 import time
+import threading
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -94,6 +95,47 @@ class OperatingPreflightTests(unittest.TestCase):
         self.assertIn("isolated_engine_gateway_sidecar_mcp_round_trip",result); self.assertIn("restored_request_is_duplicate_safe",result)
         self.assertTrue(result["restore_quarantines_incomplete_work"])
         self.assertTrue(result["engine_profile_excluded_from_restore"])
+
+    def test_handler_readiness_accepts_a_health_failure_as_dispatch_evidence(self):
+        from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+        class NotReady(BaseHTTPRequestHandler):
+            def do_GET(self):
+                self.send_response(503); self.end_headers()
+            def log_message(self, *_args):
+                pass
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), NotReady)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            PREFLIGHT._wait_for_http_handler(f"http://127.0.0.1:{server.server_port}/healthz")
+        finally:
+            server.shutdown(); server.server_close(); thread.join(timeout=1)
+
+    def test_product_probe_closes_both_servers_when_handler_readiness_times_out(self):
+        servers = []
+
+        class RecordingServer:
+            def __init__(self, *_args):
+                self.server_port = 10000 + len(servers)
+                self.shutdown_called = False
+                self.close_called = False
+                servers.append(self)
+            def serve_forever(self):
+                return None
+            def shutdown(self):
+                self.shutdown_called = True
+            def server_close(self):
+                self.close_called = True
+
+        with patch.object(PREFLIGHT, "ThreadingHTTPServer", side_effect=RecordingServer), patch.object(
+            PREFLIGHT, "_wait_for_http_handler", side_effect=RuntimeError("fixture readiness timeout")
+        ):
+            with self.assertRaisesRegex(RuntimeError, "fixture readiness timeout"):
+                PREFLIGHT._product_probe()
+        self.assertEqual(len(servers), 2)
+        self.assertTrue(all(server.shutdown_called and server.close_called for server in servers))
 
     def test_engine_owner_state_mount_remains_an_isolation_failure(self):
         with tempfile.TemporaryDirectory() as folder:

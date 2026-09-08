@@ -177,8 +177,10 @@ class IsolatedEngineGateway:
         finally:
             connection.close()
 
-        if response.status != 200 or len(raw) > self._max_response_bytes:
-            raise InvalidEngineResponse("isolated engine returned an invalid response")
+        if response.status != 200:
+            raise InvalidEngineResponse(f"isolated engine returned HTTP {response.status}")
+        if len(raw) > self._max_response_bytes:
+            raise InvalidEngineResponse("isolated engine response exceeded the byte limit")
         if response.getheader("Content-Type", "").split(";", 1)[0].strip().lower() != "application/json":
             raise InvalidEngineResponse("isolated engine response is not JSON")
         try:
