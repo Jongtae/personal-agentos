@@ -393,13 +393,13 @@
       "V1-05"
     ],
     "reason": "v1.0.4 delivered the runtime and release baseline. Version 5 tracks the approved DM-first consumer experience.",
-    "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01","I-MP2-01","D-MP2-02","I-MP2-02","D-MP2-03"],
+    "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01","I-MP2-01","D-MP2-02","I-MP2-02","D-MP2-03","I-MP2-03"],
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
-    "id": "I-MP2-03",
-    "status": "active-goal-ready-issue",
-    "action": "complete the active I-MP2-03 goal through automated validation and PR merge",
-    "source": "docs/d-mp2-03-personal-knowledge-retrieval-contract.en.md"
+    "id": "MP2-REVIEW-02",
+    "status": "autonomous-cycle-selection",
+    "action": "select one bounded next MP2 owner friction from the proposal",
+    "source": "docs/master-plan-02-proposal.en.md"
   }
 }

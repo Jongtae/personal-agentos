@@ -24,6 +24,7 @@ def test_every_master_plan_design_has_a_named_implementation_contract_and_eviden
 
 def test_design_only_work_cannot_be_promoted_to_development_complete():
     incomplete = copy.deepcopy(plan())
+    incomplete["history"]["documented_completed_iterations"].remove("I-MP2-03")
     incomplete["completion_claims"]["MP2"]["status"] = "development_complete"
     with pytest.raises(SystemExit, match="completion claim lacks implemented automated evidence: MP2"):
         VERIFIER.verify_traceability(incomplete)

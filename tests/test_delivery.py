@@ -53,12 +53,13 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(persisted['status'],'ready-to-run')
         self.assertNotIn('next_retry_at',persisted)
 
-    def test_closed_ux05_state_reconciles_to_active_mp2_goal(self):
+    def test_closed_ux05_state_reconciles_to_next_mp2_selection(self):
         StateStore(self.state).write({'active':'UX-05','blocked':'UX-05','completed':['UX-01','UX-02','UX-03','UX-03a','UX-04'],'status':'blocked-validation-failed','next_retry_at':self.clock[0]+21600,'last_error':'historical failure'})
         result=self.controller(Runner()).status()
-        self.assertEqual(result['active'],'I-MP2-03')
+        self.assertIsNone(result['active'])
         self.assertEqual(result['status'],'reconciled-documentation')
-        self.assertIsNone(result['next_goal'])
+        self.assertEqual(result['next_goal']['id'],'MP2-REVIEW-02')
+        self.assertEqual(result['next_action'],'select one bounded next MP2 owner friction from the proposal')
         self.assertIn('D-MP2-01',result['completed'])
         persisted=StateStore(self.state).read()
         self.assertNotIn('active',persisted);self.assertNotIn('blocked',persisted);self.assertNotIn('next_retry_at',persisted)
@@ -66,16 +67,17 @@ class DeliveryTests(unittest.TestCase):
     def test_merged_documented_iteration_clears_active_state_and_exposes_review_gate(self):
         StateStore(self.state).write({'active':'I-MP2-01','milestone':'AgentOS Conversation-First Settings','issue':234,'status':'complete'})
         result=self.controller(Runner()).status()
-        self.assertEqual(result['active'],'I-MP2-03')
+        self.assertIsNone(result['active'])
         self.assertEqual(result['status'],'reconciled-documentation')
         self.assertIn('I-MP2-01',result['completed'])
-        self.assertIsNone(result['next_goal'])
+        self.assertEqual(result['next_goal']['id'],'MP2-REVIEW-02')
 
     def test_reconciled_documentation_state_adopts_later_documented_closeout(self):
         StateStore(self.state).write({'completed':['D-MP2-01'],'status':'complete','last_validation':'migrated-documentation'})
         result=self.controller(Runner()).status()
         self.assertIn('I-MP2-01',result['completed'])
-        self.assertEqual(result['active'],'I-MP2-03')
+        self.assertIsNone(result['active'])
+        self.assertEqual(result['next_goal']['id'],'MP2-REVIEW-02')
 
     def test_valid_ux_block_is_not_migrated(self):
         StateStore(self.state).write({'active':'UX-02','blocked':'UX-02','status':'blocked-validation-failed','next_retry_at':self.clock[0]+21600})
@@ -214,12 +216,10 @@ class DeliveryTests(unittest.TestCase):
         completed.append('UX-06')
         self.assertEqual(plan.select({'completed':completed})['id'],'MP1-D-01')
         completed.append('MP1-D-01')
-        expected=('MP1-I-01','MP1-D-02','MP1-I-02','MP1-D-03','MP1-I-03','MP1-D-04','MP1-I-04','MP1-D-05','MP1-I-05','MP1-D-06','MP1-I-06','MP1-R-01','MP1-R-02','MP1-R-03','MP1-R-04','MP1-R-05','D-MP2-01','I-MP2-01','D-MP2-02','I-MP2-02','D-MP2-03')
+        expected=('MP1-I-01','MP1-D-02','MP1-I-02','MP1-D-03','MP1-I-03','MP1-D-04','MP1-I-04','MP1-D-05','MP1-I-05','MP1-D-06','MP1-I-06','MP1-R-01','MP1-R-02','MP1-R-03','MP1-R-04','MP1-R-05','D-MP2-01','I-MP2-01','D-MP2-02','I-MP2-02','D-MP2-03','I-MP2-03')
         for iteration in expected:
             self.assertEqual(plan.select({'completed':completed})['id'],iteration)
             completed.append(iteration)
-        self.assertEqual(plan.select({'completed':completed})['id'],'I-MP2-03')
-        completed.append('I-MP2-03')
         self.assertIsNone(plan.select({'completed':completed}))
 
     def test_ux_plan_keeps_release_before_post_release_conversation_iteration(self):
@@ -263,7 +263,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertNotIn('active',result)
         self.assertNotIn('milestone',result)
         self.assertNotIn('issue',result)
-        self.assertEqual(self.controller(Runner()).status()['next_action'],'complete the active I-MP2-03 goal through automated validation and PR merge')
+        self.assertEqual(self.controller(Runner()).status()['next_action'],'select one bounded next MP2 owner friction from the proposal')
 
     def test_created_ux_issue_uses_its_configured_milestone(self):
         plan=json.loads((self.root/'delivery-plan.yaml').read_text())
