@@ -39,3 +39,5 @@ The Homebrew path remains for developers and self-hosters while the v2 consumer 
 ## Governance
 
 Every active Hub v2 milestone has a GitHub issue, branch, PR, and automated validation. During Master Plan development, external capabilities are verified against documented contracts and mocks; the owner configures real credentials and connections only in the operating-mode deployment after the Master Plan is complete. The full [contract-first development governance](docs/development-governance.en.md) defines the quality gates. Read [AGENTS.md](AGENTS.md), [PRD.md](PRD.md), [TASKS.md](TASKS.md), and [roadmap](docs/roadmap.md) before implementation.
+
+Active work is made executable through the [Goal Execution Contract](docs/goal-execution-contract.en.md), which separates executable iterations from vision, historical records, and reserved proposals.

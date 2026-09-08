@@ -4,6 +4,8 @@
 
 **상태: reserved.** MP2는 MP1 구현이나 활성 delivery plan이 아니다. [Master Plan 1](master-plan-01-personal-assistant-core.ko.md)의 완료 증거가 생기기 전에는 기능·이슈·일정을 확정하지 않는다.
 
+후보는 활성 delivery-plan iteration으로 승격되고 [Goal 실행 계약](goal-execution-contract.ko.md)에 따른 goal-ready issue가 생긴 뒤에만 실행 가능한 goal이 된다. 후보를 기록하는 일은 구현 authority를 주지 않는다.
+
 ## 승격 조건
 
 MP1의 named live acceptance와 실제 사용 중 발견된 가장 큰 개인 비서 마찰을 기록한 뒤에만 MP2를 `proposed`로 승격한다. 다음 정보를 모두 채운다.

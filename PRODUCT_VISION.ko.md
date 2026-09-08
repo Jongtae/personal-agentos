@@ -1,6 +1,6 @@
 # AgentOS 제품 비전
 
-> 이 문서는 현재 Hub v2 제품 기준의 요약이다. 구현 상태와 분리한 장기 개인 비서 북극성은 [개인 AI 비서 비전](docs/personal-ai-assistant-vision.ko.md), 단계별 실행 계획은 [Master Plan 1](docs/master-plan-01-personal-assistant-core.ko.md), 다음 계획 선택 절차는 [Master Plan 2](docs/master-plan-02-proposal.ko.md)를 기준으로 한다.
+> 이 문서는 현재 Hub v2 제품 기준의 요약이다. 구현 상태와 분리한 장기 개인 비서 북극성은 [개인 AI 비서 비전](docs/personal-ai-assistant-vision.ko.md), 단계별 실행 계획은 [Master Plan 1](docs/master-plan-01-personal-assistant-core.ko.md), 다음 계획 선택 절차는 [Master Plan 2](docs/master-plan-02-proposal.ko.md)를 기준으로 한다. 활성 작업의 objective·authority·evidence·종료 규칙은 [Goal 실행 계약](docs/goal-execution-contract.ko.md)을 따른다.
 
 ## 한 문장
 

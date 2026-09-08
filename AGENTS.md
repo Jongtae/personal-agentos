@@ -31,6 +31,8 @@ to `main` or `master`.
 
 The active delivery order is `delivery-plan.yaml`. Historical v1/P7 plans are archived rather than deleted. An iteration cannot advance until its predecessor is complete or its explicitly recorded external blocker is resolved.
 
+Every active iteration must also satisfy the bilingual [Goal Execution Contract](docs/goal-execution-contract.en.md): establish its goal-ready record before activation, preserve declared authority and non-goals, and close only with current evidence. Vision and reserved proposals never activate implementation work by themselves.
+
 ## Truthfulness and safety
 
 The canonical process is [development governance](docs/development-governance.en.md). It applies to all repository work; Master Plan delivery adds its own phase contracts on top of it.

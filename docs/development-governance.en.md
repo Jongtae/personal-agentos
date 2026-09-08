@@ -15,6 +15,8 @@ The governance combines four complementary practices:
 
 ## Development completion rule
 
+The [Goal Execution Contract](goal-execution-contract.en.md) defines how an active plan/issue becomes an executable goal, how it remains active or becomes blocked, and the audit required before completion.
+
 An iteration is complete when all of the following are recorded in its issue and pull request:
 
 - a documented contract and threat/data-boundary decision;
