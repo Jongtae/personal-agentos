@@ -6,7 +6,7 @@ AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gate
 
 ## First milestone closeout — 2026-09-08
 
-Owner-authorized [#282](https://github.com/Jongtae/personal-agentos/issues/282) consolidates the development baseline in the [Korean report](first-milestone-report.ko.md). TOP has no active successor. The #279 owner decision retains the legacy prototype as historical. OP-03 #280/#281 remains unfinished; actual provider login, Telegram/OAuth activation, and operating deployment remain separate. Historical milestones are closed as completed or superseded with explicit evidence, without claiming live acceptance.
+Owner-authorized [#282](https://github.com/Jongtae/personal-agentos/issues/282) consolidates the development baseline through merged PR #283 (`0025148e7ab30bd27c4b1ca761b3ba9702b0e0f8`, required validate `34213401518` success) in the [Korean report](first-milestone-report.ko.md). TOP has no active successor. The #279 owner decision retains the legacy prototype as historical. OP-03 #280/#281 remains unfinished; actual provider login, Telegram/OAuth activation, and operating deployment remain separate. Historical milestones are closed as completed or superseded with explicit evidence, without claiming live acceptance.
 
 ## M0 — Product basis and delivery sequence
 
