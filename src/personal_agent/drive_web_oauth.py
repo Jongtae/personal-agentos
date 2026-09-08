@@ -83,10 +83,14 @@ class DriveWebOAuthHandoff:
     public handoff URL is opaque and never contains a token, code, verifier,
     Telegram message, or file content.
     """
-    def __init__(self, store, client_id, redirect_uri, handoff_url, now=time.time, ttl_seconds=600):
+    def __init__(self, store, client_id, redirect_uri, handoff_url, now=time.time, ttl_seconds=600,
+                 allow_localhost=False, local_only=False):
         if not all(isinstance(value, str) and value for value in (client_id, redirect_uri, handoff_url)):
             raise ValueError("Web OAuth client, callback, and HTTPS handoff URL are required.")
-        if not handoff_url.startswith("https://") or not redirect_uri.startswith("https://"):
+        local_urls = all(url.startswith("http://localhost") for url in (handoff_url, redirect_uri))
+        if local_only and not local_urls:
+            raise ValueError("Local-only Drive OAuth requires localhost callback and handoff URLs.")
+        if (not handoff_url.startswith("https://") or not redirect_uri.startswith("https://")) and not (allow_localhost and local_urls):
             raise ValueError("Web OAuth handoff and callback URLs must use HTTPS.")
         if not getattr(store, "encrypted_secrets", False):
             raise ValueError("Drive OAuth requires an encrypted owner-local secret store.")
@@ -94,7 +98,7 @@ class DriveWebOAuthHandoff:
         self.redirect_uri, self.handoff_url = redirect_uri, handoff_url.rstrip("/")
         self.now, self.ttl_seconds = now, ttl_seconds
 
-    def begin(self, telegram_owner_id):
+    def begin(self, telegram_owner_id, pending_job_id=None):
         if not isinstance(telegram_owner_id, int) or telegram_owner_id <= 0:
             raise DriveWebOAuthError("A paired Telegram owner is required.")
         verifier, challenge = _pkce_pair()
@@ -106,7 +110,8 @@ class DriveWebOAuthHandoff:
         pending = {"state": state, "state_key": base64.urlsafe_b64encode(state_key).decode(), "verifier": verifier, "owner": telegram_owner_id,
                    "created_at": created, "expires_at": created + self.ttl_seconds, "status": "pending"}
         self.store.secret(PENDING_KEY, pending)
-        self._audit("connection-offered")
+        self._record("connection-offered", state="connection-offered", owner=telegram_owner_id,
+                     pending_job_id=pending_job_id)
         return {
             "state": "connection-required",
             "message": "Google Drive 연결이 필요합니다. 선택한 파일만 읽을 수 있으며 전체 Drive 검색은 하지 않습니다.",
@@ -134,8 +139,12 @@ class DriveWebOAuthHandoff:
         if not isinstance(code, str) or not code:
             self._finish("callback-failed")
             raise DriveWebOAuthError("Google Drive authorization code is missing.")
-        response = exchange({"code": code, "code_verifier": pending["verifier"],
-                             "redirect_uri": self.redirect_uri, "client_id": self.client_id})
+        try:
+            response = exchange({"code": code, "code_verifier": pending["verifier"],
+                                 "redirect_uri": self.redirect_uri, "client_id": self.client_id})
+        except Exception as exc:
+            self._finish("callback-failed")
+            raise DriveWebOAuthError("Google Drive token exchange failed.") from exc
         if not isinstance(response, dict) or not isinstance(response.get("access_token"), str):
             self._finish("callback-failed")
             raise DriveWebOAuthError("Google Drive token exchange failed.")
@@ -158,9 +167,10 @@ class DriveWebOAuthHandoff:
         for item in files:
             if not isinstance(item, dict) or not isinstance(item.get("id"), str) or not item["id"]:
                 raise DriveScopeError("Google Picker returned an invalid file.")
-            selected.append({"id": item["id"], "name": str(item.get("name", ""))[:240]})
+            selected.append({"id": item["id"], "name": str(item.get("name", ""))[:240],
+                             "mime_type": str(item.get("mime_type", item.get("mimeType", "")))[:160]})
         self.store.put(SELECTED_FILES_KEY, {"owner": telegram_owner_id, "files": selected})
-        self._audit("files-selected")
+        self._record("files-selected")
         return {"state": "files-selected", "files": selected}
 
     def assert_selected(self, telegram_owner_id, file_id):
@@ -181,11 +191,29 @@ class DriveWebOAuthHandoff:
         tokens = self.store.secret(TOKEN_KEY)
         if not callable(transport):
             raise DriveWebOAuthError("An owner-local Drive transport is required.")
+        selected = self.store.config(SELECTED_FILES_KEY, {})
+        row = next(row for row in selected["files"] if row["id"] == file_id)
+        exports = {
+            "application/vnd.google-apps.document": "text/plain",
+            "application/vnd.google-apps.spreadsheet": "text/csv",
+            "application/vnd.google-apps.presentation": "text/plain",
+        }
+        mime_type = exports.get(row.get("mime_type"))
+        url = (FILES_ENDPOINT + "/" + quote(file_id, safe="") + "/export?" + urlencode({"mimeType": mime_type})
+               if mime_type else FILES_ENDPOINT + "/" + quote(file_id, safe="") + "?alt=media")
         return transport(
-            FILES_ENDPOINT + "/" + quote(file_id, safe="") + "?alt=media",
+            url,
             None,
             {"Authorization": "Bearer " + tokens["access_token"]},
         )
+
+    def consume_pending_job(self, telegram_owner_id):
+        value = self.store.config(STATUS_KEY, {})
+        if value.get("owner") != telegram_owner_id:
+            raise DriveWebOAuthError("This Drive connection belongs to another Telegram owner.")
+        job_id = value.get("pending_job_id")
+        self._record("drive-job-resumed", pending_job_id=None)
+        return job_id
 
     def search(self, *_args, **_kwargs):
         raise DriveScopeError("drive.file does not allow arbitrary or full-Drive search; choose a file first.")
@@ -242,8 +270,14 @@ class DriveWebOAuthHandoff:
 
     def _finish(self, state):
         self.store.secret(PENDING_KEY, {"status": "used"})
-        self._audit(state)
+        self._record(state, state=state)
 
-    def _audit(self, event):
-        prior = self.status()
-        self.store.put(STATUS_KEY, {"state": event, "audit": [*prior["audit"], event][-50:]})
+    def _record(self, event, state=None, owner=None, pending_job_id=...):
+        prior = self.store.config(STATUS_KEY, {})
+        value = {"state": state if state is not None else prior.get("state", "disconnected"),
+                 "audit": [*prior.get("audit", []), event][-50:]}
+        if owner is not None: value["owner"] = owner
+        elif "owner" in prior: value["owner"] = prior["owner"]
+        if pending_job_id is not ...: value["pending_job_id"] = pending_job_id
+        elif "pending_job_id" in prior: value["pending_job_id"] = prior["pending_job_id"]
+        self.store.put(STATUS_KEY, value)

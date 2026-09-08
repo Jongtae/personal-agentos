@@ -24,6 +24,10 @@ The HTTPS handoff/relay may route the browser but must not persist any of those 
 4. Deliver the client secret only into the owner-local encrypted deployment secret store; never source-control it or send it through Telegram.
 5. Perform Google login, consent, token exchange, Picker selection, and any live Drive observation only after separate owner operating approval.
 
+## Owner-approved local-only test mode
+
+For a test conducted only on the owner's Mac, a separately configured Web client may register `http://localhost:<port>/oauth/google/callback`; Google documents localhost as an HTTPS exception. Set both the handoff and callback URLs to that same loopback runtime and enable the explicit local-only mode, which rejects every non-localhost URL. Open the Telegram button only from Telegram Desktop on that Mac, so the ordinary browser resolves localhost to the local AgentOS runtime. A phone cannot use this flow because its localhost is the phone, not the Mac. No public tunnel, DNS record, or separate hosting is used.
+
 ## Recovery and evidence
 
 Denied, mismatched, replayed, expired, missing-code, failed-exchange, revoked, and expired-token flows return a concise Telegram recovery message. A new connection request creates a new state; no callback or external message is replayed. Fixture tests prove normal completion, denial, expiry, replay, reauthentication, token redaction, and selected-file enforcement. This contract is mock validation, not live OAuth or Drive evidence.

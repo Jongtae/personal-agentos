@@ -508,10 +508,10 @@ class AgentService:
         return ('google drive' in normalized or '구글 드라이브' in normalized or '드라이브' in normalized) and any(
             word in normalized for word in ('찾', '읽', '자료', 'file', '파일', '요약', 'search'))
 
-    def offer_drive_connection(self, telegram_owner_id):
+    def offer_drive_connection(self, telegram_owner_id, pending_job_id=None):
         if not self.drive_web_oauth:
             return False
-        offer = self.drive_web_oauth.begin(telegram_owner_id)
+        offer = self.drive_web_oauth.begin(telegram_owner_id, pending_job_id)
         self.telegram_method('sendMessage', {
             'chat_id': telegram_owner_id,
             'text': offer['message'],
@@ -539,6 +539,18 @@ class AgentService:
             self.publish_drive_connection_status(telegram_owner_id)
             raise
         self.publish_drive_connection_status(telegram_owner_id)
+        return result
+
+    def select_drive_files(self, telegram_owner_id, files):
+        if not self.drive_web_oauth:
+            raise ValueError('Google Drive web OAuth is not configured.')
+        result = self.drive_web_oauth.select_files(telegram_owner_id, files)
+        job_id = self.drive_web_oauth.consume_pending_job(telegram_owner_id)
+        if job_id:
+            with self.store.db() as db:
+                db.execute("UPDATE jobs SET status='queued', error=NULL, delivery='none' WHERE id=? AND status='awaiting_drive'", (job_id,))
+        self.telegram_method('sendMessage', {'chat_id': telegram_owner_id,
+                                             'text': '선택한 Google Drive 파일을 준비했습니다. 원래 요청을 계속합니다.'})
         return result
 
     def connect_telegram(self, body):
@@ -864,6 +876,8 @@ class AgentService:
                     text='/start'
             guided_context_requested=(authorized and isinstance(text,str) and self.requests_guided_context(text)
                                       and bool(self.context_inbox().list()))
+            drive_connection_needed=(authorized and isinstance(text,str) and self.requests_drive_access(text)
+                                     and self.drive_web_oauth and self.drive_web_oauth.status()['state'] != 'connected')
             with self.store.db() as db:
                 db.execute('BEGIN IMMEDIATE')
                 guided_context=False
@@ -878,6 +892,8 @@ class AgentService:
                         if guided_context_requested:
                             db.execute("UPDATE jobs SET status='awaiting_context' WHERE id=?",(task_id,))
                             guided_context=True
+                        elif drive_connection_needed:
+                            db.execute("UPDATE jobs SET status='awaiting_drive' WHERE id=?", (task_id,))
                 else:
                     task_id=None
                 cfg['cursor']=update_id+1
@@ -885,14 +901,13 @@ class AgentService:
             if paired:
                 self.store.put('telegram_status',{'state':'connected','message':'개인 계정이 연결되었습니다. AgentOS가 연결을 자동으로 확인합니다.'})
                 self.queue_telegram_connection_verification()
-            if authorized and task_id and self.requests_drive_access(text) and self.drive_web_oauth:
-                if self.drive_web_oauth.status()['state'] != 'connected':
-                    try:
-                        self.offer_drive_connection(sender)
-                    except (ValueError, ProviderError):
-                        # The durable work item remains; no OAuth detail or
-                        # token is exposed through Telegram or logs.
-                        pass
+            if drive_connection_needed and task_id:
+                try:
+                    self.offer_drive_connection(sender, task_id)
+                except (ValueError, ProviderError):
+                    # The durable work item remains; no OAuth detail or
+                    # token is exposed through Telegram or logs.
+                    pass
             if authorized and self.is_natural_language(text) and task_id:
                 if guided_context:
                     self.offer_telegram_context_choices(task_id,sender,generation)

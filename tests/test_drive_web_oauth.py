@@ -39,6 +39,14 @@ class DriveWebOAuthTests(unittest.TestCase):
         self.assertEqual(query["code_challenge_method"], ["S256"])
         self.assertNotIn("code_verifier", query)
 
+    def test_local_only_mode_requires_explicit_opt_in_and_uses_loopback(self):
+        with self.assertRaises(ValueError):
+            DriveWebOAuthHandoff(self.encrypted_store, "web-client", "http://localhost:8787/oauth/callback", "http://localhost:8787")
+        local = DriveWebOAuthHandoff(self.encrypted_store, "web-client", "http://localhost:8787/oauth/callback", "http://localhost:8787", allow_localhost=True)
+        self.assertTrue(local.begin(42)["button"]["url"].startswith("http://localhost:8787/"))
+        with self.assertRaises(ValueError):
+            DriveWebOAuthHandoff(self.encrypted_store, "web-client", "https://example.test/callback", "https://example.test", local_only=True)
+
     def test_callback_is_owner_bound_single_use_and_redacts_tokens_from_status(self):
         self.assertEqual(self.connect()["state"], "connected")
         self.assertNotIn("secret", str(self.flow.status()))
@@ -86,18 +94,51 @@ class DriveWebOAuthTests(unittest.TestCase):
         self.assertIn("허용되지 않았습니다", calls[-1][1]["text"])
         self.assertNotIn("access-secret", str(calls))
 
+    def test_failed_exchange_is_consumed_and_publishes_recovery(self):
+        calls=[]
+        self.store.secret("telegram_token", "test-token")
+        service=AgentService(self.store, telegram_transport=lambda url, body, headers=None, timeout=60: calls.append(body) or {"ok": True, "result": {}} , drive_web_oauth=self.flow)
+        _offer, state=self.begin()
+        with self.assertRaises(DriveWebOAuthError):
+            service.complete_drive_web_oauth({"state": state, "code": "code"}, 42, lambda _request: (_ for _ in ()).throw(RuntimeError("offline")))
+        self.assertEqual(self.flow.status()["state"], "callback-failed")
+        self.assertIn("완료하지 못했습니다", calls[-1]["text"])
+
+    def test_drive_request_waits_for_picker_then_resumes_exact_job(self):
+        calls=[]
+        def transport(url, body, headers=None, timeout=60):
+            calls.append(body); return {"ok": True, "result": {"message_id": 1}}
+        self.store.secret("telegram_token", "test-token")
+        self.store.put("telegram", {"enabled": True, "generation": "g", "user_id": 42, "cursor": 0})
+        service=AgentService(self.store, telegram_transport=transport, drive_web_oauth=self.flow)
+        service.ingest_update({"update_id": 1, "message": {"from": {"id": 42}, "chat": {"id": 42, "type": "private"}, "text": "구글 드라이브 자료를 찾아줘"}}, "g")
+        job=self.store.jobs()[0]
+        self.assertEqual(job["status"], "awaiting_drive")
+        state=parse_qs(urlparse(next(body for body in calls if "reply_markup" in body)["reply_markup"]["inline_keyboard"][0][0]["url"]).query)["state"][0]
+        service.complete_drive_web_oauth({"state": state, "code": "code"}, 42, lambda _request: {"access_token": "token", "scope": DRIVE_FILE})
+        service.select_drive_files(42, [{"id": "picked"}])
+        self.assertEqual(self.store.job(job["id"])["status"], "queued")
+
     def test_only_picker_selected_files_can_be_read_and_full_drive_search_is_blocked(self):
         self.connect()
         with self.assertRaises(DriveScopeError): self.flow.search("plan")
         with self.assertRaises(DriveScopeError): self.flow.assert_selected(42, "unselected")
         selected = self.flow.select_files(42, [{"id": "picked", "name": "meeting plan"}])
-        self.assertEqual(selected["files"], [{"id": "picked", "name": "meeting plan"}])
+        self.assertEqual(selected["files"], [{"id": "picked", "name": "meeting plan", "mime_type": ""}])
         self.assertTrue(self.flow.assert_selected(42, "picked"))
         calls = []
         content = self.flow.read_selected(42, "picked", lambda url, body, headers: calls.append((url, body, headers)) or "local file body")
         self.assertEqual(content, "local file body")
         self.assertIn("/picked?alt=media", calls[0][0])
         self.assertNotIn("local file body", str(self.flow.status()))
+
+    def test_google_native_file_is_exported_and_selection_keeps_connection_active(self):
+        self.connect()
+        self.flow.select_files(42, [{"id": "doc", "mimeType": "application/vnd.google-apps.document"}])
+        calls=[]
+        self.flow.read_selected(42, "doc", lambda url, body, headers: calls.append(url) or "body")
+        self.assertIn("/doc/export?mimeType=text%2Fplain", calls[0])
+        self.assertEqual(self.flow.status()["state"], "connected")
 
     def test_expired_access_token_requires_reauthentication(self):
         self.connect(); self.clock[0] += 61
