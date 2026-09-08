@@ -354,6 +354,16 @@
       "contract": "subscription-telegram-stabilization-contract.en.md",
       "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
       "summary": "Stabilize the approved-note Telegram summary path through bounded subscription-engine MCP execution and required CI gates."
+    },
+    {
+      "id": "OP-01",
+      "milestone": "Owner-Approved Operating Deployment Preparation",
+      "issue": 257,
+      "kind": "operating-preparation",
+      "depends_on": ["STAB-01"],
+      "contract": "operating-deployment-preparation-contract.en.md",
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "python3 scripts/operating_preflight.py --root .", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "summary": "Prepare the bounded v1.0.4 Docker Compose operating path, explicit owner gates, health, stop, and secret-free recovery without deploying it."
     }
   ],
   "milestones": {
@@ -377,6 +387,9 @@
     },
     "Subscription-Engine Telegram Stabilization": {
       "title": "Subscription-Engine Telegram Stabilization"
+    },
+    "Owner-Approved Operating Deployment Preparation": {
+      "title": "Owner-Approved Operating Deployment Preparation"
     }
   },
   "completion_claims": {
@@ -410,9 +423,9 @@
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
-    "id": "OPERATING-MODE-REVIEW",
-    "status": "owner-directed-no-auto-start",
-    "action": "do not start a new feature or operating deployment without an explicit owner direction",
-    "source": "docs/subscription-telegram-stabilization-contract.en.md"
+    "id": "OP-01",
+    "status": "active-owner-directed-operating-preparation",
+    "action": "complete the credential-free owner-approved operating deployment preparation cycle",
+    "source": "docs/operating-deployment-preparation-contract.en.md"
   }
 }
