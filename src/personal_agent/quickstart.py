@@ -10,9 +10,10 @@ import sys
 import threading
 import time
 import webbrowser
+from urllib.request import Request, urlopen
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 from .quickstart_store import QuickStore
 from .quickstart_service import AgentService
 from .subscription_engines import SubscriptionEngines
@@ -20,6 +21,7 @@ from .plugins import PluginRegistry
 from .providers import ProviderError
 from .capabilities import CapabilityRegistry
 from .isolated_engine_gateway import IsolatedEngineGateway
+from .drive_web_oauth import DriveWebOAuthHandoff, EncryptedDriveSecretStore, DriveWebOAuthError
 
 WEB=Path(__file__).parent/'web'
 ISOLATED_MCP_PATH='/internal/isolated-engine/mcp'
@@ -37,8 +39,16 @@ def configured_service(store, environ=None):
     isolated_engines=(SubscriptionEngines(
         finder=lambda command: '/isolated-engine/codex' if command=='codex' else None
     ) if isolated_engine else None)
+    drive=None
+    if environ.get('AGENTOS_DRIVE_LOCAL_ONLY')=='1':
+        client_id=environ.get('AGENTOS_DRIVE_CLIENT_ID',''); key=environ.get('AGENTOS_DRIVE_ENCRYPTION_KEY','')
+        port=environ.get('AGENTOS_DRIVE_LOCAL_PORT','8787')
+        if client_id and key:
+            base=f'http://localhost:{port}'
+            drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(store,key),client_id,
+                base+'/oauth/google/callback',base,allow_localhost=True,local_only=True)
     return AgentService(store,subscription_engines=isolated_engines,
-                        isolated_engine_adapter=isolated_engine)
+                        isolated_engine_adapter=isolated_engine,drive_web_oauth=drive)
 
 
 def make_handler(service, public_hosts=(), public_access_token=''):
@@ -116,6 +126,23 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                     if accepted:pairing_available=False
                 if accepted:return self.redirect('/',self.cookie(store.local_session()))
             if path=='/healthz':return self.reply(200 if service.healthy() else 503,{'ok':service.healthy()})
+            if path=='/google-drive':
+                try:return self.redirect(service.drive_web_oauth.authorization_url_for_state(parse_qs(parts.query).get('state',[''])[0]))
+                except (AttributeError, DriveWebOAuthError):return self.reply(400,b'Google Drive connection link is invalid or expired.','text/plain; charset=utf-8')
+            if path=='/oauth/google/callback':
+                try:
+                    callback={key: values[0] for key,values in parse_qs(parts.query).items()}
+                    owner=service.drive_web_oauth.callback_owner(callback.get('state'))
+                    secret=os.environ.get('AGENTOS_DRIVE_CLIENT_SECRET','')
+                    if not secret: raise DriveWebOAuthError('Local OAuth secret is unavailable.')
+                    def exchange(payload):
+                        body=urlencode({**payload,'client_secret':secret,'grant_type':'authorization_code'}).encode()
+                        with urlopen(Request('https://oauth2.googleapis.com/token',body,{'Content-Type':'application/x-www-form-urlencoded'}),timeout=15) as response:
+                            return json.loads(response.read())
+                    service.complete_drive_web_oauth(callback,owner,exchange)
+                    return self.reply(200,b'Google Drive connected. Return to Telegram.','text/plain; charset=utf-8')
+                except (AttributeError, DriveWebOAuthError, OSError, ValueError):
+                    return self.reply(400,b'Google Drive connection could not be completed. Return to Telegram and request a new link.','text/plain; charset=utf-8')
             if path in ('/','/app.js','/style.css'):
                 filename={'/':'index.html','/app.js':'app.js','/style.css':'style.css'}[path]
                 mime={'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8'}[path]
@@ -290,7 +317,8 @@ def main():
     instance_lock=(store.private/'instance.lock').open('a')
     try:fcntl.flock(instance_lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     except BlockingIOError:parser.exit(1,'이 데이터 폴더의 AgentOS가 이미 실행 중입니다.\n')
-    service=configured_service(store)
+    env=dict(os.environ);env['AGENTOS_DRIVE_LOCAL_PORT']=str(args.port)
+    service=configured_service(store,env)
     public_hosts=args.public_tunnel_host
     public_token=args.public_access_token
     if public_hosts and not public_token:public_token=secrets.token_urlsafe(24)
