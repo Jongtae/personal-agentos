@@ -153,6 +153,42 @@ class SubscriptionServiceTests(unittest.TestCase):
             with store.db() as db: events=[dict(row) for row in db.execute('SELECT tool,status FROM tool_events WHERE job_id=?',(job,))]
             self.assertIn({'tool':'subscription_engine','status':'succeeded'},events)
 
+    def test_subscription_summary_rejection_timeout_and_malformed_output_are_failed_once(self):
+        class Adapter:
+            def __init__(self, error): self.error,self.calls=error,0
+            def execute(self, *args): self.calls+=1; raise self.error
+        for error in (ExecutionError('engine rejected request'), ExecutionError('engine timed out'), ExecutionError('engine returned malformed output')):
+            with self.subTest(error=str(error)), tempfile.TemporaryDirectory() as folder:
+                store=QuickStore(Path(folder)/'data')
+                with store.db() as db: db.execute('INSERT INTO notes VALUES (?,?,?)',('note-1','Approved note',1))
+                engines=SubscriptionEngines(finder=lambda _: '/runtime/codex', clock=lambda:1); adapter=Adapter(error)
+                service=AgentService(store, subscription_engines=engines, execution_adapter=adapter)
+                service.connect_subscription_engine({'engine':'codex','officially_authenticated':True})
+                ident=store.enqueue('/summarize','failure-'+str(error),channel='telegram:fixture',chat_id=7)
+                self.assertTrue(service.run_one()); self.assertEqual(store.job(ident)['status'],'failed'); self.assertEqual(adapter.calls,1)
+                self.assertFalse(service.run_one())
+                with store.db() as db: events=[dict(row) for row in db.execute('SELECT tool,status FROM tool_events WHERE job_id=?',(ident,))]
+                self.assertIn({'tool':'subscription_engine','status':'failed'},events)
+
+    def test_duplicate_summary_request_key_reuses_one_terminal_job_after_restart(self):
+        class Adapter:
+            def __init__(self): self.calls=0
+            def execute(self, engine, prompt, tools):
+                self.calls+=1
+                from personal_agent.bounded_execution import ExecutionResult
+                return ExecutionResult('one result',engine,0)
+        with tempfile.TemporaryDirectory() as folder:
+            store=QuickStore(Path(folder)/'data')
+            with store.db() as db: db.execute('INSERT INTO notes VALUES (?,?,?)',('note-1','Approved note',1))
+            engines=SubscriptionEngines(finder=lambda _: '/runtime/codex', clock=lambda:1); adapter=Adapter()
+            service=AgentService(store, subscription_engines=engines, execution_adapter=adapter)
+            service.connect_subscription_engine({'engine':'codex','officially_authenticated':True})
+            first=store.enqueue('/summarize','same-update',channel='telegram:fixture',chat_id=7)
+            self.assertEqual(first,store.enqueue('/summarize','same-update',channel='telegram:fixture',chat_id=7))
+            self.assertTrue(service.run_one())
+            restarted=AgentService(QuickStore(store.root), subscription_engines=engines, execution_adapter=adapter)
+            self.assertFalse(restarted.run_one()); self.assertEqual(adapter.calls,1)
+
 
     def test_subscription_preflights_explicit_public_lookup_and_records_sources(self):
         class Network:
