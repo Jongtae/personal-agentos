@@ -15,6 +15,7 @@ from .subscription_engines import SubscriptionEngines
 from .bounded_execution import AgentOSMcpTools, BoundedExecutionAdapter, ExecutionError
 from .personal_assistant import PersonalAssistantOrchestrator
 from .settings_orchestrator import SettingsOrchestrator, SettingsError
+from .capability_recommendations import CapabilityRecommendationOrchestrator
 
 SYSTEM = ('You are the user’s personal AgentOS assistant. Respond in the user’s language. '
           'This preview supports conversation, notes, connected local documents, and local read-only web search and weather tools. '
@@ -90,6 +91,7 @@ class AgentService:
         # caller may supply reviewed adapters only through this policy owner.
         self.assistant_orchestrator=assistant_orchestrator or PersonalAssistantOrchestrator(store)
         self.settings_orchestrator=SettingsOrchestrator(store)
+        self.recommendation_orchestrator=CapabilityRecommendationOrchestrator(store)
         self.lock=threading.RLock()
         self.worker_lock=threading.Lock()
         self.local_tools=LocalTools()
@@ -132,6 +134,10 @@ class AgentService:
             return self.settings_orchestrator.handle_text(owner_id, channel, body.get('text'))
         raise ValueError('검토된 설정 요청을 확인하세요.')
 
+    def capability_recommendation_request(self, body, owner_id='local-owner', channel='http'):
+        if not isinstance(body,dict) or body.get('operation','recommend')!='recommend': raise ValueError('검토된 capability 추천 요청을 확인하세요.')
+        return self.recommendation_orchestrator.recommend(owner_id,body.get('outcome'))
+
     @staticmethod
     def settings_response(result):
         if result.get('response'): return result['response']
@@ -157,6 +163,7 @@ class AgentService:
             from .telegram_task_card_acceptance import report as task_card_report
             return {'model':model,'has_api_key':bool(self.store.secret('model_key')),
                     'conversation_settings':self.settings_orchestrator.read('local-owner'),
+                    'capability_recommendations':self.store.config('capability_recommendation_audit',[])[-20:],
                     'subscription_engines':self.subscription_engine_status(),
                     'subscription_execution':{'mode':'bounded-agentos-mcp','tools':['list_notes','save_note','web_search']},
                     'telegram':{'enabled':tg.get('enabled',False),'mode':tg.get('mode','owner-token'),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
@@ -865,6 +872,9 @@ class AgentService:
                 prompt=job['message'].strip()
                 if prompt in ('/start','/help'):
                     response='개인 AgentOS에 연결되었습니다. 하고 싶은 일을 자연스럽게 적어 주세요. 웹과 Telegram은 같은 대화 기록을 사용합니다.'
+                elif prompt.startswith('/recommend '):
+                    result=self.capability_recommendation_request({'outcome':prompt[len('/recommend '):].strip()},owner_id=f"channel:{job['channel']}:{job.get('chat_id') or 'local'}",channel=job['channel'])
+                    response='\n'.join(f"{row['name']} · {row['reason']} · {row['approval_handoff']}" for row in result['recommendations']) or '검토된 추천이 없습니다.'
                 elif prompt.startswith('/settings '):
                     result=self.conversation_settings_request({'operation':'text','text':prompt[len('/settings '):]},
                                                               owner_id=f"channel:{job['channel']}:{job.get('chat_id') or 'local'}", channel=job['channel'])
