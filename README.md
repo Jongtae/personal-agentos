@@ -23,7 +23,7 @@ The long-term direction is in the bilingual [Personal AI Assistant Vision](docs/
 
 ## Current baseline
 
-Version 1.0.3 remains the maintained self-hosted API-model preview. Hub v2 is the active product roadmap: subscription-connected engines, an owner-created BotFather Telegram bot paired privately to the local runtime, and an opt-in local context inbox. The bot token is entered once, kept only in the local private connection store, and is excluded from settings, events, exports, logs, and acceptance reports. See [Hub v2 product basis](docs/agentos-hub-v2.ko.md).
+Version 1.0.4 is the maintained self-hosted API-model preview. Hub v2 is the active product roadmap: subscription-connected engines, an owner-created BotFather Telegram bot paired privately to the local runtime, and an opt-in local context inbox. The bot token is entered once, kept only in the local private connection store, and is excluded from settings, events, exports, logs, and acceptance reports. See [Hub v2 product basis](docs/agentos-hub-v2.ko.md).
 
 Owner state can move between local runtimes with `scripts/agentos-backup.py DATA ARCHIVE` and `scripts/agentos-restore.py ARCHIVE EMPTY_DATA`. The archive is integrity-checked and carries memory, work evidence, and reviewed assistant declarations—not credentials, sessions, local-folder grants, engine/model selections, or Telegram pairing. Claim and reconnect the destination runtime explicitly.
 
