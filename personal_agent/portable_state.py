@@ -54,6 +54,17 @@ def _portable_db(source, target):
                 copy.execute("UPDATE config SET value=? WHERE key='calendar_create'", (json.dumps(safe, sort_keys=True),))
         # Selected Drive content and approvals are owner-local, one-use context.
         copy.execute("DELETE FROM config WHERE key='drive_excerpt_approvals'")
+        # Settings previews carry owner/channel binding and confirmation
+        # material. Restores preserve only terminal, redacted audit evidence.
+        copy.execute("DELETE FROM config WHERE key='settings_change_drafts'")
+        row = copy.execute("SELECT value FROM config WHERE key='settings_audit'").fetchone()
+        if row:
+            try: audit = json.loads(row[0])
+            except ValueError: audit = []
+            if isinstance(audit, list):
+                safe = [{key: item[key] for key in ('at','draft_ref','target','before','after','terminal','error_class') if key in item}
+                        for item in audit if isinstance(item, dict)]
+                copy.execute("UPDATE config SET value=? WHERE key='settings_audit'", (json.dumps(safe, sort_keys=True),))
         copy.commit();copy.execute("VACUUM")
 
 def export_owner_state(data, archive):
