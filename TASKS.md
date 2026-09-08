@@ -6,7 +6,7 @@ Active work is executed only from a goal-ready issue and active delivery-plan en
 
 | Goal | Issue | Status |
 | --- | --- | --- |
-| TOP | [#265](https://github.com/Jongtae/personal-agentos/issues/265) | Active. The authoritative requirement inventory is [top-level specification completion](docs/top-level-specification-completion.en.md); completed substeps do not complete TOP. TOP-01 has a recorded technical Compose-registry blocker, while independent enumerated work may continue. |
+| TOP | [#265](https://github.com/Jongtae/personal-agentos/issues/265) | Active. The authoritative requirement inventory is [top-level specification completion](docs/top-level-specification-completion.en.md); completed substeps do not complete TOP. TOP-01 completed in #272 with actual credential-free lifecycle evidence; TOP-02 integration is next. |
 
 ## Maintained baseline
 
