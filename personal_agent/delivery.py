@@ -149,7 +149,8 @@ class DeliveryController:
         stale=False
         history=self.plan.data.get('history',{})
         reconcile_when=history.get('reconcile_state_when_active',[]) if isinstance(history,dict) else []
-        should_reconcile=state.get('active') in reconcile_when or state.get('blocked') in reconcile_when
+        should_reconcile=(state.get('active') in reconcile_when or state.get('blocked') in reconcile_when
+                          or state.get('last_validation') == 'migrated-documentation')
         documented=self.plan.documented_completed() if should_reconcile else set()
         completed=set(state.get('completed',[])) if isinstance(state.get('completed'),list) else set()
         if not documented <= completed:

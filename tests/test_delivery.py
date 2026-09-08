@@ -64,6 +64,20 @@ class DeliveryTests(unittest.TestCase):
         persisted=StateStore(self.state).read()
         self.assertNotIn('active',persisted);self.assertNotIn('blocked',persisted);self.assertNotIn('next_retry_at',persisted)
 
+    def test_merged_documented_iteration_clears_active_state_and_exposes_review_gate(self):
+        StateStore(self.state).write({'active':'I-MP2-01','milestone':'AgentOS Conversation-First Settings','issue':234,'status':'complete'})
+        result=self.controller(Runner()).status()
+        self.assertIsNone(result['active'])
+        self.assertEqual(result['status'],'reconciled-documentation')
+        self.assertIn('I-MP2-01',result['completed'])
+        self.assertEqual(result['next_goal']['id'],'MP2-REVIEW-01')
+
+    def test_reconciled_documentation_state_adopts_later_documented_closeout(self):
+        StateStore(self.state).write({'completed':['D-MP2-01'],'status':'complete','last_validation':'migrated-documentation'})
+        result=self.controller(Runner()).status()
+        self.assertIn('I-MP2-01',result['completed'])
+        self.assertEqual(result['next_goal']['id'],'MP2-REVIEW-01')
+
     def test_valid_ux_block_is_not_migrated(self):
         StateStore(self.state).write({'active':'UX-02','blocked':'UX-02','status':'blocked-validation-failed','next_retry_at':self.clock[0]+21600})
         result=self.controller(Runner()).status()
