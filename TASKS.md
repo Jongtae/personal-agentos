@@ -2,6 +2,12 @@
 
 Active work is executed only from a goal-ready issue and active delivery-plan entry under the [Goal Execution Contract](docs/goal-execution-contract.en.md). Status tables are trackers, not authority to activate reserved work.
 
+## Active delivery
+
+| Work unit | Issue | Branch | Status |
+| --- | --- | --- | --- |
+| SCN-D-01: first live-use scenario contract | [#301](https://github.com/Jongtae/personal-agentos/issues/301) | `codex/scn-01-live-use-scenarios` | active design: define the approved research-to-action and reviewed-sharing journeys; no provider configuration or KakaoTalk delivery claim. |
+
 ## Completed repository maintenance
 
 | Work unit | Issue | Branch | Status |

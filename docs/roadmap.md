@@ -6,7 +6,11 @@ AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gate
 
 ## First milestone closeout — 2026-09-08
 
-Owner-authorized [#282](https://github.com/Jongtae/personal-agentos/issues/282) consolidates the development baseline through merged PR #283 (`0025148e7ab30bd27c4b1ca761b3ba9702b0e0f8`, required validate `34213401518` success) in the [Korean report](first-milestone-report.ko.md). TOP has no active successor. The #279 owner decision retains the legacy prototype as historical. OP-03 #280/#281 remains unfinished; actual provider login, Telegram/OAuth activation, and operating deployment remain separate. Historical milestones are closed as completed or superseded with explicit evidence, without claiming live acceptance.
+Owner-authorized [#282](https://github.com/Jongtae/personal-agentos/issues/282) consolidates the development baseline through merged PR #283 (`0025148e7ab30bd27c4b1ca761b3ba9702b0e0f8`, required validate `34213401518` success) in the [Korean report](first-milestone-report.ko.md). TOP remains development-complete, and #279 retains the legacy prototype as historical. OP-03 #280/#281 is now merged/closed. Actual provider login, Telegram/OAuth activation, and operating deployment remain separate.
+
+## Active — First live-use scenarios
+
+Owner-authorized [SCN-D-01 / #301](https://github.com/Jongtae/personal-agentos/issues/301) defines two first-use journeys before any new capability is implemented: (1) Telegram meeting preparation using owner-approved, attributable Drive context followed by separately approved Calendar draft creation; and (2) owner-supplied content translation or summarization followed by an exact KakaoTalk recipient/conversation preview and a separate one-time final-send approval. It is a design-only goal. KakaoTalk capability, credentials, connection, delivery, and live operating evidence are explicitly out of scope; a copy/export fallback is not a delivery claim. SCN-I-01 remains reserved until this contract has merged and a separate goal-ready implementation issue exists.
 
 ## M0 — Product basis and delivery sequence
 

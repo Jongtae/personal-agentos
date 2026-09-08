@@ -21,4 +21,3 @@ jobs:
       - run: cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml
       - run: python3 -c "import json,pathlib; [json.loads(line) for line in pathlib.Path('docs/issue-branch-ledger.jsonl').read_text(encoding='utf-8').splitlines()]"
       - run: python3 -m pytest -q tests
-      - run: python3 -m unittest discover -s tests -q

@@ -431,6 +431,28 @@
       "depends_on": ["TOP-02"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
       "summary": "Audit every active requirement, reject unsupported top-level completion claims, and record the exact immutable candidate plus separated owner operating actions."
+    },
+    {
+      "id": "SCN-D-01",
+      "milestone": "First Live-Use Scenarios",
+      "issue": 301,
+      "kind": "design",
+      "activation_status": "owner-activated-goal-ready",
+      "implementation_id": "SCN-I-01",
+      "contract": "scn-d01-first-live-use-scenarios-contract.en.md",
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "summary": "Define the owner-approved research-to-action and reviewed KakaoTalk-sharing journeys, with explicit source, recipient, final-send, evidence, and recovery boundaries."
+    },
+    {
+      "id": "SCN-I-01",
+      "milestone": "First Live-Use Scenarios",
+      "kind": "implementation",
+      "design_id": "SCN-D-01",
+      "contract": "scn-d01-first-live-use-scenarios-contract.en.md",
+      "automated_evidence": ["python3 -m pytest -q tests"],
+      "depends_on": ["SCN-D-01"],
+      "tests": ["python3 -m pytest -q tests"],
+      "summary": "Reserved implementation for fixture-backed drafts, exact recipient/action previews, one-time final-send approval, recovery, and channel parity; no live KakaoTalk activation."
     }
   ],
   "milestones": {
@@ -466,6 +488,9 @@
     },
     "Approved Specification Completion": {
       "title": "Approved Specification Completion"
+    },
+    "First Live-Use Scenarios": {
+      "title": "First Live-Use Scenarios"
     }
   },
   "completion_claims": {
@@ -519,9 +544,9 @@
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
-    "id": "TOP",
-    "status": "development_complete",
-    "action": "TOP development is closed under #282. Do not activate a successor. Preserve the immutable candidate; OWNER-01 requires separate operating approval. LEGACY-01 is resolved by #279: retain historical prototype. OP-03 #280/#281 remains unfinished and outside this completed baseline.",
-    "source": "https://github.com/Jongtae/personal-agentos/issues/265"
+    "id": "SCN-D-01",
+    "status": "active",
+    "action": "Owner activated #301 to define two first live-use scenarios. Complete only SCN-D-01; SCN-I-01 remains reserved until this design contract merges, #301 closes, and a separate goal-ready implementation issue exists. Preserve TOP as development-complete and keep all operating-mode activation, provider login, connection, credential, and external-send authority separate.",
+    "source": "https://github.com/Jongtae/personal-agentos/issues/301"
   }
 }
