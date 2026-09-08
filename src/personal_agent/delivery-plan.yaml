@@ -453,6 +453,16 @@
       "depends_on": ["SCN-D-01"],
       "tests": ["python3 -m pytest -q tests"],
       "summary": "Reserved implementation for fixture-backed drafts, exact recipient/action previews, one-time final-send approval, recovery, and channel parity; no live KakaoTalk activation."
+    },
+    {
+      "id": "DRIVE-TG-01",
+      "milestone": "Telegram Drive Web OAuth",
+      "issue": 306,
+      "kind": "implementation",
+      "activation_status": "owner-activated-goal-ready",
+      "contract": "drive-telegram-web-oauth-contract.en.md",
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests"],
+      "summary": "Deliver a mock-validated Telegram-to-browser Drive file-selection OAuth handoff with owner-local tokens, recovery, and no live provider operation."
     }
   ],
   "milestones": {
@@ -491,6 +501,9 @@
     },
     "First Live-Use Scenarios": {
       "title": "First Live-Use Scenarios"
+    },
+    "Telegram Drive Web OAuth": {
+      "title": "Telegram Drive Web OAuth"
     }
   },
   "completion_claims": {
@@ -544,9 +557,9 @@
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "next_goal": {
-    "id": "SCN-D-01",
-    "status": "development_complete",
-    "action": "SCN-D-01 design is complete after #301 closeout. SCN-I-01 remains reserved until the owner creates and activates a separate goal-ready implementation issue. Preserve TOP as development-complete and keep all operating-mode activation, provider login, connection, credential, and external-send authority separate.",
-    "source": "https://github.com/Jongtae/personal-agentos/issues/301"
+    "id": "DRIVE-TG-01",
+    "status": "active",
+    "action": "Owner activated #306 for mock-validated Telegram-to-browser Google Drive file-selection OAuth. Do not perform live provider login, credential entry, token download, Drive access, or external delivery; preserve owner-local state and explicit file selection.",
+    "source": "https://github.com/Jongtae/personal-agentos/issues/306"
   }
 }
