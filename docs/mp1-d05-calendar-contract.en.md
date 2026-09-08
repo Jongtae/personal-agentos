@@ -12,7 +12,7 @@ The adapter sends the minimum event payload to the Calendar mock, with an idempo
 
 ## API and storage
 
-`CalendarCreate` exposes `draft(input)`, `preview(draft_id)`, `approve(draft_id, owner_id)`, `create(draft_id, approval_id, owner_id)`, and `status(event_id)`. States are `draft`, `awaiting-approval`, `approved`, `created`, `failed`, and `expired`; terminal `created` is immutable. Owner-local records retain draft hash, approval ID, idempotency key, result metadata, and redacted error class only.
+`CalendarCreate` exposes `draft(input, owner_id)`, `preview(draft_id, owner_id)`, `approve(draft_id, owner_id)`, `create(draft_id, approval_id, owner_id)`, and `status(draft_id, owner_id)`. States are `awaiting-approval`, `approved`, `created`, `failed`, and `expired`; terminal `created` is immutable. The policy-owned orchestrator is the only service/channel entry point for approval and create. Owner-local records retain the canonical draft hash, one-time approval ID, idempotency key, result metadata, and redacted error class; portable export retains only non-content recovery metadata.
 
 ## Fixtures and automated acceptance
 

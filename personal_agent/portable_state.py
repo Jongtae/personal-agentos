@@ -36,6 +36,22 @@ def _portable_db(source, target):
                 safe = {ident: {key: item[key] for key in ('id','state','peer','skill','created_at','updated_at','error') if key in item}
                         for ident, item in delegations.items() if isinstance(item, dict)}
                 copy.execute("UPDATE config SET value=? WHERE key='a2a_delegations'", (json.dumps(safe, sort_keys=True),))
+        row = copy.execute("SELECT value FROM config WHERE key='calendar_create'").fetchone()
+        if row:
+            try: drafts = json.loads(row[0])
+            except ValueError: drafts = {}
+            if isinstance(drafts, dict):
+                # Approval IDs, event contents, owners, and idempotency material
+                # never leave the owner runtime.  Keep only recovery-safe state.
+                safe = {}
+                for ident, item in drafts.items():
+                    if not isinstance(item, dict):
+                        continue
+                    record = {key: item[key] for key in ('id', 'state', 'hash', 'error_class') if key in item}
+                    if isinstance(item.get('result'), dict) and isinstance(item['result'].get('id'), str):
+                        record['result'] = {'id': item['result']['id']}
+                    safe[ident] = record
+                copy.execute("UPDATE config SET value=? WHERE key='calendar_create'", (json.dumps(safe, sort_keys=True),))
         copy.commit();copy.execute("VACUUM")
 
 def export_owner_state(data, archive):

@@ -70,6 +70,14 @@ class PersonalAssistantTests(unittest.TestCase):
         result = self.assistant.handle(self.request('일정 초안: 내일 검토 일정', event={'summary': 'review', 'start': '2026-01-01T10:00', 'end': '2026-01-01T11:00', 'timezone': 'Asia/Seoul'}))
         self.assertEqual(result['state'], 'awaiting-approval'); self.assertFalse(self.calls)
 
+    def test_calendar_approval_and_create_stay_inside_orchestrator_gate(self):
+        self.enable('google-calendar-create', ('calendar.events',))
+        draft = self.assistant.handle(self.request('일정 초안: 검토', event={'summary': 'review', 'start': '2026-01-01T10:00', 'end': '2026-01-01T11:00', 'timezone': 'Asia/Seoul'}))['draft']
+        approval = self.assistant.approve_calendar(self.request('일정 승인', draft_id=draft['id']))
+        created = self.assistant.create_calendar(self.request('일정 생성', draft_id=draft['id'], approval_id=approval['approval']['approval_id']))
+        self.assertEqual(created['state'], 'completed'); self.assertEqual(len(self.calls), 1)
+        self.assertNotIn('approval', str(created['evidence']))
+
     def test_unknown_request_has_deterministic_recovery(self):
         result = self.assistant.handle(self.request('무슨 capability인지 모르는 요청'))
         self.assertEqual(result['state'], 'fallback'); self.assertIn('recovery', result['evidence'])

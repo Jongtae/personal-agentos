@@ -97,7 +97,7 @@ class PersonalAssistantOrchestrator:
                 self.registry.require_enabled('google-calendar-create', 'calendar.events')
                 if self.calendar is None or not isinstance(value.get('event'), dict):
                     raise AssistantRequestError('일정 초안 정보를 확인하세요.')
-                draft = self.calendar.draft(value['event'])
+                draft = self.calendar.draft(value['event'], owner)
                 evidence = self._evidence('calendar-draft', 'awaiting-approval', draft_id=draft['id'])
                 return {'state': 'awaiting-approval', 'response': '일정 초안을 만들었습니다. 내용을 확인한 뒤 승인하세요.', 'draft': draft, 'evidence': evidence}
             except (ValueError, AssistantRequestError) as exc:
@@ -105,3 +105,31 @@ class PersonalAssistantOrchestrator:
                 return {'state': 'blocked', 'response': str(exc), 'evidence': evidence}
         evidence = self._evidence('unknown', 'fallback', '요청을 더 구체적으로 설명하거나 사용 가능한 연결을 확인하세요.')
         return {'state': 'fallback', 'response': '이 요청에 사용할 검토된 capability를 찾지 못했습니다.', 'evidence': evidence}
+
+    def approve_calendar(self, value):
+        """Record a one-time owner approval for a previously previewed draft."""
+        _, owner = self._request(value)
+        try:
+            self.registry.require_enabled('google-calendar-create', 'calendar.events')
+            if self.calendar is None or not isinstance(value.get('draft_id'), str):
+                raise AssistantRequestError('승인할 일정 초안을 확인하세요.')
+            approval = self.calendar.approve(value['draft_id'], owner)
+            evidence = self._evidence('calendar-approval', 'approved', draft_id=value['draft_id'])
+            return {'state': 'approved', 'approval': approval, 'evidence': evidence}
+        except (ValueError, AssistantRequestError) as exc:
+            evidence = self._evidence('calendar-approval', 'blocked', '일정 초안을 다시 확인하세요.')
+            return {'state': 'blocked', 'response': str(exc), 'evidence': evidence}
+
+    def create_calendar(self, value):
+        """Execute only an exact, owner-bound approval through the policy gate."""
+        _, owner = self._request(value)
+        try:
+            self.registry.require_enabled('google-calendar-create', 'calendar.events')
+            if self.calendar is None or not isinstance(value.get('draft_id'), str) or not isinstance(value.get('approval_id'), str):
+                raise AssistantRequestError('일정 승인 정보를 확인하세요.')
+            result = self.calendar.create(value['draft_id'], value['approval_id'], owner)
+            evidence = self._evidence('calendar-create', 'completed', draft_id=value['draft_id'], event_id=result['id'])
+            return {'state': 'completed', 'result': result, 'evidence': evidence}
+        except (ValueError, AssistantRequestError) as exc:
+            evidence = self._evidence('calendar-create', 'blocked', '일정 연결 상태를 확인하거나 새 초안을 만드세요.')
+            return {'state': 'blocked', 'response': str(exc), 'evidence': evidence}
