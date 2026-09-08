@@ -520,7 +520,7 @@
   },
   "next_goal": {
     "id": "TOP",
-    "status": "requires-explicit-owner-approval",
+    "status": "active",
     "action": "TOP implementation is complete on current evidence. Do not activate a successor; preserve the immutable candidate and await only OWNER-01 operating deployment approval or the separate LEGACY-01 product decision.",
     "source": "https://github.com/Jongtae/personal-agentos/issues/265"
   }

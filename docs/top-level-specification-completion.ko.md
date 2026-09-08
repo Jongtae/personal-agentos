@@ -2,7 +2,7 @@
 
 ## 상태와 권한
 
-**상태: TOP / issue #265 아래 active.** 이 문서는 소유자가 승인한 최상위 Goal의 권위 있는 실행 inventory다. Root [Hub v2 PRD](../PRD.md), 활성 delivery plan, 현재 Master Plan/operating contract, source code, 현재 GitHub evidence를 다룬다. Archived plan과 legacy `agentos/PRD.md` prototype은 historical input이며 구현 범위가 아니다.
+**상태: TOP / issue #265 아래 development complete, owner operating approval 대기.** immutable deployment candidate는 `53912eeb1357ced37031234b1e5376f024dd0a96`이고 해당 `main` `validate` run `34204797899`가 통과했다. Archived plan과 legacy `agentos/PRD.md` prototype은 historical input이며 구현 범위가 아니다.
 
 승인된 row에 안전한 다음 행동이 남아 있으면 최상위 Goal은 active로 유지된다. Substep issue, PR, closeout은 그 substep만 끝낸다. Agent는 선행조건과 authority가 충족되면 이미 열거된 다음 실행 가능 row로 즉시 진행한다. 새 feature 추가, reserved proposal 복원, data/permission boundary 확대, operating deployment는 할 수 없다.
 
@@ -39,8 +39,8 @@
 | --- | --- | --- | --- |
 | TOP-00 | Inventory, governance transition, status-source reconciliation | #265 active | Complete: PR #266과 #270, bilingual inventory, plan/controller/template check, CI |
 | TOP-01 | Exact credential-free deployment candidate와 Compose lifecycle proof | TOP-00 merged | Complete: PR #272 / runtime merge `410a003a1332ceb2ec6dd32a74146b0422ac1d42`, actual isolated build/health/recreate/restore/cleanup, required CI, independent review |
-| TOP-02 | Full current product integration regression 및 defect repair | TOP-01 candidate | full suite와 product-flow fixture |
-| TOP-03 | Final requirement-to-evidence audit와 owner operating checklist | TOP-02 merged | 모든 row mapping, unresolved review finding 없음, candidate/procedure current |
+| TOP-02 | Full current product integration regression 및 defect repair | TOP-01 candidate | Complete: PR #275와 #277, full fixture, isolated API connection regression, independent review |
+| TOP-03 | Final requirement-to-evidence audit와 owner operating checklist | TOP-02 merged | Complete: candidate `53912eeb1357ced37031234b1e5376f024dd0a96`, main validate `34204797899`, mechanical claim gate, unresolved development review finding 없음 |
 
 ## 소유자 운영 checklist
 
