@@ -9,7 +9,7 @@ Active work is executed only from a goal-ready issue and active delivery-plan en
 | STRUCT-01-WU-01: 구조 확정과 이동 명세 | [#285](https://github.com/Jongtae/personal-agentos/issues/285) | `codex/struct-01-repo-structure` | complete |
 | STRUCT-01-WU-02: 문서·산출물 정리 | [#286](https://github.com/Jongtae/personal-agentos/issues/286) | `codex/struct-01-workunit-02-docifacts` | complete |
 | STRUCT-01-WU-03: 제품 패키지 정리 | [#287](https://github.com/Jongtae/personal-agentos/issues/287) | `codex/struct-01-workunit-03-product-packages` | complete (PR #288 merged) |
-| STRUCT-01-WU-04: 도구·배포·테스트 정리 | [#291](https://github.com/Jongtae/personal-agentos/issues/291) | `codex/struct-01-workunit-04-tool-deployment-tests` | in progress |
+| STRUCT-01-WU-04: 도구·배포·테스트 정리 | [#291](https://github.com/Jongtae/personal-agentos/issues/291) | `codex/struct-01-workunit-04-tool-deployment-tests` | complete (PR #292 merged) |
 
 ## Closed top-level program
 
