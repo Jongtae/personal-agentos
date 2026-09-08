@@ -57,3 +57,5 @@ The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) turns
 ## Active — Master Plan 1 Personal Assistant Core
 
 The owner closed UX-05 after deciding its remaining manual Telegram observations were disproportionate. This does not claim the waived checks passed. [Master Plan 1](master-plan-01-personal-assistant-core.en.md) is development complete on mock-contract evidence: R-01 through R-05 prove policy-owned ReAct orchestration, A2A, Calendar, Drive, and the new owner-local release journey. External credentials and real connections remain deferred to the owner-controlled operating-mode deployment. The repository-wide [contract-first development governance](development-governance.en.md) defines these gates.
+
+MP2 remains reserved. Its first recorded candidate is [conversation-first settings](master-plan-02-proposal.en.md): conversation is the default intent surface for safe settings reads and preview/confirm changes, while a local Chrome Settings-like companion remains the manual, inspectable control surface. This records direction only and does not activate implementation or change the delivery plan.
