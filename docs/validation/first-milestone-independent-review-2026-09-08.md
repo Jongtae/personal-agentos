@@ -16,3 +16,5 @@ The OP-03 findings belong to the unmerged optional diagnostic work, not the immu
 ## Final consolidation review
 
 The independent reviewer verified every deleted branch SHA is recoverable from the complete-history Git bundle, each deletion has main ancestry or exact merged-PR head provenance, and the measured counts are 58 local / 18 remote deletions with four clean detached worktrees. Four dirty worktrees and the unverified clean governance worktree remain intact. No loss-risk finding remains. The reviewer requested Korean/English TOP next-action parity and removal of synthetic test-merge SHAs from unmerged PR inventory entries; both corrections were applied before final validation.
+
+The independent reviewer re-read the corrected files at `e3a350fcaf946dabbeae9be2297f0ec4681c3b3a` and confirmed both corrections with no additional unresolved consolidation findings. The reviewer required the observed local unittest error to remain disclosed and successful focused/full rerun plus required CI before completion. Focused 13 tests and full 219 tests passed on rerun; PR #283 required validate 34213401518 succeeded before squash merge.

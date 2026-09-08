@@ -10,7 +10,7 @@ Active work is executed only from a goal-ready issue and active delivery-plan en
 
 ## First milestone consolidation
 
-[#282](https://github.com/Jongtae/personal-agentos/issues/282) records the [2026-09-08 first milestone report](docs/first-milestone-report.ko.md), full issue/PR/branch inventory, independent review, and evidence-based administrative cleanup. OP-03 [#280](https://github.com/Jongtae/personal-agentos/issues/280) / PR #281 remains unfinished; passing CI is not acceptance completion. Four dirty worktrees and that unmerged branch are preserved.
+[#282](https://github.com/Jongtae/personal-agentos/issues/282) merged the report in [PR #283](https://github.com/Jongtae/personal-agentos/pull/283) (`0025148e7ab30bd27c4b1ca761b3ba9702b0e0f8`, required validate `34213401518` success). See the [2026-09-08 first milestone report](docs/first-milestone-report.ko.md), full issue/PR/branch inventory, independent review, and evidence-based administrative cleanup. OP-03 [#280](https://github.com/Jongtae/personal-agentos/issues/280) / PR #281 remains unfinished; passing CI is not acceptance completion. Four dirty worktrees and that unmerged branch are preserved.
 
 ## Maintained baseline
 
