@@ -2,9 +2,9 @@
 
 [English](README.md) | [한국어](README.ko.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-AgentOS is a local-first personal-agent runtime. It keeps an owner's memory, context, tool permissions, work queue, approvals, and evidence in a user-scoped isolated runtime on their Mac, while using connected AI execution engines such as Codex or Claude Code to complete work.
+AgentOS is a local-first personal agent built around files and folders the owner controls. It preserves source material, uses it in conversation and work, saves reusable results as ordinary files, and keeps the owner's policy, work queue, approvals, evidence, and recovery in a user-scoped runtime on their Mac.
 
-The everyday surface is a personal Telegram bot. AgentOS is not only a message relay: it chooses the assistant, enforces tool and data boundaries, persists work state, and records the result and its evidence.
+The experience is conversation and work—including a personal Telegram bot—not a file manager. AgentOS is not only a message relay: it chooses the assistant, enforces tool and data boundaries, persists work state, and records a result and its evidence.
 
 ## A personal AI assistant, not another chat surface
 
@@ -15,15 +15,17 @@ The owner asks for an outcome, not a sequence of integrations. AgentOS can selec
 This is a different trust boundary from an enterprise platform. AgentOS keeps its personal state in the owner-controlled runtime and treats connected engines as bounded workers. Changing an engine must not discard the owner's memory, permissions, approval history, or recoverable work evidence.
 
 - The owner chooses which folders, services, tools, and assistants are connected.
+- Connected reference folders are read-only by default; AgentOS writes new material only in the owner-granted managed workspace.
+- Originals are preserved and remain distinct from extracted text, summaries, drafts, and final records. Search indexes are rebuildable and separate from durable work/approval/evidence/recovery/authentication state.
 - The current API-model preview can send recent conversation history under its configured provider policy; strict task-relevant context minimisation is a planned AgentOS boundary, not a current interoperability claim.
 - Sending externally, changing files or accounts, and other consequential actions require explicit approval.
 - Work state and evidence remain available for cancellation, retry, recovery, export, and restore.
 
-The long-term direction is in the bilingual [Personal AI Assistant Vision](docs/personal-ai-assistant-vision.en.md) and [Master Plan 1](docs/master-plan-01-personal-assistant-core.en.md). Reviewed MCP tools, external A2A agents, and isolated local runtimes remain planned; they are not general installation or interoperability claims today.
+The current first-flow boundary is the bilingual [file-workspace contract](docs/file-workspace-first-experience-contract.en.md); long-term direction is in the [Personal AI Assistant Vision](docs/personal-ai-assistant-vision.en.md). Service connectors such as Drive are optional imports/actions, not the storage foundation. AgentOS does not add a cloud-sync engine or central authentication server.
 
 ## Current baseline
 
-Version 1.0.4 is historical and is not a supported deployment candidate. Hub v2 is the active product roadmap: subscription-connected engines, an owner-created BotFather Telegram bot paired privately to the local runtime, and an opt-in local context inbox. A future supported candidate must be the exact commit named by current top-level validation, not a version label alone. The bot token is entered once, kept only in the local private connection store, and is excluded from settings, events, exports, logs, and acceptance reports. See [Hub v2 product basis](docs/agentos-hub-v2.ko.md).
+Version 1.0.4 and the Hub v2/Drive delivery history are retained as historical evidence, not the active product selector. The active program is [#314 file-and-folder personal workspace](https://github.com/Jongtae/personal-agentos/issues/314); its first implementation has not started. A future supported candidate must be the exact commit named by current validation, not a version label alone. The bot token remains local and excluded from settings, events, exports, logs, and acceptance reports.
 
 Owner state can move between local runtimes with `scripts/agentos-backup.py DATA ARCHIVE` and `scripts/agentos-restore.py ARCHIVE EMPTY_DATA`. The archive is integrity-checked and carries memory, work evidence, and reviewed assistant declarations—not credentials, sessions, local-folder grants, engine/model selections, or Telegram pairing. Claim and reconnect the destination runtime explicitly.
 

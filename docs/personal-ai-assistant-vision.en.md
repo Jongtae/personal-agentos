@@ -12,9 +12,15 @@ The owner states an outcome, not an integration procedure. AgentOS coordinates o
 
 ## Default experience
 
-A new owner starts with **AgentOS Personal Space + My Assistant**. Personal Space retains only explicitly saved memories, safe work summaries, and approval and evidence records. It does not automatically turn complete conversations, source documents, or model reasoning into long-term memory.
+A new owner starts with **my files and folders + my assistant**. The owner entrusts material; AgentOS preserves originals, finds and uses it in conversation/work, and saves results as normal files that a later conversation can reuse. It does not make a file manager that repeatedly asks the owner to select known material, and it does not automatically turn complete conversations or model reasoning into long-term memory.
 
 Second brains, MCP, A2A agents, and specialist runtimes are not onboarding choices. AgentOS suggests a connection only when it would help with real work, and keeps detailed controls in advanced management.
+
+## Material and storage model
+
+Files and folders are the primary material system. A connected reference folder is read-only by default and is searchable/readable within its approved scope; an AgentOS-managed workspace writes new material and results only within owner-granted scope. A normal sync application may synchronize owner files, but AgentOS does not add a sync engine or central authentication service.
+
+AgentOS keeps originals distinct from extracted text/transcriptions/summaries, drafts, and final records. It keeps owner material separate from rebuildable search indexes, and keeps indexes separate from durable task, approval, evidence, recovery, and authentication state. An original is never replaced by a Markdown record or summary. Rename, edit, and delete handling must make stale results safe rather than silently reviving or modifying an original.
 
 ## Connection model
 
@@ -33,6 +39,12 @@ A connection can be enabled, paused, or disconnected. Enabling means the assista
 - Reads and research may run within policy, while consequential actions such as external sending, file changes, account changes, or payments require explicit approval.
 - Disconnecting removes that connection's secrets and configuration without deleting the owner's work evidence or results.
 - Failed work never claims completion and leaves a state that supports cancellation, retry, or recovery.
+- A folder grant is not home-directory access, arbitrary shell execution, original overwrite/delete, bulk move, or external transmission authority.
+- External AI, messenger, agent, and recipient transmission is a separate policy and approval boundary from local storage.
+
+## Optional connectors and delegation
+
+Service connectors such as Google Drive are optional: they can import selected material or perform a service-specific action under their own boundary. They are not the required storage foundation. Informational/policy websites are likewise not OAuth/token/data relays and are not prerequisites for local file work. Delegating a material bundle or recovering a result from another person/agent remains a future explicit-boundary capability.
 
 ## Future capability acquisition
 
