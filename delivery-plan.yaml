@@ -1,5 +1,5 @@
 {
-  "version": 6,
+  "version": 7,
   "repository": "Jongtae/personal-agentos",
   "retry": {
     "seconds": 21600,
@@ -473,7 +473,39 @@
       "depends_on": ["DRIVE-TG-01"],
       "contract": "drive-local-operating-test-contract.en.md",
       "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests"],
-      "summary": "Provide an explicitly configured localhost-only Google Drive OAuth operating path and owner-verifiable local test evidence without public hosting."
+      "summary": "Preserved optional Drive operating work. It is not a prerequisite for the file-and-folder personal workspace core path."
+    },
+    {
+      "id": "FILE-WS-A-01",
+      "milestone": "File and Folder Personal Workspace",
+      "issue": 314,
+      "kind": "design",
+      "activation_status": "owner-activated-goal-ready",
+      "implementation_id": "FILE-WS-B-01",
+      "contract": "file-workspace-first-experience-contract.en.md",
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests"],
+      "summary": "Align the product criterion and define the file/folder, provenance, durable-state, and explicit-transmission boundary before first-flow implementation."
+    },
+    {
+      "id": "FILE-WS-B-01",
+      "milestone": "File and Folder Personal Workspace",
+      "issue": 315,
+      "kind": "implementation",
+      "design_id": "FILE-WS-A-01",
+      "contract": "file-workspace-first-experience-contract.en.md",
+      "automated_evidence": ["python3 -m pytest -q tests"],
+      "depends_on": ["FILE-WS-A-01"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests"],
+      "summary": "Planned first integrated file experience: save a TXT/MD meeting note or summary, restart, then search and reuse it while preserving grants, originals, and provenance."
+    },
+    {
+      "id": "FILE-WS-C-01",
+      "milestone": "File and Folder Personal Workspace",
+      "issue": 316,
+      "kind": "verification",
+      "depends_on": ["FILE-WS-B-01"],
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
+      "summary": "Planned requirement-to-evidence audit, independent review, and integration/CI closeout for the first file-based experience."
     }
   ],
   "milestones": {
@@ -515,6 +547,9 @@
     },
     "Telegram Drive Web OAuth": {
       "title": "Telegram Drive Web OAuth"
+    },
+    "File and Folder Personal Workspace": {
+      "title": "File and Folder Personal Workspace"
     }
   },
   "completion_claims": {
@@ -567,10 +602,22 @@
     "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01","I-MP2-01","D-MP2-02","I-MP2-02","D-MP2-03","I-MP2-03","STAB-01","OP-01","OP-02","GOV-01","TOP-00","TOP-01","TOP-02","TOP-03","SCN-D-01","DRIVE-TG-01"],
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
+  "programs": {
+    "FILE-WORKSPACE-01": {
+      "issue": 314,
+      "status": "active",
+      "ordered_substeps": ["FILE-WS-A-01", "FILE-WS-B-01", "FILE-WS-C-01"],
+      "active_substep": "FILE-WS-A-01",
+      "authority": "Repository issues, codex branches, product/design/execution guidance, tests, and PRs for the listed substeps only. No external activation, credential/OAuth configuration, personal-folder permission expansion, external recipient transmission, or automatic merge in A.",
+      "non_goals": ["sync engine", "central authentication", "OCR", "audio transcription", "video analysis", "advanced large-library search", "cloud-only import", "delegated material bundles", "destructive migration"],
+      "evidence_classes": ["documentation and plan evidence", "mock-model evidence", "local-file integration evidence", "external operating observation"],
+      "drive_handling": "#308/#310/open PR #311 are preserved optional connector work, not core-path predecessors. #312 is optional connector architecture work; #313 is an independent informational/policy-site workstream."
+    }
+  },
   "next_goal": {
-    "id": "DRIVE-LOCAL-OP-01",
+    "id": "FILE-WS-A-01",
     "status": "active",
-    "action": "Owner activated #308 for a local-only Google Drive OAuth operating test. Use explicit localhost-only configuration and owner-local secrets. Do not add public hosting, tunnels, arbitrary redirects, phone localhost testing, broad Drive access, or external delivery.",
-    "source": "https://github.com/Jongtae/personal-agentos/issues/308"
+    "action": "Owner activated top-level program #314 and its A substep only: align product criteria and the delivery plan, define the bilingual file-workspace contract, preserve current Drive work as optional, and create a reviewable alignment PR. Do not start FILE-WS-B-01 implementation, new external activation, personal-folder permission expansion, or automatic merge.",
+    "source": "https://github.com/Jongtae/personal-agentos/issues/314"
   }
 }

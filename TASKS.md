@@ -2,6 +2,16 @@
 
 Active work is executed only from a goal-ready issue and active delivery-plan entry under the [Goal Execution Contract](docs/goal-execution-contract.en.md). Status tables are trackers, not authority to activate reserved work.
 
+## Active — File-and-folder personal workspace program
+
+| Work unit | Issue | Status |
+| --- | --- | --- |
+| FILE-WS-A-01: product criteria and plan alignment | [#314](https://github.com/Jongtae/personal-agentos/issues/314) | Active owner-authorized A substep. Define the bilingual file-workspace contract and align criteria/plan; create the alignment PR only. |
+| FILE-WS-B-01: first integrated file experience | [#315](https://github.com/Jongtae/personal-agentos/issues/315) | Planned; depends on merged A contract. Do not activate in the present run. |
+| FILE-WS-C-01: validation, review, and closeout | [#316](https://github.com/Jongtae/personal-agentos/issues/316) | Planned; depends on B. |
+
+Drive #308/#310 and PR #311 are preserved optional connector work, not predecessors of FILE-WS. #312 remains optional connector architecture work; #313 remains a separate product/policy-site workstream and is not a local-file prerequisite.
+
 ## Completed repository maintenance
 
 | Work unit | Issue | Branch | Status |

@@ -1,31 +1,30 @@
-# AgentOS Hub v2
+# AgentOS — File-and-folder personal workspace
 
 ## Product outcome
 
-A Mac owner installs AgentOS, connects a ChatGPT or Claude subscription without an API key, creates a personal Telegram bot, and assigns real work to trusted assistants. AgentOS retains the owner's memory, context, tool policy, approvals, and evidence across engine changes.
+An owner entrusts material from approved files and folders. AgentOS preserves originals, finds and understands material in conversation/work, saves reusable outputs as ordinary files, and retains the owner's work policy, approvals, evidence, and recovery across restarts and engine changes.
 
 ## Primary user
 
-A non-developer Mac user who already uses a ChatGPT or Claude subscription and wants a personal agent they can reach through Telegram.
+A non-developer Mac user who wants to use their own materials through a personal agent without repeatedly selecting files or manually reorganising folders.
 
 ## Core capabilities
 
-- Assistant-first setup with Codex and Claude Code as default execution engines.
-- Telegram personal bot for requests, progress, approvals, and results.
-- AgentOS-owned MCP tools for web research, connected documents, notes, and reviewed delegation.
-- User-scoped isolated AgentOS runtime, local-first task queue, evidence, recovery, and opt-in context inbox.
-- Three curated assistants: personal records, research and briefing, project review.
-- Portable owner export and restore; managed hosting remains an explicit opt-in future path.
+- Connected owner reference folders, read-only by default, searched/read in their approved scope without repeated selection.
+- An AgentOS-managed workspace that writes new materials and results only within owner-granted scope.
+- Conversation and Telegram paths for requests, progress, explicit approvals, source evidence, recovery, and reuse after restart.
+- Original/derived/draft/final provenance, rebuildable search indexes, and durable task/approval/evidence/recovery/auth state kept distinct.
+- Bounded subscription execution engines and optional connectors/delegation; AgentOS retains policy and personal state.
 
 ## Boundaries
 
-Included: local Mac runtime, subscription-engine connection, owner-created BotFather personal-bot pairing, read-only research/document work, note writes, explicit approval, opt-in clipboard/URL context, export/restore without connection secrets.
+Included: local Mac runtime; owner-approved file/folder connection; read-only reference material; managed-workspace result files; conversation/Telegram work; explicit approval; provenance; durable recovery; and export/restore without connection secrets.
 
-Excluded: API key as a consumer prerequisite, arbitrary shell or file writes, automatic cloud failover, persistent relay content storage, unmanaged community assistants, user-managed Kubernetes installation, native mobile app, and additional messengers. Kubernetes remains an internal managed-hosting isolation option.
+Excluded: automatic full-conversation memory, arbitrary shell or broad home-folder access, original overwrite/deletion or bulk moves without separate authority, automatic cloud sync, central OAuth/authentication, persistent relay content storage, unapproved external transmission, and destructive migration. OCR, transcription, video analysis, advanced large-library search, cloud-only import, and material-bundle delegation are follow-up work.
 
 ## Success measures
 
-- A new owner completes installation, official engine login, personal-bot creation, and a first source-backed Telegram task without an API key.
-- AgentOS shows work state and evidence while preventing engines from reaching undeclared host capabilities.
-- Restart preserves local state and Telegram updates are processed after reconnect.
-- Context capture rejects sensitive values and shares data externally only by assistant policy.
+- An owner saves a meeting note or summary as TXT/MD from approved material and finds/reuses it after app restart in another conversation.
+- AgentOS preserves originals, prevents traversal/out-of-grant access, and records source/result relationships.
+- Search indexes can be rebuilt without losing task, approval, evidence, recovery, or authentication state.
+- External AI, messenger, and agent transmission remains separately controlled and evidence distinguishes mock, local-file, and operating observations.

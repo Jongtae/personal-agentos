@@ -4,6 +4,14 @@ Use the [Goal Execution Contract](goal-execution-contract.en.md) with this track
 
 AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gateway. The Mac hosts the owner-controlled runtime; AgentOS owns personal state, assistants, permissions, tools, task lifecycle, and evidence; Codex or Claude Code performs bounded engine turns.
 
+## Active — File-and-folder personal workspace
+
+Owner-authorized [#314](https://github.com/Jongtae/personal-agentos/issues/314) replaces the former core-path selector with a finite A → B → C program. AgentOS now treats owner files and folders as the material foundation and conversation/work as the experience: preserve originals, search and use approved material, save ordinary-file results, and reuse them after restart. Only A, [FILE-WS-A-01](file-workspace-first-experience-contract.en.md), is active: it aligns criteria and records the boundary before implementation. [#315](https://github.com/Jongtae/personal-agentos/issues/315) and [#316](https://github.com/Jongtae/personal-agentos/issues/316) are planned successors, not active work.
+
+Connected reference folders are read-only by default; managed-workspace writes are scoped. Originals, derived material, drafts, final records, rebuildable indexes, and durable task/approval/evidence/recovery/auth state remain distinct. External AI, messenger, and agent transmission is separately controlled. This program does not implement OCR, transcription, video analysis, advanced large-library search, cloud-only import, material-bundle delegation, cloud sync, or destructive migration.
+
+Drive #308/#310 and open PR #311 are preserved optional connector work rather than first-flow predecessors; no completion or discard is claimed. #312 remains the optional Drive architecture work. #313 remains a separate informational/policy-site track, not a prerequisite for local file functionality.
+
 ## First milestone closeout — 2026-09-08
 
 Owner-authorized [#282](https://github.com/Jongtae/personal-agentos/issues/282) consolidates the development baseline through merged PR #283 (`0025148e7ab30bd27c4b1ca761b3ba9702b0e0f8`, required validate `34213401518` success) in the [Korean report](first-milestone-report.ko.md). TOP remains development-complete, and #279 retains the legacy prototype as historical. OP-03 #280/#281 remains unfinished and preserved. Actual provider login, Telegram/OAuth activation, and operating deployment remain separate.

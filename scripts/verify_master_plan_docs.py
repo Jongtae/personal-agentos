@@ -24,6 +24,7 @@ PAIRS = (
     ("op-02-operating-readiness-remediation-contract.ko.md", "op-02-operating-readiness-remediation-contract.en.md"),
     ("scn-d01-first-live-use-scenarios-contract.ko.md", "scn-d01-first-live-use-scenarios-contract.en.md"),
     ("drive-telegram-web-oauth-contract.ko.md", "drive-telegram-web-oauth-contract.en.md"),
+    ("file-workspace-first-experience-contract.ko.md", "file-workspace-first-experience-contract.en.md"),
 )
 PHASE_IDS = ("D-01", "I-01", "D-02", "I-02", "D-03", "I-03", "D-04", "I-04", "D-05", "I-05", "D-06", "I-06")
 

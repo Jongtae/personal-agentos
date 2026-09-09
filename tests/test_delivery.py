@@ -56,14 +56,18 @@ class DeliveryTests(unittest.TestCase):
         plan['next_goal']={'id':'TOP','status':'active'}
         (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
 
-    def test_completed_drive_goal_does_not_revive_reserved_scenario_implementation(self):
+    def test_owner_activated_file_workspace_goal_replaces_drive_core_selector(self):
         controller=self.controller()
         self.assertEqual(controller.plan.next_goal()['status'], 'active')
-        self.assertEqual(controller.plan.next_goal()['id'], 'DRIVE-LOCAL-OP-01')
-        self.assertEqual(controller.plan.select({})['id'], 'DRIVE-LOCAL-OP-01')
+        self.assertEqual(controller.plan.next_goal()['id'], 'FILE-WS-A-01')
+        self.assertEqual(controller.plan.select({})['id'], 'FILE-WS-A-01')
+        self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['active_substep'], 'FILE-WS-A-01')
+        self.assertEqual(controller.plan.items['FILE-WS-B-01']['depends_on'], ['FILE-WS-A-01'])
+        self.assertEqual(controller.plan.items['FILE-WS-C-01']['depends_on'], ['FILE-WS-B-01'])
         self.assertIn('TOP-03', controller.plan.documented_completed())
         self.assertIn('SCN-D-01', controller.plan.documented_completed())
         self.assertIn('DRIVE-TG-01', controller.plan.documented_completed())
+        self.assertNotIn('DRIVE-LOCAL-OP-01', controller.plan.documented_completed())
         self.assertNotIn('SCN-I-01', controller.plan.documented_completed())
 
     def test_top_goal_stays_selectable_after_its_inventory_substep_closes(self):
