@@ -70,6 +70,15 @@ class DeliveryTests(unittest.TestCase):
         self.assertNotIn('DRIVE-LOCAL-OP-01', controller.plan.documented_completed())
         self.assertNotIn('SCN-I-01', controller.plan.documented_completed())
 
+    def test_file_workspace_contract_uses_the_canonical_plan_substep_ids(self):
+        root=Path(__file__).parents[1]
+        for language in ('en', 'ko'):
+            contract=(root/'docs'/f'file-workspace-first-experience-contract.{language}.md').read_text()
+            self.assertIn('FILE-WS-A-01', contract)
+            self.assertIn('FILE-WS-B-01', contract)
+            self.assertIn('FILE-WS-C-01', contract)
+            self.assertNotIn('FILE-UX-', contract)
+
     def test_top_goal_stays_selectable_after_its_inventory_substep_closes(self):
         self.activate_top_fixture()
         plan=DeliveryPlan(self.root/'delivery-plan.yaml')

@@ -53,7 +53,7 @@ compatibility with existing owner data and performs no destructive migration.
 
 ## First implementation contract
 
-FILE-UX-01 (#315) may activate only after this contract and its bilingual
+FILE-WS-B-01 (#315) may activate only after this contract and its bilingual
 counterpart merge and its goal-ready issue remains current. It must integrate the existing conversation
 path, not only a demo script. TXT/MD are the initial validated formats; an
 already-supported format may be reused only within its tested boundary.
@@ -65,7 +65,7 @@ silently read outside the grant or recreate a deleted original.
 
 ## Required automated evidence
 
-FILE-UX-01 must use dedicated test folders and sample material—not personal
+FILE-WS-B-01 must use dedicated test folders and sample material—not personal
 data—and prove the integrated flow: save → restart → search/reuse. It must also
 cover grant-boundary/path-traversal rejection, original preservation,
 duplicate-save behavior, and denial of unapproved external send. Mock model
@@ -80,5 +80,5 @@ bundles/results, a synchronization engine, new credentials, or live external
 operation. Those are separately tracked follow-ups, not completion criteria for
 the first flow.
 
-FILE-UX-VAL-01 (#316) may run after FILE-UX-01 to produce its independent review, requirement-to-
+FILE-WS-C-01 (#316) may run after FILE-WS-B-01 to produce its independent review, requirement-to-
 evidence audit, and implementation PR closeout evidence.

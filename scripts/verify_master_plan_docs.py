@@ -126,6 +126,12 @@ def main():
         raise SystemExit("MP1 phase parity failure")
     plan=json.loads((ROOT / "delivery-plan.yaml").read_text(encoding="utf-8"))
     verify_traceability(plan)
+    workspace_contracts = ((DOCS / "file-workspace-first-experience-contract.ko.md").read_text(encoding="utf-8"),
+                           (DOCS / "file-workspace-first-experience-contract.en.md").read_text(encoding="utf-8"))
+    for contract in workspace_contracts:
+        if ("FILE-WS-A-01" not in contract or "FILE-WS-B-01" not in contract or
+                "FILE-WS-C-01" not in contract or "FILE-UX-" in contract):
+            raise SystemExit("file-workspace contract substep identifiers do not match the delivery plan")
     print("Master Plan bilingual documents verified")
 
 
