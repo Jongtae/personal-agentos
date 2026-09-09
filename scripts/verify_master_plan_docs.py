@@ -132,6 +132,12 @@ def main():
         if ("FILE-WS-A-01" not in contract or "FILE-WS-B-01" not in contract or
                 "FILE-WS-C-01" not in contract or "FILE-UX-" in contract):
             raise SystemExit("file-workspace contract substep identifiers do not match the delivery plan")
+    workspace_program = plan.get("programs", {}).get("FILE-WORKSPACE-01", {})
+    workspace_design = plan["iterations"][next(index for index, item in enumerate(plan["iterations"])
+                                                if item["id"] == "FILE-WS-A-01")]
+    if (not isinstance(workspace_program.get("issue"), int) or
+            workspace_program["issue"] == workspace_design.get("issue")):
+        raise SystemExit("file-workspace program and active substep require distinct issue records")
     print("Master Plan bilingual documents verified")
 
 

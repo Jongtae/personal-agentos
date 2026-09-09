@@ -62,6 +62,8 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(controller.plan.next_goal()['id'], 'FILE-WS-A-01')
         self.assertEqual(controller.plan.select({})['id'], 'FILE-WS-A-01')
         self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['active_substep'], 'FILE-WS-A-01')
+        self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['issue'], 314)
+        self.assertEqual(controller.plan.items['FILE-WS-A-01']['issue'], 318)
         self.assertEqual(controller.plan.items['FILE-WS-B-01']['depends_on'], ['FILE-WS-A-01'])
         self.assertEqual(controller.plan.items['FILE-WS-C-01']['depends_on'], ['FILE-WS-B-01'])
         self.assertIn('TOP-03', controller.plan.documented_completed())

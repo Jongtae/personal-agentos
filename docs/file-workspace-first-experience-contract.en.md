@@ -2,7 +2,8 @@
 
 ## Status and outcome
 
-This is the design contract for active substep A of owner-authorized issue #314.
+This is the design contract for FILE-WS-A-01 issue #318, within the
+owner-authorized #314 program.
 It changes the product criterion and plans; it does not implement file ingestion.
 
 AgentOS is a local-first personal agent whose material foundation is owner files

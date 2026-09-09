@@ -478,7 +478,7 @@
     {
       "id": "FILE-WS-A-01",
       "milestone": "File and Folder Personal Workspace",
-      "issue": 314,
+      "issue": 318,
       "kind": "design",
       "activation_status": "owner-activated-goal-ready",
       "implementation_id": "FILE-WS-B-01",
@@ -618,6 +618,6 @@
     "id": "FILE-WS-A-01",
     "status": "active",
     "action": "Owner activated top-level program #314 and its A substep only: align product criteria and the delivery plan, define the bilingual file-workspace contract, preserve current Drive work as optional, and create a reviewable alignment PR. Do not start FILE-WS-B-01 implementation, new external activation, personal-folder permission expansion, or automatic merge.",
-    "source": "https://github.com/Jongtae/personal-agentos/issues/314"
+    "source": "https://github.com/Jongtae/personal-agentos/issues/318"
   }
 }
