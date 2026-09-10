@@ -18,7 +18,8 @@ class FileWorkspace:
         supplied=Path(workspace); target=supplied.resolve()
         if not target.is_dir() or supplied.is_symlink() or self._broad_or_private(target): raise ValueError('전체 홈이나 시스템 루트 대신 작업용 하위 폴더를 선택하세요.')
         if any(target==Path(ref['path']) or target.is_relative_to(ref['path']) or Path(ref['path']).is_relative_to(target) for ref in refs): raise ValueError('참고 폴더와 관리 작업공간은 겹치지 않게 연결하세요.')
-        self.store.put('file_workspace',{'references':refs,'workspace':str(target)})
+        target_stat=target.stat(); workspace_id=hashlib.sha256(f'{target_stat.st_dev}:{target_stat.st_ino}'.encode()).hexdigest()[:24]
+        self.store.put('file_workspace',{'references':refs,'workspace':str(target),'workspace_id':workspace_id})
         self.store.put('document_sharing',{})
         return self.status()
 
@@ -71,8 +72,19 @@ class FileWorkspace:
 
     @staticmethod
     def _ensure_results_table(db):
-        db.execute('CREATE TABLE IF NOT EXISTS file_workspace_results(id TEXT PRIMARY KEY, request_id TEXT UNIQUE, path TEXT UNIQUE, content_hash TEXT, sources TEXT, created REAL, state TEXT NOT NULL DEFAULT "current")')
-        if 'state' not in {row['name'] for row in db.execute('PRAGMA table_info(file_workspace_results)')}: db.execute('ALTER TABLE file_workspace_results ADD COLUMN state TEXT NOT NULL DEFAULT "current"')
+        db.execute('CREATE TABLE IF NOT EXISTS file_workspace_results(id TEXT PRIMARY KEY, request_id TEXT UNIQUE, path TEXT UNIQUE, content_hash TEXT, sources TEXT, created REAL, workspace_id TEXT, state TEXT NOT NULL DEFAULT "current")')
+        columns={row['name'] for row in db.execute('PRAGMA table_info(file_workspace_results)')}
+        if 'state' not in columns: db.execute('ALTER TABLE file_workspace_results ADD COLUMN state TEXT NOT NULL DEFAULT "current"')
+        if 'workspace_id' not in columns: db.execute('ALTER TABLE file_workspace_results ADD COLUMN workspace_id TEXT')
+
+    def _workspace_id(self):
+        value=self.status().get('workspace_id')
+        if not isinstance(value,str) or not value: raise ValueError('관리 작업공간을 먼저 연결하세요.')
+        return value
+
+    @staticmethod
+    def _source_metadata(source):
+        return {key:source[key] for key in ('reference_id','source_id','path','version') if key in source}
 
     def _result_path(self, relative):
         root=Path(self.status().get('workspace') or '')
@@ -87,6 +99,9 @@ class FileWorkspace:
             self._ensure_results_table(db)
             pending=[dict(row) for row in db.execute("SELECT * FROM file_workspace_results WHERE state='pending'")]
         for record in pending:
+            if record.get('workspace_id')!=self._workspace_id():
+                with self.store.db() as db: db.execute("UPDATE file_workspace_results SET state='detached' WHERE id=?",(record['id'],))
+                continue
             try:
                 published=self._result_path(record['path'])
                 complete=published.is_file() and hashlib.sha256(published.read_bytes()).hexdigest()==record['content_hash']
@@ -103,6 +118,8 @@ class FileWorkspace:
         if not isinstance(sources,list) or not sources: raise ValueError('원본 출처가 필요합니다.')
         self.recover()
         safe=''.join(char if char.isalnum() or char in ' -_' else '-' for char in title).strip()[:80] or 'result'
+        sources=[self._source_metadata(source) for source in sources]
+        if any(set(('reference_id','source_id','path','version'))-set(source) for source in sources): raise ValueError('원본 출처 정보가 올바르지 않습니다.')
         body=content.rstrip()+'\n\n---\nSources:\n'+''.join(f'- {source["path"]} @ {source["version"]}\n' for source in sources)
         with self.store.db() as db:
             self._ensure_results_table(db); db.execute('BEGIN IMMEDIATE')
@@ -112,8 +129,8 @@ class FileWorkspace:
             while True:
                 target=self._result_path(safe+'.md' if suffix==1 else safe+f'-{suffix}.md')
                 if target.exists() or db.execute('SELECT 1 FROM file_workspace_results WHERE path=?',(target.name,)).fetchone(): suffix+=1; continue
-                record={'id':str(uuid.uuid4()),'request_id':request_id,'path':target.name,'content_hash':hashlib.sha256(body.encode()).hexdigest(),'sources':json.dumps(sources),'created':time.time(),'state':'pending'}
-                db.execute('INSERT INTO file_workspace_results VALUES (:id,:request_id,:path,:content_hash,:sources,:created,:state)',record)
+                record={'id':str(uuid.uuid4()),'request_id':request_id,'path':target.name,'content_hash':hashlib.sha256(body.encode()).hexdigest(),'sources':json.dumps(sources),'created':time.time(),'workspace_id':self._workspace_id(),'state':'pending'}
+                db.execute('INSERT INTO file_workspace_results(id,request_id,path,content_hash,sources,created,workspace_id,state) VALUES (:id,:request_id,:path,:content_hash,:sources,:created,:workspace_id,:state)',record)
                 break
         temporary=target.with_name(target.name+'.tmp-'+uuid.uuid4().hex); published=False
         try:
@@ -136,7 +153,7 @@ class FileWorkspace:
     def _fresh(self, record):
         try: sources=json.loads(record['sources'])
         except (TypeError,json.JSONDecodeError): return False
-        try:return bool(sources) and all(self.read(source['reference_id'],source['path'])['version']==source['version'] for source in sources)
+        try:return bool(sources) and all((current:=self.read(source['reference_id'],source['path']))['version']==source['version'] and current['source_id']==source['source_id'] for source in sources)
         except (KeyError,ValueError,OSError,UnicodeError): return False
 
     def search(self, query):
@@ -147,6 +164,9 @@ class FileWorkspace:
             self._ensure_results_table(db); records=[dict(row) for row in db.execute('SELECT * FROM file_workspace_results ORDER BY created DESC LIMIT 100')]
         results=[]
         for record in records:
+            if record.get('workspace_id')!=self._workspace_id():
+                with self.store.db() as db: db.execute("UPDATE file_workspace_results SET state='detached' WHERE id=?",(record['id'],))
+                continue
             fresh=self._fresh(record)
             with self.store.db() as db: db.execute('UPDATE file_workspace_results SET state=? WHERE id=?',('current' if fresh else 'stale',record['id']))
             if not fresh: continue

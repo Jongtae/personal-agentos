@@ -43,6 +43,26 @@ TOOL_PROBE = {
 TELEGRAM_CARD_GRACE_SECONDS = 3
 TELEGRAM_RESULT_PREVIEW_CHARS = 3200
 TELEGRAM_VERIFICATION_QUERY = '/search AgentOS personal assistant verification'
+_WORKSPACE_QUOTED = re.compile(r'["“]([^"”]{2,160})["”]')
+
+
+def workspace_summary_request(prompt):
+    if prompt.startswith('/workspace-summary '):
+        request=prompt[len('/workspace-summary '):]
+        if ' :: ' not in request: raise ValueError('자료 검색어와 결과 제목을 ` :: `로 구분해 입력하세요.')
+        return request.split(' :: ',1)
+    lowered=prompt.casefold(); quotes=_WORKSPACE_QUOTED.findall(prompt)
+    if len(quotes)>=2 and any(word in lowered for word in ('summarize','summary','요약','회의록')) and any(word in lowered for word in ('save','저장')):
+        return quotes[0],quotes[1]
+    return None
+
+
+def workspace_search_request(prompt):
+    if prompt.startswith('/workspace-search '): return prompt[len('/workspace-search '):]
+    lowered=prompt.casefold(); quotes=_WORKSPACE_QUOTED.findall(prompt)
+    if quotes and any(word in lowered for word in ('search','find','찾아','검색')) and any(word in lowered for word in ('저장','workspace','작업공간','result','결과')):
+        return quotes[0]
+    return None
 
 # Subscription CLIs do not receive AgentOS credentials, local paths, or an
 # MCP transport.  AgentOS can still perform a narrowly identified *public*
@@ -185,7 +205,7 @@ class AgentService:
                     'subscription_engines':self.subscription_engine_status(),
                     'subscription_execution':{'mode':'isolated-agentos-mcp','tools':['list_notes']} if self.isolated_engine_adapter else {'mode':'bounded-agentos-mcp','tools':['list_notes','save_note','web_search']},
                     'telegram':{'enabled':tg.get('enabled',False),'mode':tg.get('mode','owner-token'),'username':tg.get('username',''),'paired':bool(tg.get('user_id')),'user_id':tg.get('user_id')},
-                    'file_roots':self.store.config('file_roots',[]), 'document_boundary':boundary, 'context_inbox':__import__('personal_agent.context_inbox',fromlist=['ContextInbox']).ContextInbox(self.store).status(), 'agents':[{'id':role['id'],'name':role['name'],'permissions':role['permissions'],'package_id':package['id']} for package in active_packages for role in package['roles']], 'packages':packages, 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery, 'telegram_task_card_acceptance':task_card_report(self.store), 'telegram_first_work_acceptance':__import__('personal_agent.telegram_first_work_acceptance',fromlist=['report']).report(self.store)}
+                    'file_roots':self.store.config('file_roots',[]), 'file_workspace':FileWorkspace(self.store).status(), 'document_boundary':boundary, 'context_inbox':__import__('personal_agent.context_inbox',fromlist=['ContextInbox']).ContextInbox(self.store).status(), 'agents':[{'id':role['id'],'name':role['name'],'permissions':role['permissions'],'package_id':package['id']} for package in active_packages for role in package['roles']], 'packages':packages, 'tool_run':self.store.config('tool_run'), 'model_test':model_test, 'model_ready':self.model_ready(model,model_test), 'telegram_status':self.store.config('telegram_status'),'delivery':delivery, 'telegram_task_card_acceptance':task_card_report(self.store), 'telegram_first_work_acceptance':__import__('personal_agent.telegram_first_work_acceptance',fromlist=['report']).report(self.store)}
 
     def home(self):
         """Return the minimal, credential-free read model for the owner home."""
@@ -416,6 +436,11 @@ class AgentService:
         result=FileWorkspace(self.store).configure(body.get('references',[]),body.get('workspace',''))
         self.store.put('document_sharing',{})
         return result
+
+    def record_file_workspace_document_job(self, job_id):
+        rows=self.store.config('file_workspace_document_jobs',[])
+        rows=rows if isinstance(rows,list) else []
+        self.store.put('file_workspace_document_jobs',[*{*rows,job_id}][-100:])
 
     def save_model(self, body):
         config=validate_model(body)
@@ -990,11 +1015,12 @@ class AgentService:
                     result=self.personal_assistant_request({'message':prompt[len('/assistant '):]}, owner_id=f"channel:{job['channel']}:{job.get('chat_id') or 'local'}")
                     response=result['response']
                     outcome='succeeded' if result['state'] in ('completed','requested','awaiting-approval','fallback') else 'failed'
-                elif prompt.startswith('/workspace-search '):
-                    results=FileWorkspace(self.store).search(prompt[len('/workspace-search '):])
+                elif (search_query:=workspace_search_request(prompt)):
+                    results=FileWorkspace(self.store).search(search_query)
                     if not results: response='현재 원본과 일치하는 저장 결과를 찾지 못했습니다.'
                     else:
                         response='\n\n'.join(f"저장 결과: {item['path']}\n{item['content']}" for item in results)
+                        self.record_file_workspace_document_job(job['id'])
                 elif prompt.startswith(('/note ','메모:','기록:')):
                     note=prompt[6:] if prompt.startswith('/note ') else prompt.split(':',1)[1].strip()
                     if not note.strip():raise ValueError('기록할 내용을 입력하세요.')
@@ -1007,12 +1033,13 @@ class AgentService:
                     with self.lock:
                         config=self.store.config('model',{})
                         key=self.store.secret('model_key')
-                    history=[{'role':m['role'],'content':m['content']} for m in self.store.history()[-16:]]
+                    stored_history=self.store.history()[-16:]
+                    document_jobs=set(self.store.config('file_workspace_document_jobs',[]))
+                    document_history=any(message.get('job_id') in document_jobs for message in stored_history)
+                    history=[{'role':m['role'],'content':m['content']} for m in stored_history]
                     workspace_request=None
-                    if prompt.startswith('/workspace-summary '):
-                        request=prompt[len('/workspace-summary '):]
-                        if ' :: ' not in request:raise ValueError('자료 검색어와 결과 제목을 ` :: `로 구분해 입력하세요.')
-                        query,title=request.split(' :: ',1)
+                    if request:=workspace_summary_request(prompt):
+                        query,title=request
                         if not title.strip():raise ValueError('결과 제목을 입력하세요.')
                         source=FileWorkspace(self.store).find_reference(query)
                         workspace_request={'title':title,'source':source}
@@ -1048,14 +1075,16 @@ class AgentService:
                             db.execute('INSERT INTO tool_events(job_id,tool,status,detail,created) VALUES (?,?,?,?,?)',(job['id'],tool,status,detail,time.time()))
                         if tool!='model':self.store.put('tool_run',{'job_id':job['id'],'tool':tool,'status':status,'detail':detail,'time':time.time()})
                     boundary=self.document_boundary(config)
+                    subscription=self.store.config('subscription_engine',{})
+                    if document_history and (boundary['requires_approval'] or subscription.get('id')):
+                        history=[{'role':message['role'],'content':message['content']} for message in stored_history if message.get('job_id') not in document_jobs]
                     original_record=record
                     def record(tool,status,detail):
                         if (tool in ('find_files','read_file') and status=='failed' and boundary['requires_approval']):approval_needed[0]=True
                         original_record(tool,status,detail)
-                    subscription=self.store.config('subscription_engine',{})
                     if subscription.get('id'):
                         if workspace_request:
-                            raise ValueError('파일 작업공간 요약은 문서 공유 정책이 확인된 모델 연결에서만 사용할 수 있습니다.')
+                            raise ValueError('파일 작업공간 요약은 현재 구독 엔진에서 지원하지 않습니다. 문서 공유 정책을 확인한 모델 연결을 사용하세요.')
                         # The selected CLI runs only through the narrow MCP
                         # facade; it never gets this store, model key, or roots.
                         isolated=bool(self.isolated_engine_adapter)
@@ -1112,13 +1141,14 @@ class AgentService:
                         checked=self.store.config('model_test',{})
                         if checked.get('runtime_model'):
                             runtime_config['model']=checked['runtime_model']
-                        capabilities=Capabilities(self.store,self.adapter,runtime_config,key,job['id'],record,network=self.local_tools,document_access=not boundary['requires_approval'],packages=self.runtime_packages())
+                        capabilities=Capabilities(self.store,self.adapter,runtime_config,key,job['id'],record,network=self.local_tools,document_access=not boundary['requires_approval'],packages=self.runtime_packages(),document_context=document_history and not boundary['requires_approval'])
                         result=run_agent(self.adapter,runtime_config,key,history,'',capabilities,record)
                         outcome=getattr(result,'outcome','succeeded')
                         response,provider,model=result.content,result.provider,result.model
                     if workspace_request:
                         saved=FileWorkspace(self.store).save(job['id'],workspace_request['title'],response,[workspace_request['source']])
                         response+=f"\n\n저장됨: {saved['path']} · {saved['id']}"
+                        self.record_file_workspace_document_job(job['id'])
                     if context_sources and '컨텍스트:' not in response:
                         response+='\n\n컨텍스트 출처:\n'+'\n'.join(context_sources)
                 with self.store.db() as db:

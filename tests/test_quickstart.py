@@ -303,7 +303,7 @@ class QuickstartTests(unittest.TestCase):
             with self.assertRaises(HTTPError):post('/api/file-workspace',{'references':['/'],'workspace':str(workspace)})
             state=post('/api/file-workspace',{'references':[str(reference)],'workspace':str(workspace)})
             self.model('compatible','http://127.0.0.1:11434/v1');self.assertTrue(self.service.test_model()['ok'])
-            request=post('/api/chat',{'message':'/workspace-summary Aurora launch :: Launch notes','request_key':'workspace-summary'})['id']
+            request=post('/api/chat',{'message':'“Aurora launch” 자료를 요약해 “Launch notes”로 저장해줘','request_key':'workspace-summary'})['id']
             self.assertTrue(self.service.run_one())
         finally:
             server.shutdown();thread.join();server.server_close()
@@ -311,7 +311,7 @@ class QuickstartTests(unittest.TestCase):
         created=list(workspace.glob('*.md'));self.assertEqual(len(created),1)
         self.assertIn('Compatible response',created[0].read_text(encoding='utf-8'));self.assertIn('meeting.txt',created[0].read_text(encoding='utf-8'))
         self.assertEqual(original.read_bytes(),before)
-        self.assertEqual(request,self.store.enqueue('/workspace-summary Aurora launch :: Launch notes','workspace-summary'))
+        self.assertEqual(request,self.store.enqueue('“Aurora launch” 자료를 요약해 “Launch notes”로 저장해줘','workspace-summary'))
         self.assertEqual(len(list(workspace.glob('*.md'))),1)
         script='''\
 import json, sys, threading
@@ -331,7 +331,7 @@ def post(path,body):
  with client.open(request,timeout=3) as response:return json.load(response)
 try:
  post('/api/login',{'password':'long-password-test'})
- job_id=post('/api/chat',{'message':'/workspace-search Compatible','request_key':'workspace-search-after-restart'})['id']
+ job_id=post('/api/chat',{'message':'저장된 작업공간에서 “Compatible” 찾아줘','request_key':'workspace-search-after-restart'})['id']
  service.run_one();job=store.job(job_id)
  print(json.dumps({'status':job['status'],'response':job['response']}))
 finally:
@@ -377,6 +377,18 @@ finally:
             self.assertEqual(files.search(f'summary {operation}'),[])
         with self.store.db() as db:self.assertEqual(db.execute("SELECT count(*) FROM file_workspace_results WHERE state='stale'").fetchone()[0],3)
 
+    def test_file_workspace_rejects_same_content_replacement_and_other_workspace_file(self):
+        reference=Path(self.temp.name)/'reference';first=Path(self.temp.name)/'first';second=Path(self.temp.name)/'second'
+        reference.mkdir();first.mkdir();second.mkdir();original=reference/'source.txt';original.write_text('same bytes',encoding='utf-8')
+        state=self.service.configure_file_workspace({'references':[str(reference)],'workspace':str(first)});files=FileWorkspace(self.store)
+        source=files.read(state['references'][0]['id'],'source.txt');saved=files.save('bound','Summary','bound summary',[source])
+        self.assertNotIn('same bytes',json.loads(saved['sources'])[0])
+        original.rename(reference/'renamed.txt');(reference/'source.txt').write_text('same bytes',encoding='utf-8')
+        self.assertEqual(files.search('bound summary'),[])
+        second.joinpath(saved['path']).write_text('unrelated workspace result',encoding='utf-8')
+        self.service.configure_file_workspace({'references':[str(reference)],'workspace':str(second)})
+        self.assertEqual(files.search('unrelated'),[])
+
     def test_file_workspace_recovers_published_pending_result_after_interruption(self):
         reference=Path(self.temp.name)/'reference';workspace=Path(self.temp.name)/'workspace';reference.mkdir();workspace.mkdir()
         state=self.service.configure_file_workspace({'references':[str(reference)],'workspace':str(workspace)})
@@ -409,6 +421,31 @@ finally:
         with patch('personal_agent.file_workspace.os.link',side_effect=OSError('disk full')): self.assertTrue(self.service.run_one())
         job=self.store.job(job_id)
         self.assertEqual(job['status'],'failed');self.assertIn('disk full',job['error']);self.assertEqual(list(workspace.glob('*.md')),[])
+
+    def test_natural_workspace_conversation_and_unapproved_history_boundary(self):
+        reference=Path(self.temp.name)/'reference';workspace=Path(self.temp.name)/'workspace';reference.mkdir();workspace.mkdir()
+        (reference/'source.txt').write_text('Aurora private source',encoding='utf-8')
+        state=self.service.configure_file_workspace({'references':[str(reference)],'workspace':str(workspace)})
+        self.model('compatible','http://127.0.0.1:11434/v1');self.assertTrue(self.service.test_model()['ok'])
+        summary=self.store.enqueue('“Aurora” 자료를 요약해 “Launch notes”로 저장해줘','natural-summary');self.service.run_one()
+        self.assertEqual(self.store.job(summary)['status'],'succeeded');self.assertTrue((workspace/'Launch notes.md').is_file())
+        self.assertIn(summary,self.store.config('file_workspace_document_jobs',[]))
+        files=FileWorkspace(self.store);source=files.read(state['references'][0]['id'],'source.txt');files.save('history-document','Stored','PRIVATE-DOCUMENT-TEXT',[source])
+        searched=self.store.enqueue('저장된 작업공간에서 “PRIVATE-DOCUMENT-TEXT” 찾아줘','natural-search');self.service.run_one()
+        self.assertIn('PRIVATE-DOCUMENT-TEXT',self.store.job(searched)['response'])
+        self.model('compatible','https://example.test/v1','test-key');self.assertTrue(self.service.test_model()['ok']);before=len(self.calls)
+        ordinary=self.store.enqueue('일반적인 다음 질문입니다.','ordinary-after-document');self.service.run_one()
+        self.assertEqual(self.store.job(ordinary)['status'],'succeeded')
+        self.assertNotIn('PRIVATE-DOCUMENT-TEXT',json.dumps(self.calls[before:],ensure_ascii=False))
+
+    def test_workspace_summary_remains_rejected_for_subscription_engine(self):
+        reference=Path(self.temp.name)/'reference';workspace=Path(self.temp.name)/'workspace';reference.mkdir();workspace.mkdir()
+        (reference/'source.txt').write_text('Aurora subscription boundary',encoding='utf-8')
+        self.service.configure_file_workspace({'references':[str(reference)],'workspace':str(workspace)})
+        self.store.put('subscription_engine',{'id':'codex','connected_at':0})
+        job_id=self.store.enqueue('“Aurora” 자료를 요약해 “Subscription”으로 저장해줘','subscription-workspace')
+        self.service.run_one();job=self.store.job(job_id)
+        self.assertEqual(job['status'],'failed');self.assertIn('구독 엔진',job['error']);self.assertEqual(list(workspace.glob('*.md')),[])
 
     def test_idempotent_requests_and_interrupted_recovery(self):
         task=self.store.enqueue('hello','same')
