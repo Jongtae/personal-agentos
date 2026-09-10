@@ -15,7 +15,7 @@ from urllib.error import HTTPError
 from urllib.parse import urlsplit, parse_qs
 from personal_agent.quickstart_store import QuickStore
 from personal_agent.quickstart_service import AgentService, TELEGRAM_RESULT_PREVIEW_CHARS
-from personal_agent.quickstart import make_handler, configured_service
+from personal_agent.quickstart import make_handler, configured_service, local_drive_secret_values
 from personal_agent.drive_web_oauth import DriveWebOAuthHandoff, EncryptedDriveSecretStore
 from cryptography.fernet import Fernet
 from personal_agent.providers import ModelAdapter, ProviderError
@@ -145,10 +145,36 @@ class QuickstartTests(unittest.TestCase):
         configured=configured_service(self.store, {
             'AGENTOS_DRIVE_LOCAL_ONLY':'1', 'AGENTOS_DRIVE_CLIENT_ID':'client',
             'AGENTOS_DRIVE_ENCRYPTION_KEY':Fernet.generate_key().decode(), 'AGENTOS_DRIVE_LOCAL_PORT':'9123',
-            'AGENTOS_DRIVE_CLIENT_SECRET':'never-return-this',
+            'AGENTOS_DRIVE_CLIENT_SECRET':'never-return-this', 'AGENTOS_DRIVE_PICKER_API_KEY':'restricted-key',
         })
         self.assertEqual(configured.drive_web_oauth.redirect_uri,'http://localhost:9123/oauth/google/callback')
+        self.assertTrue(configured.drive_web_oauth.begin(42)['button']['url'].startswith('https://agentos.localhost:9124/'))
         self.assertNotIn('never-return-this',json.dumps(configured.settings()))
+
+    def test_local_drive_requires_a_complete_picker_configuration(self):
+        env={'AGENTOS_DRIVE_LOCAL_ONLY':'1','AGENTOS_DRIVE_CLIENT_ID':'client',
+             'AGENTOS_DRIVE_ENCRYPTION_KEY':Fernet.generate_key().decode(),
+             'AGENTOS_DRIVE_CLIENT_SECRET':'secret'}
+        self.assertIsNone(configured_service(self.store,env).drive_web_oauth)
+        with tempfile.TemporaryDirectory() as external:
+            path=Path(external)/'drive.json'
+            path.write_text(json.dumps({'client_id':'client'}));path.chmod(0o600)
+            with self.assertRaisesRegex(ValueError,'every required'):
+                configured_service(self.store,{**env,'AGENTOS_DRIVE_SECRET_FILE':str(path)})
+
+    def test_owner_only_drive_secret_file_configures_without_environment_secrets(self):
+        with tempfile.TemporaryDirectory() as external:
+            path=os.path.join(external,'drive-secrets.json')
+            values={'client_id':'client','client_secret':'secret-not-exposed','picker_api_key':'restricted-key',
+                    'encryption_key':Fernet.generate_key().decode()}
+            with open(path,'w') as output: json.dump(values,output)
+            os.chmod(path,0o600)
+            configured=configured_service(self.store,{'AGENTOS_DRIVE_LOCAL_ONLY':'1','AGENTOS_DRIVE_SECRET_FILE':path})
+            self.assertEqual(configured.drive_web_oauth.client_id,'client')
+            self.assertEqual(configured.drive_picker_config['developer_key'],'restricted-key')
+            self.assertNotIn('secret-not-exposed',json.dumps(configured.settings()))
+            with self.assertRaises(ValueError):
+                local_drive_secret_values(self.store,{'AGENTOS_DRIVE_SECRET_FILE':str(self.store.root/'inside.json')})
 
     def test_drive_status_is_authenticated_and_redacted(self):
         self.store.claim(self.store.bootstrap.read_text(),'long-password-test')
@@ -179,6 +205,83 @@ class QuickstartTests(unittest.TestCase):
             self.assertNotIn(offer['state'], error.exception.read().decode())
         finally:
             server.shutdown();thread.join();server.server_close()
+
+    def test_loopback_alias_is_accepted_for_the_tls_drive_handoff(self):
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(self.service));thread=threading.Thread(target=server.serve_forever);thread.start()
+        try:
+            url='http://127.0.0.1:'+str(server.server_port)
+            with build_opener().open(Request(url+'/api/status',headers={'Host':'agentos.localhost:'+str(server.server_port)}),timeout=3) as response:
+                self.assertIn('claimed',json.load(response))
+        finally:
+            server.shutdown();thread.join();server.server_close()
+
+    def test_local_picker_page_uses_one_time_grant_without_server_oauth_token(self):
+        key=Fernet.generate_key()
+        drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(self.store,key),'web-client',
+            'http://localhost:8787/oauth/google/callback','http://localhost:8787',allow_localhost=True,local_only=True)
+        offer=drive.begin(123); state=parse_qs(urlsplit(offer['button']['url']).query)['state'][0]
+        drive.complete({'state':state,'code':'short-code'},123,lambda _:{'access_token':'server-only-token','scope':'https://www.googleapis.com/auth/drive.file'})
+        grant=drive.create_picker_grant(123)
+        service=AgentService(self.store,ModelAdapter(self.transport),self.transport,drive_web_oauth=drive)
+        service.drive_picker_config={'client_id':'web-client','developer_key':'restricted-browser-key','app_id':'123'}
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(service));thread=threading.Thread(target=server.serve_forever);thread.start()
+        try:
+            url='http://127.0.0.1:'+str(server.server_port)
+            with build_opener().open(url+'/google-drive-picker?grant='+grant,timeout=3) as response:
+                page=response.read().decode()
+                csp=response.headers['Content-Security-Policy']
+            self.assertIn('restricted-browser-key',page)
+            self.assertNotIn('server-only-token',page)
+            self.assertIn("/api/drive/picker-selection",page)
+            self.assertIn("'nonce-",csp)
+            self.assertNotIn("script-src 'self' 'unsafe-inline'",csp)
+            self.assertIn('<script nonce="',page)
+        finally:
+            server.shutdown();thread.join();server.server_close()
+
+    def test_drive_request_without_local_capability_never_falls_through_to_model(self):
+        self.model(); self.assertTrue(self.service.test_model()['ok']); self.calls.clear()
+        self.store.enqueue('구글 드라이브 연결해 보자','drive-not-configured',channel='telegram:g',chat_id=123)
+        self.assertTrue(self.service.run_one())
+        job=self.store.jobs()[0]
+        self.assertEqual(job['status'],'failed')
+        self.assertIn('not configured locally',job['error'])
+        self.assertFalse(any(url.endswith('/api/chat') for url, _body, _headers in self.calls))
+
+    def test_selected_drive_content_is_only_in_memory_for_the_model_turn(self):
+        key=Fernet.generate_key()
+        drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(self.store,key),'client',
+            'http://localhost:8787/oauth/google/callback','http://localhost:8787',allow_localhost=True,local_only=True)
+        offer=drive.begin(123); state=parse_qs(urlsplit(offer['button']['url']).query)['state'][0]
+        drive.complete({'state':state,'code':'code'},123,lambda _:{'access_token':'server-token','scope':'https://www.googleapis.com/auth/drive.file'})
+        drive.select_files(123,[{'id':'picked','name':'plan.txt'}])
+        service=AgentService(self.store,ModelAdapter(self.transport),self.transport,drive_web_oauth=drive)
+        service.drive_read=lambda _url,_body,_headers:b'private selected Drive plan body'
+        service.save_model({'provider':'ollama','endpoint':'http://127.0.0.1:11434','model':'test-model'})
+        self.assertTrue(service.test_model()['ok']); self.calls.clear()
+        job_id=self.store.enqueue('구글 드라이브 파일을 요약해줘','selected-drive',channel='telegram:g',chat_id=123)
+        self.assertTrue(service.run_one())
+        self.assertEqual(self.store.job(job_id)['status'],'succeeded')
+        self.assertNotIn('private selected Drive plan body',json.dumps(self.store.history()))
+        self.assertNotIn('private selected Drive plan body',json.dumps(self.store.jobs()))
+        self.assertNotIn('private selected Drive plan body',json.dumps(self.store.recent_tool_events()))
+        model_call=next(body for url,body,_headers in self.calls if url.endswith('/api/chat'))
+        self.assertIn('private selected Drive plan body',str(model_call))
+
+    def test_rejected_drive_read_requires_reauthentication(self):
+        key=Fernet.generate_key()
+        drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(self.store,key),'client',
+            'http://localhost:8787/oauth/google/callback','http://localhost:8787',allow_localhost=True,local_only=True)
+        offer=drive.begin(123); state=parse_qs(urlsplit(offer['button']['url']).query)['state'][0]
+        drive.complete({'state':state,'code':'code'},123,lambda _:{'access_token':'server-token','scope':'https://www.googleapis.com/auth/drive.file'})
+        drive.select_files(123,[{'id':'picked','name':'plan.txt'}])
+        service=AgentService(self.store,ModelAdapter(self.transport),self.transport,drive_web_oauth=drive)
+        def rejected(_url,_body,_headers):
+            raise HTTPError('https://www.googleapis.com/drive/v3/files/picked',401,'rejected',None,None)
+        service.drive_read=rejected
+        with self.assertRaisesRegex(ValueError,'다시 연결'):
+            service.selected_drive_context(123)
+        self.assertEqual(drive.status()['state'],'reauth-required')
 
     def test_workspace_is_opt_in_and_saved_results_survive_restart(self):
         workspace=self.service.create_workspace({'title':'UX 개선','purpose':'대화 경험 정리'})

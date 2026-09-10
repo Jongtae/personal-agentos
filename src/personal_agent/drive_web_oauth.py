@@ -9,8 +9,9 @@ import hashlib
 import hmac
 import json
 import secrets
+import threading
 import time
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, urlsplit
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -21,7 +22,9 @@ PENDING_KEY = "drive_web_oauth_pending"
 TOKEN_KEY = "drive_web_oauth_tokens"
 STATUS_KEY = "drive_web_oauth_status"
 SELECTED_FILES_KEY = "drive_web_oauth_selected_files"
+PICKER_GRANT_KEY = "drive_web_oauth_picker_grant"
 FILES_ENDPOINT = "https://www.googleapis.com/drive/v3/files"
+PICKER_GRANT_LOCK = threading.Lock()
 
 
 class DriveWebOAuthError(ValueError):
@@ -87,9 +90,17 @@ class DriveWebOAuthHandoff:
                  allow_localhost=False, local_only=False):
         if not all(isinstance(value, str) and value for value in (client_id, redirect_uri, handoff_url)):
             raise ValueError("Web OAuth client, callback, and HTTPS handoff URL are required.")
-        local_urls = all(url.startswith("http://localhost") for url in (handoff_url, redirect_uri))
+        callback, handoff = urlsplit(redirect_uri), urlsplit(handoff_url)
+        local_callback = callback.scheme == "http" and callback.hostname == "localhost"
+        # ``agentos.localhost`` is a browser-reserved loopback name.  Unlike
+        # bare ``localhost``, Telegram accepts it as an inline-button URL.
+        local_handoff = handoff.scheme in ("http", "https") and handoff.hostname in ("localhost", "agentos.localhost")
+        local_urls = local_callback and local_handoff
         if local_only and not local_urls:
-            raise ValueError("Local-only Drive OAuth requires localhost callback and handoff URLs.")
+            raise ValueError("Local-only Drive OAuth requires a localhost callback and handoff URL.")
+        # Telegram rejects an inline keyboard button with an HTTP localhost
+        # URL.  The local handoff may therefore be HTTPS while Google's
+        # loopback callback remains the explicitly allowed HTTP URL.
         if (not handoff_url.startswith("https://") or not redirect_uri.startswith("https://")) and not (allow_localhost and local_urls):
             raise ValueError("Web OAuth handoff and callback URLs must use HTTPS.")
         if not getattr(store, "encrypted_secrets", False):
@@ -97,6 +108,9 @@ class DriveWebOAuthHandoff:
         self.store, self.client_id = store, client_id
         self.redirect_uri, self.handoff_url = redirect_uri, handoff_url.rstrip("/")
         self.now, self.ttl_seconds = now, ttl_seconds
+        # A store can be reconstructed by another handler instance in the
+        # same runtime; this lock must therefore not be instance-local.
+        self._picker_grant_lock = PICKER_GRANT_LOCK
 
     def begin(self, telegram_owner_id, pending_job_id=None):
         if not isinstance(telegram_owner_id, int) or telegram_owner_id <= 0:
@@ -186,6 +200,50 @@ class DriveWebOAuthHandoff:
         self.store.put(SELECTED_FILES_KEY, {"owner": telegram_owner_id, "files": selected})
         self._record("files-selected")
         return {"state": "files-selected", "files": selected}
+
+    def create_picker_grant(self, telegram_owner_id):
+        """Mint a short-lived, one-use browser grant after OAuth succeeds.
+
+        This is deliberately *not* an OAuth token.  It lets the local Picker
+        page submit only the owner's selected file identifiers and is kept in
+        the encrypted secret store so neither status APIs nor the ordinary
+        local database reveal it.
+        """
+        self._connected(telegram_owner_id)
+        value = {"grant": secrets.token_urlsafe(32), "owner": telegram_owner_id,
+                 "expires_at": self.now() + self.ttl_seconds, "used": False}
+        self.store.secret(PICKER_GRANT_KEY, value)
+        self._record("picker-offered")
+        return value["grant"]
+
+    def select_files_for_grant(self, grant, files):
+        with self._picker_grant_lock:
+            value = self.store.secret(PICKER_GRANT_KEY)
+            if (not isinstance(grant, str) or not isinstance(value, dict)
+                    or value.get("used") or not secrets.compare_digest(grant, str(value.get("grant", "")))):
+                raise DriveWebOAuthError("Google Drive file-selection link is invalid or already used.")
+            if self.now() >= value.get("expires_at", 0):
+                self.store.secret(PICKER_GRANT_KEY, {"used": True})
+                raise DriveWebOAuthError("Google Drive file-selection link expired; request a new link.")
+            owner = value.get("owner")
+            if not isinstance(owner, int):
+                raise DriveWebOAuthError("Google Drive file-selection link is invalid.")
+            # Consume before accepting metadata while holding the local server
+            # lock, so concurrent browser tabs cannot replace the selection.
+            self.store.secret(PICKER_GRANT_KEY, {"used": True})
+            return owner, self.select_files(owner, files)
+
+    def mark_reauthentication_required(self):
+        """Invalidate a rejected remote token before offering another link."""
+        self.store.secret(TOKEN_KEY, {})
+        self.store.put(SELECTED_FILES_KEY, {})
+        self._finish("reauth-required")
+
+    def picker_grant_active(self, grant):
+        value = self.store.secret(PICKER_GRANT_KEY)
+        return (isinstance(grant, str) and isinstance(value, dict)
+                and not value.get("used") and self.now() < value.get("expires_at", 0)
+                and secrets.compare_digest(grant, str(value.get("grant", ""))))
 
     def assert_selected(self, telegram_owner_id, file_id):
         self._connected(telegram_owner_id)
