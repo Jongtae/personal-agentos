@@ -58,11 +58,14 @@ class DeliveryTests(unittest.TestCase):
         plan['next_goal']={'id':'TOP','status':'active'}
         (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
 
-    def test_completed_file_workspace_program_stays_complete_when_a_separate_goal_is_active(self):
+    def test_owner_deferred_site_does_not_select_successor_or_claim_completion(self):
         controller=self.controller()
-        self.assertEqual(controller.plan.next_goal()['status'], 'active')
-        self.assertEqual(controller.plan.next_goal()['id'], 'SITE-01')
-        self.assertEqual(controller.plan.select({})['id'], 'SITE-01')
+        self.assertEqual(controller.plan.next_goal()['status'], 'requires-explicit-owner-approval')
+        self.assertIsNone(controller.plan.next_goal()['id'])
+        self.assertIsNone(controller.plan.select({}))
+        self.assertIsNone(controller.plan.select({'active':'SITE-01'}))
+        self.assertEqual(controller.plan.items['SITE-01']['activation_status'], 'owner-deferred')
+        self.assertNotIn('SITE-01', controller.plan.documented_completed())
         self.assertIsNone(controller.plan.data['programs']['FILE-WORKSPACE-01']['active_substep'])
         self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['status'], 'complete')
         self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['issue'], 314)
@@ -75,6 +78,16 @@ class DeliveryTests(unittest.TestCase):
         self.assertIn('FILE-WS-C-01', controller.plan.documented_completed())
         self.assertNotIn('DRIVE-LOCAL-OP-01', controller.plan.documented_completed())
         self.assertNotIn('SCN-I-01', controller.plan.documented_completed())
+
+    def test_deferred_site_waits_without_external_commands(self):
+        runner=Runner()
+        result=self.controller(runner).run_once(dry_run=True)
+        self.assertEqual(result['status'], 'awaiting-owner-activated-goal')
+        self.assertEqual(runner.calls, [])
+        altered=json.loads((self.root/'delivery-plan.yaml').read_text())
+        altered['next_goal']={'id':'SITE-01','status':'active'}
+        (self.root/'delivery-plan.yaml').write_text(json.dumps(altered))
+        self.assertIsNone(DeliveryPlan(self.root/'delivery-plan.yaml').select({}))
 
     def test_file_workspace_contract_uses_the_canonical_plan_substep_ids(self):
         root=Path(__file__).parents[1]

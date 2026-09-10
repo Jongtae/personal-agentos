@@ -2,11 +2,11 @@
 
 Active work is executed only from a goal-ready issue and active delivery-plan entry under the [Goal Execution Contract](docs/goal-execution-contract.en.md). Status tables are trackers, not authority to activate reserved work.
 
-## Active — Product information and policy site
+## Deferred — Product information and policy site
 
 | Work unit | Issue | Status |
 | --- | --- | --- |
-| SITE-01: static product, installation, privacy, and terms site | [#313](https://github.com/Jongtae/personal-agentos/issues/313) | Active. PR #327 merged the static bilingual pages and manual-only Pages workflow with automated boundary checks. GitHub Pages is not configured (read-only API returned 404), and no public URL, domain, Google registration, legal operator identity, support contact, or effective date is claimed. |
+| SITE-01: static product, installation, privacy, and terms site | [#313](https://github.com/Jongtae/personal-agentos/issues/313) | Closed as not planned by owner priority decision. PR #327's static bilingual pages and manual-only Pages workflow are preserved; remaining public deployment is deferred, not completed. Operator identity, support contact, effective date, hosting/domain choice and any Google verification require a new explicit owner decision. No active successor is selected. |
 
 ## Completed — File-and-folder personal workspace program
 
@@ -16,7 +16,7 @@ Active work is executed only from a goal-ready issue and active delivery-plan en
 | FILE-WS-B-01: first integrated file experience | [#315](https://github.com/Jongtae/personal-agentos/issues/315) | Complete (PR #320 merged). |
 | FILE-WS-C-01: validation, review, and closeout | [#316](https://github.com/Jongtae/personal-agentos/issues/316) | Complete after the merged #320 evidence audit, independent reviews, required CI, and this closeout record. |
 
-Drive #308/#310/#312 are closed/deferred optional connector work, not predecessors of FILE-WS. Merged PR #311 preserves its bounded local implementation but does not claim live Drive, OAuth, or Telegram operation. #313 remains a separate product/policy-site workstream.
+Drive #308/#310/#312 are closed/deferred optional connector work, not predecessors of FILE-WS. Merged PR #311 preserves its bounded local implementation but does not claim live Drive, OAuth, or Telegram operation. #313's remaining product/policy-site publication is owner-deferred; its existing source is preserved.
 
 ## Completed repository maintenance
 
@@ -123,7 +123,7 @@ The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) recor
 
 ## Historical: Telegram Conversation UX v1.2
 
-[UX-06 / #162](https://github.com/Jongtae/personal-agentos/issues/162) is delivered historical work. It makes the paired Telegram chat a deliberate assistant conversation: a concise acknowledgement, progress only when needed, one readable terminal answer, optional detail, and private owner-bound actions with truthful recovery.
+[UX-06 / #162](https://github.com/Jongtae/personal-agentos/issues/162) is delivered historical work. It makes the paired Telegram chat a deliberate assistant conversation: a concise acknowledgement, progress only when needed, one readable terminal answer, owner-requested detail, and private owner-bound actions with truthful recovery.
 
 ### UX-06 — Telegram conversation bubbles
 
