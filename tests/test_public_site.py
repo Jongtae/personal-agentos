@@ -39,5 +39,6 @@ def test_pages_deployment_is_manual_until_operator_details_are_confirmed():
 def test_privacy_page_explains_separate_local_deletion_and_provider_revocation():
     privacy = (SITE / "privacy.html").read_text(encoding="utf-8")
     assert "Delete local data and revoke access" in privacy
+    assert "operating system’s file-management tools" in privacy
     assert "provider revocation are separate actions" in privacy
     assert "로컬 삭제와 제공자 권한 철회는 서로 다른 작업" in privacy
