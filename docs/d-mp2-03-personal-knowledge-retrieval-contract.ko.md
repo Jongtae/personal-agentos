@@ -32,4 +32,4 @@ owner-local audit에는 timestamp, owner-scoped opaque retrieval reference, sour
 
 ## I-MP2-03 진입 계약
 
-I-MP2-03는 이 design PR merge, issue close, bilingual plan/ledger check, 새 goal-ready issue 뒤에만 활성화한다. fixture-backed deterministic owner-local retrieval, source evidence/redaction, audit/export/restore safety, HTTP/Telegram/local-companion parity를 구현해야 한다. external index/provider/connection/credential/OAuth/automatic long-term memory/document ingestion/external sharing-action/operating-mode behavior는 모두 제외한다.
+I-MP2-03는 이 design PR merge, issue close, 영어 원본 문서/plan/ledger check, 새 goal-ready issue 뒤에만 활성화한다. fixture-backed deterministic owner-local retrieval, source evidence/redaction, audit/export/restore safety, HTTP/Telegram/local-companion parity를 구현해야 한다. external index/provider/connection/credential/OAuth/automatic long-term memory/document ingestion/external sharing-action/operating-mode behavior는 모두 제외한다.

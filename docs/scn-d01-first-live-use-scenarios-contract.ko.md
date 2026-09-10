@@ -1,5 +1,7 @@
 # SCN-D-01 — 첫 실제 사용 시나리오 계약
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](scn-d01-first-live-use-scenarios-contract.en.md)을 따른다.
+
 ## 목표와 범위
 
 이 계약은 소유자가 의도적으로 수행하는 두 AgentOS 여정을 정의한다. 이는 설계 계약일 뿐이다. 로컬·출처 표시·승인 경로와 구현 증거를 정하지만 provider 구성, 로그인, connection 생성, 메시지 전송 또는 외부 서비스의 실사용을 주장하지 않는다.
@@ -36,4 +38,4 @@ Audit는 opaque request/draft/action reference, source/capability category, appr
 
 ## SCN-I-01 진입 계약
 
-SCN-I-01은 이 계약이 merge되고 #301이 close되며 bilingual contract/plan check가 통과하고 새 goal-ready implementation issue가 생성된 뒤에만 활성화할 수 있다. owner/channel binding, source eligibility/attribution, summary/translation draft generation, recipient ambiguity, exact-preview binding, final-approval one-time use, duplicate/cancel/expiry, unavailable capability, send failure, delivery uncertainty, audit/export redaction, restore/no-replay, Telegram/local-companion parity에 대한 deterministic fixture를 구현해야 한다. 별도 승인된 operating-mode evidence 없이는 실제 KakaoTalk integration을 활성화하거나 운영해서는 안 된다.
+SCN-I-01은 이 영어 원본 계약이 merge되고 #301이 close되며 영어 원본 contract/plan check가 통과하고 새 goal-ready implementation issue가 생성된 뒤에만 활성화할 수 있다. owner/channel binding, source eligibility/attribution, summary/translation draft generation, recipient ambiguity, exact-preview binding, final-approval one-time use, duplicate/cancel/expiry, unavailable capability, send failure, delivery uncertainty, audit/export redaction, restore/no-replay, Telegram/local-companion parity에 대한 deterministic fixture를 구현해야 한다. 별도 승인된 operating-mode evidence 없이는 실제 KakaoTalk integration을 활성화하거나 운영해서는 안 된다.

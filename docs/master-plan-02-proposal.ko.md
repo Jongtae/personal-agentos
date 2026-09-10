@@ -1,5 +1,7 @@
 # Master Plan 2 — 대화 우선 설정
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](master-plan-02-proposal.en.md)을 따른다.
+
 ## 상태
 
 **상태: automated mock-contract evidence로 development complete; 후속 후보 미선정.** 선택된 대화 우선 설정 제안은 D-MP2-01/I-MP2-01로, 검토된 capability 추천은 D-MP2-02/I-MP2-02로, 소유자 로컬 지식 retrieval은 D-MP2-03/I-MP2-03로 완료되었다. Live connection이나 운영 모드 capability는 주장하지 않는다. 이후 MP2 후보는 active가 아니며 이 문서가 선택할 수 없다.

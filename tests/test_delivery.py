@@ -78,12 +78,11 @@ class DeliveryTests(unittest.TestCase):
 
     def test_file_workspace_contract_uses_the_canonical_plan_substep_ids(self):
         root=Path(__file__).parents[1]
-        for language in ('en', 'ko'):
-            contract=(root/'docs'/f'file-workspace-first-experience-contract.{language}.md').read_text()
-            self.assertIn('FILE-WS-A-01', contract)
-            self.assertIn('FILE-WS-B-01', contract)
-            self.assertIn('FILE-WS-C-01', contract)
-            self.assertNotIn('FILE-UX-', contract)
+        contract=(root/'docs'/'file-workspace-first-experience-contract.en.md').read_text()
+        self.assertIn('FILE-WS-A-01', contract)
+        self.assertIn('FILE-WS-B-01', contract)
+        self.assertIn('FILE-WS-C-01', contract)
+        self.assertNotIn('FILE-UX-', contract)
 
     def test_handoff_entrypoint_dispatches_only_injected_bounded_worker(self):
         self.activate_governance_goal()

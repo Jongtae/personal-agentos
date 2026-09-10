@@ -1,5 +1,7 @@
 # Goal 실행 계약
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](goal-execution-contract.en.md)을 따른다.
+
 ## 목적
 
 이 계약은 활성 AgentOS 작업 항목을 agent goal로 실행 가능하게 만든다. Goal은 문서 제목을 되풀이하는 것이 아니라, 권위 있는 출처·허용된 권한·관찰 가능한 증거·정직한 종료 조건을 갖는 제한된 약속이다.
@@ -57,7 +59,7 @@ Goal이 security, recovery, external boundary, automation/authority control, com
 
 ## 설계–구현 추적성
 
-완료된 설계 contract는 interface와 acceptance boundary가 명세되었다는 증거일 뿐 capability가 존재한다는 증거는 아니다. 모든 Master Plan 설계 entry는 의존 구현 entry와 한·영 동등 contract를 이름으로 지정해야 한다. 구현 entry는 설계로 다시 연결되고 automated evidence를 선언해야 하며, goal-ready issue가 권한을 부여할 때까지 비활성으로 남는다.
+완료된 설계 contract는 interface와 acceptance boundary가 명세되었다는 증거일 뿐 capability가 존재한다는 증거는 아니다. 모든 Master Plan 설계 entry는 의존 구현 entry와 영어 원본 contract를 이름으로 지정해야 한다. 구현 entry는 설계로 다시 연결되고 automated evidence를 선언해야 하며, goal-ready issue가 권한을 부여할 때까지 비활성으로 남는다.
 
 Delivery-plan verifier는 이 mapping이 없는 설계를 거절한다. 또한 선언된 모든 구현이 mapped automated evidence와 함께 documented complete가 아니면 Master Plan 또는 capability의 `development_complete` claim을 거절한다. `design_complete`, `in_progress`, `requires-goal-ready-issue`는 의도적으로 더 좁은 상태이며, 사용자 표시 capability 완료 또는 운영 claim으로 표현해서는 안 된다.
 

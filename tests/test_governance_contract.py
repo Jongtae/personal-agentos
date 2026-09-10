@@ -44,7 +44,7 @@ def test_agents_declares_permanent_autonomous_delivery_guards() -> None:
     _assert_any(agents, "accepted setting", "tool-accepted setting")
 
 
-def test_bilingual_goal_contracts_define_equivalent_delegation_guards() -> None:
+def test_english_goal_contract_is_canonical_and_korean_reference_links_to_it() -> None:
     english = _read("docs/goal-execution-contract.en.md")
     korean = _read("docs/goal-execution-contract.ko.md")
 
@@ -57,27 +57,16 @@ def test_bilingual_goal_contracts_define_equivalent_delegation_guards() -> None:
         "requirement-to-evidence audit",
     )
     _assert_all(
-        korean,
-        "## 위임 및 독립 검토",
-        "요청·수락·관찰",
-        "이미 열거되고 dependency가 충족된 substep",
-        "최상위 Goal",
-        "요구사항-증거 audit",
+        english,
+        "goal-ready",
+        "allowed authority",
+        "non-goals",
+        "evidence",
+        "completion",
+        "blocked",
+        "automation",
     )
-
-    # Stable lifecycle concepts must remain present in both translations even if
-    # surrounding prose is edited independently.
-    for document in (english, korean):
-        _assert_all(
-            document,
-            "goal-ready",
-            "allowed authority",
-            "non-goals",
-            "evidence",
-            "completion",
-            "blocked",
-            "automation",
-        )
+    _assert_all(korean, "과거 참고용 한국어 번역본", "](" + "goal-execution-contract.en.md" + ")")
 
 
 def test_iteration_issue_template_collects_the_execution_contract() -> None:

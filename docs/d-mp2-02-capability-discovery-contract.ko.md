@@ -34,4 +34,4 @@ ranking은 설명 가능하고 결정적이다: exact declared outcome tag, owne
 
 ## I-MP2-02 진입 계약
 
-I-MP2-02는 이 design PR merge, issue close, bilingual plan/ledger check, 새 goal-ready implementation issue 뒤에만 활성화할 수 있다. 최소 범위는 fixture-backed owner-local reviewed catalogue, deterministic ranking, redaction, audit/export/restore safety, HTTP/Telegram/local-companion parity를 가진 read-only recommendation model이다. 모든 installation, activation, connection, permission, scope, credential, OAuth, external action, operating-mode behavior는 제외한다.
+I-MP2-02는 이 design PR merge, issue close, 영어 원본 문서/plan/ledger check, 새 goal-ready implementation issue 뒤에만 활성화할 수 있다. 최소 범위는 fixture-backed owner-local reviewed catalogue, deterministic ranking, redaction, audit/export/restore safety, HTTP/Telegram/local-companion parity를 가진 read-only recommendation model이다. 모든 installation, activation, connection, permission, scope, credential, OAuth, external action, operating-mode behavior는 제외한다.

@@ -1,5 +1,7 @@
 # DRIVE-TG-01 — Telegram Drive 웹 OAuth 계약
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](drive-telegram-web-oauth-contract.en.md)을 따른다.
+
 ## 사용자 흐름
 
 연결되지 않은 상태에서 연결된 Telegram 사용자가 Drive 자료를 요청하면 AgentOS는 HTTPS `Google Drive 연결하기` 버튼을 보낸다. 사용자는 일반 브라우저에서 직접 Google 로그인·동의를 수행하고, Telegram에서 민감정보 없는 연결 결과를 확인한다. Telegram 내장 브라우저는 OAuth 신뢰 경계가 아니다.

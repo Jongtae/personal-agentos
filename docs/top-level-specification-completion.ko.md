@@ -1,5 +1,7 @@
 # 최상위 명세 완결
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](top-level-specification-completion.en.md)을 따른다.
+
 ## 상태와 권한
 
 **상태: development complete; #282에서 TOP issue #265 행정 마감. 활성 후속 목표 없음.** immutable deployment candidate는 `53912eeb1357ced37031234b1e5376f024dd0a96`이고 해당 `main` `validate` run `34204797899`가 통과했다. Archived plan과 legacy `agentos/PRD.md` prototype은 historical input이며 구현 범위가 아니다.
@@ -37,7 +39,7 @@
 
 | ID | 결과 | 선행조건 | 완료 evidence |
 | --- | --- | --- | --- |
-| TOP-00 | Inventory, governance transition, status-source reconciliation | #265 active | Complete: PR #266과 #270, bilingual inventory, plan/controller/template check, CI |
+| TOP-00 | Inventory, governance transition, status-source reconciliation | #265 active | Complete: PR #266과 #270, historical inventory, plan/controller/template check, CI |
 | TOP-01 | Exact credential-free deployment candidate와 Compose lifecycle proof | TOP-00 merged | Complete: PR #272 / runtime merge `410a003a1332ceb2ec6dd32a74146b0422ac1d42`, actual isolated build/health/recreate/restore/cleanup, required CI, independent review |
 | TOP-02 | Full current product integration regression 및 defect repair | TOP-01 candidate | Complete: PR #275와 #277, full fixture, isolated API connection regression, independent review |
 | TOP-03 | Final requirement-to-evidence audit와 owner operating checklist | TOP-02 merged | Complete: candidate `53912eeb1357ced37031234b1e5376f024dd0a96`, main validate `34204797899`, mechanical claim gate, unresolved development review finding 없음 |

@@ -1,5 +1,7 @@
 # 개발 거버넌스 — Contract-First Delivery
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](development-governance.en.md)을 따른다.
+
 ## 목적
 
 AgentOS는 contract-first delivery와 자동 품질 gate를 사용한다. 모든 변경에서 사람이 모든 기능이나 third-party 서비스를 직접 반복 시험하지 않아도 빠르고 재현 가능하게 개발하기 위한 방식이다.
@@ -11,7 +13,7 @@ AgentOS는 contract-first delivery와 자동 품질 gate를 사용한다. 모든
 1. **Contract-first development.** 모든 capability는 구현 전에 사용자 결과, 경계, 입력, 출력, 실패 상태, 데이터 분류, 비목표를 정의한다.
 2. **Consumer-driven contract testing.** AgentOS adapter는 자신이 소비하는 정확한 외부 요청/응답 contract를 표현한 versioned fixture와 test double로 검증한다.
 3. **Test-pyramid automation.** 대부분의 검증은 작은 unit·component test에 두고, 더 적은 수의 test로 로컬 통합과 제품 end-to-end 흐름을 확인한다. UI나 수동 broad-stack test는 기본 release gate가 아니다.
-4. **Continuous-integration quality gate.** 모든 pull request는 merge 전에 결정적인 formatting, local-link, 한·영 parity, contract-fixture, 관련 자동 테스트를 실행한다.
+4. **Continuous-integration quality gate.** 모든 pull request는 merge 전에 결정적인 formatting, 영어 원본 문서 존재, local-link, contract-fixture, 관련 자동 테스트를 실행한다. 과거 번역본은 영어 원본 링크를 유지하되 번역 일치는 merge gate가 아니다.
 
 ## 개발 완료 규칙
 

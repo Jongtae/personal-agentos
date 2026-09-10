@@ -1,5 +1,7 @@
 # 개인 AI 비서 비전
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](personal-ai-assistant-vision.en.md)을 따른다.
+
 ## 목적과 상태
 
 이 문서는 AgentOS의 장기 북극성이다. 현재 출시되었거나 실제 검증된 기능 목록이 아니며, 지원 여부는 [현재 로드맵](roadmap.md)과 이름이 지정된 acceptance evidence로만 판단한다.

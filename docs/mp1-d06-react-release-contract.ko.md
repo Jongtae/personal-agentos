@@ -1,5 +1,7 @@
 # MP1 D-06 — Integrated ReAct Policy and Release Contract
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](mp1-d06-react-release-contract.en.md)을 따른다.
+
 ## 정책
 
 Personal Assistant Core는 제한된 ReAct loop를 따른다. 소유자 결과를 해석하고, 소유자 로컬 Personal Space를 살피고, enable된 검토 capability만 선택하고, redacted evidence를 관찰한 뒤 답변·승인 요청·복구 중 하나를 한다. Model 제안을 A2A 호출이나 Calendar 생성 권한으로 취급하지 않는다.

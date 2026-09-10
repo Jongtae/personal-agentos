@@ -54,8 +54,8 @@ compatibility with existing owner data and performs no destructive migration.
 
 ## First implementation contract
 
-FILE-WS-B-01 (#315) may activate only after this contract and its bilingual
-counterpart merge and its goal-ready issue remains current. It must integrate the existing conversation
+FILE-WS-B-01 (#315) may activate only after this English canonical contract
+merges and its goal-ready issue remains current. It must integrate the existing conversation
 path, not only a demo script. TXT/MD are the initial validated formats; an
 already-supported format may be reused only within its tested boundary.
 

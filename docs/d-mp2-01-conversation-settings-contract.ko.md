@@ -81,6 +81,6 @@ Search는 label과 redacted description만 색인한다. 모든 수동 control�
 
 ## I-MP2-01 진입 계약
 
-I-MP2-01은 이 D-MP2-01 PR이 merge되고 issue가 close되며 한·영 문서/plan/ledger check가 통과하고, 새 goal-ready 구현 issue가 생긴 뒤에만 활성화할 수 있다. 범위는 R0 settings read, R1/R2 lifecycle draft·confirm·cancel·expiry·idempotency·audit·recovery, HTTP/Telegram parity, 로컬 보조 화면 read/navigation model이다.
+I-MP2-01은 이 D-MP2-01 PR이 merge되고 issue가 close되며 영어 원본 문서/plan/ledger check가 통과하고, 새 goal-ready 구현 issue가 생긴 뒤에만 활성화할 수 있다. 범위는 R0 settings read, R1/R2 lifecycle draft·confirm·cancel·expiry·idempotency·audit·recovery, HTTP/Telegram parity, 로컬 보조 화면 read/navigation model이다.
 
 I-MP2-01은 실제 OAuth/credential/provider activation, 새 scope, capability 설치, marketplace 동작, arbitrary setting, 외부 action, 모든 R3 mutation을 제외한다. Automated fixture는 vocabulary class별 동작, ambiguity, foreign/expired/replayed confirmation, stale state, duplicate submission, lifecycle rejection, channel parity, redaction, export/restore, manual-view/controller parity를 다뤄야 한다. 운영 모드 구성은 이후 별도로 승인된 goal에 남긴다.

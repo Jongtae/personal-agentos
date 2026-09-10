@@ -1,5 +1,7 @@
 # MP1 보완 계획 — 제품 통합 요구사항
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](mp1-remediation.en.md)을 따른다.
+
 ## 상태
 
 **상태: complete remediation (mock-contract validated).** 기존 D-01부터 I-06 작업은 경계 contract와 분리된 mock adapter를 만들었다. 이어서 R-01부터 R-05가 각각의 자동 acceptance와 함께 병합되어 정책 소유 개인 비서 제품 흐름을 증명했다. 이는 개발 근거일 뿐이며, 운영 모드 배포는 별도다.

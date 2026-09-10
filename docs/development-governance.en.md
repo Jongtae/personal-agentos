@@ -11,7 +11,7 @@ The governance combines four complementary practices:
 1. **Contract-first development.** Every capability defines its user outcome, boundary, inputs, outputs, failure states, data classification, and non-goals before implementation.
 2. **Consumer-driven contract testing.** An AgentOS adapter is tested against versioned fixtures and test doubles that represent the precise external request/response contract it consumes.
 3. **Test-pyramid automation.** Most coverage is focused unit and component testing; a smaller set verifies local integration and end-to-end product flows. UI or manual broad-stack testing is never the default release gate.
-4. **Continuous-integration quality gates.** Every pull request runs deterministic formatting, local-link, bilingual-parity, contract-fixture, and relevant automated tests before it can merge.
+4. **Continuous-integration quality gates.** Every pull request runs deterministic formatting, canonical-document existence, local-link, contract-fixture, and relevant automated tests before it can merge. Historical translations must link to their English canonical source; translation parity is not a merge gate.
 
 ## Development completion rule
 

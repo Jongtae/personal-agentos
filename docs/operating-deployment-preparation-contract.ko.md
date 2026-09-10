@@ -1,5 +1,7 @@
 # 소유자 승인 운영 배포 준비 계약
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](operating-deployment-preparation-contract.en.md)을 따른다.
+
 ## 상태와 결과
 
 `OP-01`과 `OP-02`는 과거 preparation/remediation evidence일 뿐이다. `v1.0.4`가 지원 candidate라는 과거 주장은 stabilization과 isolated-engine 작업보다 앞선 tag이므로 unsupported이며 배포하지 말아야 한다. TOP-01은 이후 credential-free Compose lifecycle을 증명했고 TOP-02는 configured isolated-Codex connection path를 정정했다. 지원되는 exact candidate는 current verification evidence가 기록된 TOP-03 closeout에서만 명시한다. architecture는 별도 isolated engine, 전용 profile, capability-limited read-only MCP boundary, default-deny limited CONNECT egress proxy를 선언한다. engine에는 직접 external network가 없고 proxy만 provider-egress network로 연결되며, 정확히 owner allowlist에 포함된 DNS hostname의 443 port만 허용한다.
