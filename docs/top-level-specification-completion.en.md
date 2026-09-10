@@ -37,7 +37,7 @@ The top-level Goal stays active while an approved row below has a safe next acti
 
 | ID | Outcome | Preconditions | Completion evidence |
 | --- | --- | --- | --- |
-| TOP-00 | Inventory, governance transition, and status-source reconciliation | #265 active | Complete: PRs #266 and #270, bilingual inventory, plan/controller/template checks, CI |
+| TOP-00 | Inventory, governance transition, and status-source reconciliation | #265 active | Complete: PRs #266 and #270, historical inventory, plan/controller/template checks, CI |
 | TOP-01 | Exact credential-free deployment candidate and Compose lifecycle proof | TOP-00 merged | Complete: PR #272 / runtime merge `410a003a1332ceb2ec6dd32a74146b0422ac1d42`, actual isolated build/health/recreate/restore/cleanup, required CI, independent review |
 | TOP-02 | Full current product integration regression and defect repair | TOP-01 candidate | Complete: PR #275 and #277; full fixtures, isolated API connection regression, independent review |
 | TOP-03 | Final requirement-to-evidence audit and owner operating checklist | TOP-02 merged | Complete: candidate `53912eeb1357ced37031234b1e5376f024dd0a96`, main validate `34204797899`, mechanical claim gate, no unresolved development review finding |

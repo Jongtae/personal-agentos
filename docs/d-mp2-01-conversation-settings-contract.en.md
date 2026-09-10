@@ -81,6 +81,6 @@ Search indexes labels and redacted descriptions only. Every manual control opens
 
 ## I-MP2-01 entry contract
 
-I-MP2-01 may activate only after this D-MP2-01 PR merges, its issue is closed, the bilingual document/plan/ledger checks pass, and a new goal-ready implementation issue is created. Its scope is R0 settings reads; R1/R2 lifecycle draft, confirm, cancel, expiry, idempotency, audit and recovery; HTTP/Telegram parity; and the local companion read/navigation model.
+I-MP2-01 may activate only after this D-MP2-01 PR merges, its issue is closed, the canonical-document/plan/ledger checks pass, and a new goal-ready implementation issue is created. Its scope is R0 settings reads; R1/R2 lifecycle draft, confirm, cancel, expiry, idempotency, audit and recovery; HTTP/Telegram parity; and the local companion read/navigation model.
 
 I-MP2-01 excludes real OAuth/credentials/provider activation, new scopes, capability installation, marketplace behavior, arbitrary settings, external actions, and any R3 mutation. Its automated fixtures must cover every vocabulary class, ambiguity, foreign/expired/replayed confirmation, stale state, duplicate submission, lifecycle rejection, channel parity, redaction, export/restore, and manual-view/controller parity. Operating-mode configuration remains a later separately authorized goal.

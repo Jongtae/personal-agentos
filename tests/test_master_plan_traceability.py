@@ -2,6 +2,7 @@ import copy
 import importlib.util
 import json
 from pathlib import Path
+import tempfile
 
 import pytest
 
@@ -20,6 +21,42 @@ def plan():
 
 def test_every_master_plan_design_has_a_named_implementation_contract_and_evidence():
     VERIFIER.verify_traceability(plan())
+
+
+def test_historical_korean_reference_needs_canonical_link_but_not_heading_parity():
+    with tempfile.TemporaryDirectory() as directory:
+        documents = Path(directory)
+        (documents / "canonical.en.md").write_text("# Canonical\n## Boundary\n")
+        (documents / "reference.ko.md").write_text(
+            "# 참고\n\n[영어 원본](canonical.en.md)\n\n## 하나\n## 둘\n"
+        )
+        VERIFIER.verify_document_references(
+            documents, (("reference.ko.md", "canonical.en.md"),)
+        )
+
+        (documents / "reference.ko.md").write_text("# 참고\n## 추가 참고\n")
+        with pytest.raises(SystemExit, match="lacks English canonical link"):
+            VERIFIER.verify_document_references(
+                documents, (("reference.ko.md", "canonical.en.md"),)
+            )
+
+
+def test_reference_registry_rejects_an_omitted_pair_and_its_missing_link():
+    with tempfile.TemporaryDirectory() as directory:
+        documents = Path(directory)
+        for stem in ("registered", "omitted"):
+            (documents / f"{stem}.en.md").write_text("# Canonical\n")
+            (documents / f"{stem}.ko.md").write_text(
+                f"# 참고\n\n[영어 원본]({stem}.en.md)\n"
+            )
+        registered = (("registered.ko.md", "registered.en.md"),)
+        with pytest.raises(SystemExit, match="does not cover every eligible internal pair"):
+            VERIFIER.verify_reference_registry(documents, registered, exclusions=())
+        (documents / "omitted.ko.md").write_text("# 참고\n")
+        with pytest.raises(SystemExit, match="lacks English canonical link"):
+            VERIFIER.verify_document_references(
+                documents, (("omitted.ko.md", "omitted.en.md"),)
+            )
 
 
 def test_design_only_work_cannot_be_promoted_to_development_complete():

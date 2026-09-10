@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the bilingual Master Plan documents remain structurally equivalent."""
+"""Verify canonical internal documents and their historical Korean references."""
 from pathlib import Path
 import re
 import json
@@ -7,11 +7,16 @@ import json
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
-PAIRS = (
+TRANSLATION_REFERENCES = (
     ("personal-ai-assistant-vision.ko.md", "personal-ai-assistant-vision.en.md"),
     ("master-plan-01-personal-assistant-core.ko.md", "master-plan-01-personal-assistant-core.en.md"),
     ("master-plan-02-proposal.ko.md", "master-plan-02-proposal.en.md"),
+    ("d-mp2-01-conversation-settings-contract.ko.md", "d-mp2-01-conversation-settings-contract.en.md"),
+    ("d-mp2-02-capability-discovery-contract.ko.md", "d-mp2-02-capability-discovery-contract.en.md"),
+    ("d-mp2-03-personal-knowledge-retrieval-contract.ko.md", "d-mp2-03-personal-knowledge-retrieval-contract.en.md"),
     ("mp1-d01-personal-space-contract.ko.md", "mp1-d01-personal-space-contract.en.md"),
+    ("mp1-d02-capability-lifecycle.ko.md", "mp1-d02-capability-lifecycle.en.md"),
+    ("mp1-d03-drive-contract.ko.md", "mp1-d03-drive-contract.en.md"),
     ("development-governance.ko.md", "development-governance.en.md"),
     ("goal-execution-contract.ko.md", "goal-execution-contract.en.md"),
     ("top-level-specification-completion.ko.md", "top-level-specification-completion.en.md"),
@@ -26,6 +31,11 @@ PAIRS = (
     ("drive-telegram-web-oauth-contract.ko.md", "drive-telegram-web-oauth-contract.en.md"),
     ("file-workspace-first-experience-contract.ko.md", "file-workspace-first-experience-contract.en.md"),
 )
+KOREAN_REFERENCE_EXCLUSIONS = {
+    "agentos-hub-v2.ko.md", "b3os-design-reference.ko.md", "context-capture-idea.ko.md",
+    "first-milestone-report.ko.md", "ux-06-telegram-conversation.ko.md",
+    "ux-v1.1-personal-agent-dm.ko.md",
+}
 PHASE_IDS = ("D-01", "I-01", "D-02", "I-02", "D-03", "I-03", "D-04", "I-04", "D-05", "I-05", "D-06", "I-06")
 
 
@@ -107,38 +117,54 @@ def verify_traceability(plan):
             raise SystemExit("TOP completion claim lacks current verification evidence")
 
 
-def main():
-    for korean, english in PAIRS:
-        ko = (DOCS / korean).read_text(encoding="utf-8")
-        en = (DOCS / english).read_text(encoding="utf-8")
-        if ko.count("## ") != en.count("## "):
-            raise SystemExit(f"heading mismatch: {korean} / {english}")
-        for text, source in ((ko, korean), (en, english)):
+def verify_document_references(documents=DOCS, references=TRANSLATION_REFERENCES):
+    for korean, english in references:
+        ko_path, en_path = documents / korean, documents / english
+        if not en_path.is_file():
+            raise SystemExit(f"missing English canonical document: {english}")
+        if not ko_path.is_file():
+            raise SystemExit(f"missing historical Korean reference: {korean}")
+        ko = ko_path.read_text(encoding="utf-8")
+        en = en_path.read_text(encoding="utf-8")
+        if f"]({english})" not in ko:
+            raise SystemExit(f"historical Korean reference lacks English canonical link: {korean}")
+        for text, source in ((en, english), (ko, korean)):
             for link in links(text):
-                if not (DOCS / link).is_file():
+                if not (documents / link).is_file():
                     raise SystemExit(f"missing local link in {source}: {link}")
-    mp1_ko = (DOCS / PAIRS[1][0]).read_text(encoding="utf-8")
-    mp1_en = (DOCS / PAIRS[1][1]).read_text(encoding="utf-8")
-    for source, text in ((PAIRS[1][0], mp1_ko), (PAIRS[1][1], mp1_en)):
-        if phase_table_ids(text) != PHASE_IDS:
-            raise SystemExit(f"MP1 phase table sequence failure: {source}")
-    if phase_table_ids(mp1_ko) != phase_table_ids(mp1_en):
-        raise SystemExit("MP1 phase parity failure")
+
+
+def verify_reference_registry(documents=DOCS, references=TRANSLATION_REFERENCES,
+                              exclusions=KOREAN_REFERENCE_EXCLUSIONS):
+    paired = {
+        korean.name for korean in documents.glob("*.ko.md")
+        if korean.with_name(korean.name.replace(".ko.md", ".en.md")).is_file()
+    }
+    registered = {korean for korean, _ in references}
+    expected = paired - set(exclusions)
+    if registered != expected:
+        raise SystemExit("Korean reference registry does not cover every eligible internal pair")
+
+
+def main():
+    verify_reference_registry()
+    verify_document_references()
+    mp1_en = (DOCS / TRANSLATION_REFERENCES[1][1]).read_text(encoding="utf-8")
+    if phase_table_ids(mp1_en) != PHASE_IDS:
+        raise SystemExit(f"MP1 phase table sequence failure: {TRANSLATION_REFERENCES[1][1]}")
     plan=json.loads((ROOT / "delivery-plan.yaml").read_text(encoding="utf-8"))
     verify_traceability(plan)
-    workspace_contracts = ((DOCS / "file-workspace-first-experience-contract.ko.md").read_text(encoding="utf-8"),
-                           (DOCS / "file-workspace-first-experience-contract.en.md").read_text(encoding="utf-8"))
-    for contract in workspace_contracts:
-        if ("FILE-WS-A-01" not in contract or "FILE-WS-B-01" not in contract or
-                "FILE-WS-C-01" not in contract or "FILE-UX-" in contract):
-            raise SystemExit("file-workspace contract substep identifiers do not match the delivery plan")
+    workspace_contract = (DOCS / "file-workspace-first-experience-contract.en.md").read_text(encoding="utf-8")
+    if ("FILE-WS-A-01" not in workspace_contract or "FILE-WS-B-01" not in workspace_contract or
+            "FILE-WS-C-01" not in workspace_contract or "FILE-UX-" in workspace_contract):
+        raise SystemExit("file-workspace contract substep identifiers do not match the delivery plan")
     workspace_program = plan.get("programs", {}).get("FILE-WORKSPACE-01", {})
     workspace_design = plan["iterations"][next(index for index, item in enumerate(plan["iterations"])
                                                 if item["id"] == "FILE-WS-A-01")]
     if (not isinstance(workspace_program.get("issue"), int) or
             workspace_program["issue"] == workspace_design.get("issue")):
         raise SystemExit("file-workspace program and active substep require distinct issue records")
-    print("Master Plan bilingual documents verified")
+    print("Canonical internal documents and historical Korean references verified")
 
 
 if __name__ == "__main__":

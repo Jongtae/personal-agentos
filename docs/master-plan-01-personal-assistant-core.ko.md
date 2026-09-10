@@ -1,5 +1,7 @@
 # Master Plan 1 — Personal Assistant Core
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](master-plan-01-personal-assistant-core.en.md)을 따른다.
+
 ## 상태와 목표
 
 **상태: development complete (mock-contract validated).** D-01부터 I-06은 historical boundary 작업으로 남고, 이어서 R-01부터 R-05가 의존 순서대로 병합되어 자동 fixture로 정책 소유 개인 비서 흐름을 증명했다. 해당 근거는 [MP1 보완 계획](mp1-remediation.ko.md)에 기록한다. UX-05의 남은 수동 Telegram 관찰은 소유자 결정으로 해당 release gate에서 제외됐으며, 이 결정은 해당 관찰이 통과했다는 주장이 아니다. 외부 credential과 실제 connection 활성화는 소유자 제어 운영 모드 배포로 미룬다.

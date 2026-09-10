@@ -1,5 +1,7 @@
 # 구독 엔진 Telegram 안정화 계약
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](subscription-telegram-stabilization-contract.en.md)을 따른다.
+
 ## 목표와 범위
 
 이미 소유자가 확인한 구독 엔진을 선택한 소유자는 paired Telegram 대화에서 승인된 개인 메모의 요약을 요청할 수 있다. AgentOS는 정확히 승인된 메모와 선언된 도구만 bounded engine turn에 제공하고, 결과와 redacted 실행 근거를 보존하며, 거절·timeout·malformed output·재시작·중복 전달 뒤에도 안전하게 복구한다.

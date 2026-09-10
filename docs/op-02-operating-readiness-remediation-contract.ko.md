@@ -1,5 +1,7 @@
 # OP-02 운영 준비 정정 계약
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](op-02-operating-readiness-remediation-contract.en.md)을 따른다.
+
 ## 정정과 결과
 
 OP-01은 당시 통과한 정적 검사에 대한 과거 증거로 남는다. 그러나 준비 완료 주장을 증명하지 못했다. release tag `v1.0.4`는 subscription-engine stabilization과 preflight 변경보다 앞서며, Compose image에는 지원되는 subscription-engine executable이나 지속되는 공식 로그인 위치가 없었다.

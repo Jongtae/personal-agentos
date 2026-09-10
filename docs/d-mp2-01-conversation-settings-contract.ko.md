@@ -1,5 +1,7 @@
 # D-MP2-01 — 대화 우선 설정 계약
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](d-mp2-01-conversation-settings-contract.en.md)을 따른다.
+
 ## Objective와 범위
 
 AgentOS는 안전한 설정 읽기와 검토된 lifecycle 변경의 기본 intent surface를 대화로 만들고, 수동 확인·관리를 위한 Chrome Settings형 로컬 보조 화면을 유지한다. 이 설계는 contract만 정의하며 UI, parser, credential, OAuth 흐름, provider connection, 외부 action을 구현하지 않는다.
@@ -81,6 +83,6 @@ Search는 label과 redacted description만 색인한다. 모든 수동 control�
 
 ## I-MP2-01 진입 계약
 
-I-MP2-01은 이 D-MP2-01 PR이 merge되고 issue가 close되며 한·영 문서/plan/ledger check가 통과하고, 새 goal-ready 구현 issue가 생긴 뒤에만 활성화할 수 있다. 범위는 R0 settings read, R1/R2 lifecycle draft·confirm·cancel·expiry·idempotency·audit·recovery, HTTP/Telegram parity, 로컬 보조 화면 read/navigation model이다.
+I-MP2-01은 이 D-MP2-01 PR이 merge되고 issue가 close되며 영어 원본 문서/plan/ledger check가 통과하고, 새 goal-ready 구현 issue가 생긴 뒤에만 활성화할 수 있다. 범위는 R0 settings read, R1/R2 lifecycle draft·confirm·cancel·expiry·idempotency·audit·recovery, HTTP/Telegram parity, 로컬 보조 화면 read/navigation model이다.
 
 I-MP2-01은 실제 OAuth/credential/provider activation, 새 scope, capability 설치, marketplace 동작, arbitrary setting, 외부 action, 모든 R3 mutation을 제외한다. Automated fixture는 vocabulary class별 동작, ambiguity, foreign/expired/replayed confirmation, stale state, duplicate submission, lifecycle rejection, channel parity, redaction, export/restore, manual-view/controller parity를 다뤄야 한다. 운영 모드 구성은 이후 별도로 승인된 goal에 남긴다.

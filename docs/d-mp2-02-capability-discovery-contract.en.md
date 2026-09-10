@@ -34,4 +34,4 @@ A later design iteration may define an owner-visible approval/install handoff on
 
 ## I-MP2-02 entry contract
 
-I-MP2-02 may activate only after this design PR merges, its issue is closed, bilingual plan/ledger checks pass, and a new goal-ready implementation issue exists. Its minimum scope is a fixture-backed owner-local reviewed catalogue and read-only recommendation model with deterministic ranking, redaction, audit/export/restore safety, and HTTP/Telegram/local-companion parity. It excludes every installation, activation, connection, permission, scope, credential, OAuth, external action, and operating-mode behavior.
+I-MP2-02 may activate only after this design PR merges, its issue is closed, canonical-document/plan/ledger checks pass, and a new goal-ready implementation issue exists. Its minimum scope is a fixture-backed owner-local reviewed catalogue and read-only recommendation model with deterministic ranking, redaction, audit/export/restore safety, and HTTP/Telegram/local-companion parity. It excludes every installation, activation, connection, permission, scope, credential, OAuth, external action, and operating-mode behavior.

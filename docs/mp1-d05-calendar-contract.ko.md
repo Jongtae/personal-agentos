@@ -1,5 +1,7 @@
 # MP1 D-05 — Google Calendar Create-Event Approval Contract
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](mp1-d05-calendar-contract.en.md)을 따른다.
+
 ## 범위
 
 I-05는 mock 기반 adapter로 소유자의 primary Google Calendar에 새 event 하나만 만든다. Drive와 분리된 Calendar write scope를 요청하지만 소유자가 정확한 event payload를 미리 보고 승인한 뒤에만 실행한다. 수정, 삭제, 초대, 참석자 조회, 충돌 해결, 자동 일정 관리는 범위 밖이다.

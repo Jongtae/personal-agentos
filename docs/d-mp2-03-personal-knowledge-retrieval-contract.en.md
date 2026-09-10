@@ -32,4 +32,4 @@ Implementation must fail closed for invalid owner/channel binding, ambiguous or 
 
 ## I-MP2-03 entry contract
 
-I-MP2-03 may activate after this design PR merges, its issue closes, bilingual plan/ledger checks pass, and a new goal-ready issue exists. It must implement fixture-backed deterministic owner-local retrieval, source evidence/redaction, audit/export/restore safety, and HTTP/Telegram/local-companion parity. It excludes every external index, provider, connection, credential, OAuth, automatic long-term memory, document ingestion, external sharing/action, and operating-mode behavior.
+I-MP2-03 may activate after this design PR merges, its issue closes, canonical-document/plan/ledger checks pass, and a new goal-ready issue exists. It must implement fixture-backed deterministic owner-local retrieval, source evidence/redaction, audit/export/restore safety, and HTTP/Telegram/local-companion parity. It excludes every external index, provider, connection, credential, OAuth, automatic long-term memory, document ingestion, external sharing/action, and operating-mode behavior.

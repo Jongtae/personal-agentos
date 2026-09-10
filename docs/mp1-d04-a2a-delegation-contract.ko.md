@@ -1,5 +1,7 @@
 # MP1 D-04 — Compatibility A2A Delegation Contract
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](mp1-d04-a2a-delegation-contract.en.md)을 따른다.
+
 ## 범위
 
 I-04는 소유자가 명시적으로 요청한 하나의 제한된 위임을 검토된 로컬 compatibility A2A test peer에 보낸다. AgentOS는 사용자 요청, Personal Space, 승인 이력, task 상태, artifact, 취소, evidence의 소유자다. 이 contract는 공개 A2A URL이나 상용 runtime 연결을 추가하지 않는다.
