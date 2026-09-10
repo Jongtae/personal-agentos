@@ -125,3 +125,67 @@ has no unresolved High finding from this review. The remaining Medium limits
 are claim-crash recovery, free-form authority/dependency markers, and the lack
 of real GitHub/heartbeat/scheduler integration evidence. They must be recorded
 as limitations, not represented as operating proof.
+
+## Current-head PR #322 re-review (`efa6403`)
+
+This review examined the current PR head `efa64036423092fd7b61f2fb408f4ed6c8b5f5f2`
+against `origin/main`, the owner review's R1–R6 criteria, and the current
+test suite. It is source/fixture and GitHub-PR-metadata evidence only; it
+does not claim a live worker, heartbeat, schedule, or production GitHub write
+was operated.
+
+### Validation observed
+
+* Focused: `PYTHONPATH=src python3 -m pytest -q tests/test_handoff.py tests/test_delivery.py` — **30 passed**.
+* Full pytest: `PYTHONPATH=src python3 -m pytest -q tests` — **280 passed, 46 subtests passed**.
+* Full unittest: `PYTHONPATH=src python3 -m unittest discover -s tests -q` — **251 passed**.
+* `python3 scripts/verify_master_plan_docs.py` and `git diff --check` — passed.
+* GitHub PR #322's required `validate` check is successful for `efa6403` at
+  review time.
+
+### R1–R4 disposition
+
+R1 is covered by retained-lease candidate refresh and the pending-CI fixture;
+R2 queries `gh pr checks --required` and fails pending/unknown results closed;
+R3 rechecks the candidate before replaying a pending review disposition and
+reconciles a lost transition response; R4 binds claim cycles and review
+receipts to immutable candidate identity. The corresponding focused tests
+pass. These fixes address the cited fixture paths, subject to the external
+boundary limitations already stated above.
+
+### R5 — active-goal authority is still widened (**High, unresolved**)
+
+`DeliveryController.handoff_tick()` builds `authorized_goals` from **every**
+delivery-plan entry whose `activation_status` is
+`owner-activated-goal-ready`. It does not restrict the map to the current
+`next_goal`, its explicitly active top-level program/substep, or the selected
+goal returned by `DeliveryPlan.select()`. In the current plan this admits,
+among others, historical GOV/TOP/SCN/Drive entries and future
+`DRIVE-LOCAL-OP-01` alongside the active `FILE-WS-A-01`. If any of those open
+issues receives an eligible queue label, `GithubCliBoundary.issues()` marks it
+authorized and `StateHandoffLoop` can select it. This violates the stated
+single explicitly active-goal boundary. The current entrypoint fixture checks
+only that issue 318 is included; it does not assert that non-active
+goal-ready issues are excluded.
+
+### R6 — production independent-role execution is still unconfigured (**High, unresolved**)
+
+The new `handoff_workers` and `handoff_github_factory` are constructor-only
+test seams. `main()` creates `DeliveryController` without either argument, so
+the actual `delivery handoff --role` command still has no executor/reviewer
+and returns dispatch-only results. There is also no production configuration
+path that supplies `owner_login`, `implementer_logins`, or
+`reviewer_logins` to `GithubCliBoundary`; with defaults, remote candidate and
+feedback reads accept only the current viewer's comments. Therefore an
+independent reviewer using a distinct configured identity cannot participate
+through the real CLI construction. `test_handoff_entrypoint_dispatches_only_injected_bounded_worker` and the independent-role fixture use injected fake
+objects, which proves the in-memory seam but not the production entrypoint.
+
+### Current disposition
+
+**Changes requested; do not merge yet.** R5 permits work outside the current
+active goal, and R6 does not provide a production-configured worker/role
+handoff path. Passing 30 focused and full suites are strong regression
+evidence for the fixtures, but do not negate these authority and integration
+failures. No schedule creation, automatic merge, or live operating claim was
+observed.

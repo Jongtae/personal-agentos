@@ -477,10 +477,11 @@ class DeliveryController:
         repository = self.plan.data.get('repository')
         if not repository: raise DeliveryError('delivery plan has no repository.')
         path = Path(state_path) if state_path else self.state_store.path.with_name('handoff-state.json')
-        goals = {int(item['issue']): {'authorized': True, 'dependencies_satisfied': all(
-            dep in self.plan.documented_completed() for dep in item.get('depends_on', []))}
-            for item in self.plan.items.values()
-            if item.get('activation_status') == 'owner-activated-goal-ready' and item.get('issue')}
+        # The active delivery selector is the sole authority.  Historical or
+        # future goal-ready records are not a queue-wide execution grant.
+        item = self.plan.select(self.state_store.read())
+        goals = ({int(item['issue']): {'authorized': True, 'dependencies_satisfied': True}}
+                 if item and item.get('issue') else {})
         github = self.handoff_github_factory(repository, authorized_goals=goals)
         workers = self.handoff_workers
         return StateHandoffLoop(github, path, executor=workers.get('implementer'), reviewer=workers.get('reviewer'),
