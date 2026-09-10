@@ -10,7 +10,7 @@ Active work is executed only from a goal-ready issue and active delivery-plan en
 | FILE-WS-B-01: first integrated file experience | [#315](https://github.com/Jongtae/personal-agentos/issues/315) | Complete (PR #320 merged). |
 | FILE-WS-C-01: validation, review, and closeout | [#316](https://github.com/Jongtae/personal-agentos/issues/316) | Complete after the merged #320 evidence audit, independent reviews, required CI, and this closeout record. |
 
-Drive #308/#310 and PR #311 are preserved optional connector work, not predecessors of FILE-WS. #312 remains optional connector architecture work; #313 remains a separate product/policy-site workstream and is not a local-file prerequisite.
+Drive #308/#310/#312 are closed/deferred optional connector work, not predecessors of FILE-WS. Merged PR #311 preserves its bounded local implementation but does not claim live Drive, OAuth, or Telegram operation. #313 remains a separate product/policy-site workstream.
 
 ## Completed repository maintenance
 

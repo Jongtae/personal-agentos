@@ -10,7 +10,7 @@ Owner-authorized [#314](https://github.com/Jongtae/personal-agentos/issues/314) 
 
 Connected reference folders are read-only by default; managed-workspace writes are scoped. Originals, derived material, drafts, final records, rebuildable indexes, and durable task/approval/evidence/recovery/auth state remain distinct. External AI, messenger, and agent transmission is separately controlled. This program does not implement OCR, transcription, video analysis, advanced large-library search, cloud-only import, material-bundle delegation, cloud sync, or destructive migration.
 
-Drive #308/#310 and open PR #311 are preserved optional connector work rather than first-flow predecessors; no completion or discard is claimed. #312 remains the optional Drive architecture work. #313 remains a separate informational/policy-site track, not a prerequisite for local file functionality.
+Drive #308/#310/#312 are closed/deferred optional connector work rather than first-flow predecessors. Merged PR #311 preserves a bounded local Drive Picker implementation, but no live Google OAuth, Drive, Telegram, credential, or operating observation is claimed. #313 remains a separate informational/policy-site track, not a prerequisite for local file functionality.
 
 ## First milestone closeout — 2026-09-08
 
