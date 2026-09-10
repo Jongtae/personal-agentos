@@ -1,5 +1,7 @@
 # D-MP2-03 — 소유자 로컬 개인 지식 Retrieval 계약
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](d-mp2-03-personal-knowledge-retrieval-contract.en.md)을 따른다.
+
 ## 목표와 범위
 
 AgentOS는 소유자가 이미 owner-local Personal Space에 저장한 memory, workspace result, 명시 승인된 local-context metadata를 투명한 source evidence와 함께 찾게 한다. Retrieval은 기존 소유자 data의 bounded read이며 automatic memory 생성, document ingestion, cloud synchronization, external search가 아니다.

@@ -1,5 +1,7 @@
 # MP1 D-03 — Google Drive 읽기 전용 계약
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](mp1-d03-drive-contract.en.md)을 따른다.
+
 ## 범위
 
 I-03은 표준 설치형 앱 OAuth Authorization Code 흐름과 PKCE, 최소 읽기 전용 scope로 한 소유자의 Google Drive를 연결한다. 소비자는 AgentOS에서 Google Drive 연결을 누르고 Google 접근만 승인한다. Google Cloud project, client ID, token을 직접 만들지 않는다. AgentOS는 공개 OAuth client ID를 포함하고 시스템 브라우저 및 로컬 redirect를 사용한다. 제품 배포자가 이 배포용 client에 대해 Google API 활성화, OAuth client 등록, consent screen 설정, privacy policy 준비를 한 번 수행한다. 검색 후 선택 파일 읽기만 지원하며 전체 동기화, 쓰기, 삭제, 공유, 권한 변경은 하지 않는다.

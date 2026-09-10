@@ -1,5 +1,7 @@
 # D-MP2-01 — 대화 우선 설정 계약
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](d-mp2-01-conversation-settings-contract.en.md)을 따른다.
+
 ## Objective와 범위
 
 AgentOS는 안전한 설정 읽기와 검토된 lifecycle 변경의 기본 intent surface를 대화로 만들고, 수동 확인·관리를 위한 Chrome Settings형 로컬 보조 화면을 유지한다. 이 설계는 contract만 정의하며 UI, parser, credential, OAuth 흐름, provider connection, 외부 action을 구현하지 않는다.

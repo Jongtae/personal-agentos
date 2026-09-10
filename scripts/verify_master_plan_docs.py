@@ -11,7 +11,12 @@ TRANSLATION_REFERENCES = (
     ("personal-ai-assistant-vision.ko.md", "personal-ai-assistant-vision.en.md"),
     ("master-plan-01-personal-assistant-core.ko.md", "master-plan-01-personal-assistant-core.en.md"),
     ("master-plan-02-proposal.ko.md", "master-plan-02-proposal.en.md"),
+    ("d-mp2-01-conversation-settings-contract.ko.md", "d-mp2-01-conversation-settings-contract.en.md"),
+    ("d-mp2-02-capability-discovery-contract.ko.md", "d-mp2-02-capability-discovery-contract.en.md"),
+    ("d-mp2-03-personal-knowledge-retrieval-contract.ko.md", "d-mp2-03-personal-knowledge-retrieval-contract.en.md"),
     ("mp1-d01-personal-space-contract.ko.md", "mp1-d01-personal-space-contract.en.md"),
+    ("mp1-d02-capability-lifecycle.ko.md", "mp1-d02-capability-lifecycle.en.md"),
+    ("mp1-d03-drive-contract.ko.md", "mp1-d03-drive-contract.en.md"),
     ("development-governance.ko.md", "development-governance.en.md"),
     ("goal-execution-contract.ko.md", "goal-execution-contract.en.md"),
     ("top-level-specification-completion.ko.md", "top-level-specification-completion.en.md"),
@@ -26,6 +31,11 @@ TRANSLATION_REFERENCES = (
     ("drive-telegram-web-oauth-contract.ko.md", "drive-telegram-web-oauth-contract.en.md"),
     ("file-workspace-first-experience-contract.ko.md", "file-workspace-first-experience-contract.en.md"),
 )
+KOREAN_REFERENCE_EXCLUSIONS = {
+    "agentos-hub-v2.ko.md", "b3os-design-reference.ko.md", "context-capture-idea.ko.md",
+    "first-milestone-report.ko.md", "ux-06-telegram-conversation.ko.md",
+    "ux-v1.1-personal-agent-dm.ko.md",
+}
 PHASE_IDS = ("D-01", "I-01", "D-02", "I-02", "D-03", "I-03", "D-04", "I-04", "D-05", "I-05", "D-06", "I-06")
 
 
@@ -124,7 +134,20 @@ def verify_document_references(documents=DOCS, references=TRANSLATION_REFERENCES
                     raise SystemExit(f"missing local link in {source}: {link}")
 
 
+def verify_reference_registry(documents=DOCS, references=TRANSLATION_REFERENCES,
+                              exclusions=KOREAN_REFERENCE_EXCLUSIONS):
+    paired = {
+        korean.name for korean in documents.glob("*.ko.md")
+        if korean.with_name(korean.name.replace(".ko.md", ".en.md")).is_file()
+    }
+    registered = {korean for korean, _ in references}
+    expected = paired - set(exclusions)
+    if registered != expected:
+        raise SystemExit("Korean reference registry does not cover every eligible internal pair")
+
+
 def main():
+    verify_reference_registry()
     verify_document_references()
     mp1_en = (DOCS / TRANSLATION_REFERENCES[1][1]).read_text(encoding="utf-8")
     if phase_table_ids(mp1_en) != PHASE_IDS:

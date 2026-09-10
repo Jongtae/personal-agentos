@@ -10,7 +10,17 @@ documentation deployment was operated.
 
 ## Findings and resolution
 
-No blocking finding.
+The initial review found two in-scope gaps; both are resolved in the follow-up
+commit recorded below.
+
+* **F1 (P2, resolved):** the reference registry initially omitted five eligible
+  internal pairs. It now includes D-MP2-01/02/03 and MP1 D-02/D-03, while an
+  explicit exclusion list names the Korean-only historical documents. The
+  verifier rejects an incomplete registry and a registered reference without
+  its English canonical link.
+* **F2 (P3, resolved):** the no-heading-parity regression now uses one English
+  heading and two Korean headings, so restoring the removed heading-count gate
+  would fail the regression.
 
 * `AGENTS.md`, the goal-execution contract, the file-workspace contract, and
   development governance now name English as the canonical internal source;
@@ -35,6 +45,9 @@ No blocking finding.
 * `git diff --check c188470..11f9f21` — passed.
 * PR #326 required `validate` check was successful for reviewed head
   `11f9f21956807bb6b6a84fec4a046e6163670d6b` when inspected.
+* Follow-up inspection on the current branch: `python3 scripts/verify_master_plan_docs.py`,
+  `python3 -m pytest -q tests/test_master_plan_traceability.py tests/test_governance_contract.py tests/test_delivery.py`
+  (30 passed), and `git diff --check` passed.
 
 ## Review limitation
 

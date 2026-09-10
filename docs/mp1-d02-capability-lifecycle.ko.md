@@ -1,5 +1,7 @@
 # MP1 D-02 — Capability Lifecycle 계약
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](mp1-d02-capability-lifecycle.en.md)을 따른다.
+
 ## 사용자 결과와 범위
 
 소유자는 검토된 소수의 MCP 도구, A2A Agent, 격리 runtime 목록을 보고 하나를 enable, pause, disconnect할 수 있다. I-02는 공개 URL, marketplace, 임의 설치, 자동 활성화를 추가하지 않는다.

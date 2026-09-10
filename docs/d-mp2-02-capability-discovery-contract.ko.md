@@ -1,5 +1,7 @@
 # D-MP2-02 — 검토된 Capability 발견 및 추천 계약
 
+> **과거 참고용 한국어 번역본.** 내부 개발 기준은 [영어 원본](d-mp2-02-capability-discovery-contract.en.md)을 따른다.
+
 ## 목표와 범위
 
 소유자가 요청한 결과를 enable된 AgentOS capability가 안전하게 처리할 수 없을 때, AgentOS는 owner-local reviewed catalogue에서 검토된 MCP, 독립 A2A Agent, 격리 runtime을 추천할 수 있다. AgentOS는 추천과 경계를 설명할 뿐 download, install, activation, connection, execution을 하지 않는다.
