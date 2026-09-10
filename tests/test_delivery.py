@@ -1,10 +1,12 @@
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from types import SimpleNamespace
 
 from personal_agent.delivery import DeliveryController, DeliveryError, DeliveryPlan, StateStore
+from personal_agent.handoff import Candidate, Issue
 
 
 class Runner:
@@ -80,6 +82,51 @@ class DeliveryTests(unittest.TestCase):
             self.assertIn('FILE-WS-B-01', contract)
             self.assertIn('FILE-WS-C-01', contract)
             self.assertNotIn('FILE-UX-', contract)
+
+    def test_handoff_entrypoint_dispatches_only_injected_bounded_worker(self):
+        class Boundary:
+            def __init__(self):
+                self.row=Issue(318, {'agent:ready'}, authorized=True, dependencies_satisfied=True)
+                self.comments=[]; self.candidate_row=None
+            def issues(self): return [self.row]
+            def transition(self, number, old, new):
+                if self.row.queue_state()!=old:return False
+                self.row.labels={new};return True
+            def comment_exists(self, number, marker): return any(item[0]==marker for item in self.comments)
+            def comment(self, number, marker, text): self.comments.append((marker,text))
+            def claim_winner(self, number, marker): return marker==self.comments[0][0]
+            def candidate(self, number): return self.candidate_row
+            def execution_active(self, number, lease): return False
+        seen={}; boundary=Boundary()
+        def factory(repository, authorized_goals):
+            seen['repository']=repository;seen['goals']=authorized_goals;return boundary
+        calls=[]
+        def executor(issue, feedback):
+            calls.append((issue.number,feedback));boundary.candidate_row=Candidate(318, 77, 'x'*40, 'main', 'success')
+            return boundary.candidate_row
+        controller=DeliveryController(self.root,self.state,Runner(),now=lambda:self.clock[0],
+            handoff_workers={'implementer':executor},handoff_github_factory=factory)
+        result=controller.handoff_tick('implementer',self.root/'handoff.json')
+        self.assertEqual(result['state'],'agent:review')
+        self.assertEqual(calls,[(318,None)])
+        self.assertTrue(seen['goals'][318]['authorized'])
+
+    def test_handoff_worker_factory_is_restricted_and_invoked(self):
+        calls=[]
+        class Module:
+            @staticmethod
+            def build(*, role, root):
+                calls.append((role,root))
+                return lambda issue, feedback: self.fail('no eligible issue should execute')
+        class Empty:
+            def issues(self): return []
+        controller=DeliveryController(self.root,self.state,Runner(),now=lambda:self.clock[0],
+            handoff_github_factory=lambda *_args,**_kwargs: Empty())
+        with patch('personal_agent.delivery.importlib.import_module',return_value=Module):
+            self.assertEqual(controller.handoff_tick('implementer',self.root/'factory.json','personal_agent.worker:build')['action'],'idle')
+        self.assertEqual(calls,[('implementer',self.root.resolve())])
+        with self.assertRaisesRegex(DeliveryError,'personal_agent'):
+            controller.handoff_tick('implementer',self.root/'bad.json','os:system')
 
     def test_top_goal_stays_selectable_after_its_inventory_substep_closes(self):
         self.activate_top_fixture()

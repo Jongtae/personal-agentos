@@ -1,5 +1,6 @@
 """Evidence-driven local delivery controller for the Personal AgentOS repository."""
 import argparse
+import importlib
 import hashlib
 import datetime as dt
 import fcntl
@@ -15,6 +16,7 @@ import time
 import urllib.request
 from xml.sax.saxutils import escape as xml_escape
 from types import SimpleNamespace
+from .handoff import GithubCliBoundary, StateHandoffLoop
 
 RETRY_SECONDS = 6 * 60 * 60
 DAILY_LIMIT = 4
@@ -134,8 +136,10 @@ def classify_failure(text):
 
 
 class DeliveryController:
-    def __init__(self, root=None, state_path=None, runner=None, now=None):
+    def __init__(self, root=None, state_path=None, runner=None, now=None, handoff_workers=None, handoff_github_factory=None):
         self.root=Path(root or Path.cwd()).resolve()
+        self.handoff_workers=handoff_workers or {}
+        self.handoff_github_factory=handoff_github_factory or GithubCliBoundary
         configured_plan=self.root/'delivery-plan.yaml'
         packaged_plan=Path(__file__).with_name('delivery-plan.yaml')
         self.plan=DeliveryPlan(configured_plan if configured_plan.exists() else packaged_plan)
@@ -463,16 +467,51 @@ class DeliveryController:
         self._command(['launchctl','bootout',f'gui/{os.getuid()}',str(path)],timeout=30)
         path.unlink(missing_ok=True);return {'scheduled':False}
 
+    def handoff_tick(self, role, state_path=None, worker_factory=None):
+        """Run the state queue once through the existing delivery CLI.
+
+        This is intentionally dispatch-only.  A scheduler/heartbeat may select
+        a goal but cannot manufacture a Codex session, merge a PR, or create a
+        second schedule.  Configured role workers supply executor/reviewer
+        callables to ``StateHandoffLoop`` in their own bounded process.
+        """
+        repository = self.plan.data.get('repository')
+        if not repository: raise DeliveryError('delivery plan has no repository.')
+        path = Path(state_path) if state_path else self.state_store.path.with_name('handoff-state.json')
+        # The active delivery selector is the sole authority.  Historical or
+        # future goal-ready records are not a queue-wide execution grant.
+        item = self.plan.select(self.state_store.read())
+        goals = ({int(item['issue']): {'authorized': True, 'dependencies_satisfied': True}}
+                 if item and item.get('issue') else {})
+        workers = self.handoff_workers
+        if worker_factory:
+            module, sep, name = worker_factory.partition(':')
+            if not sep or not module.startswith('personal_agent.') or not name:
+                raise DeliveryError('worker factory must be a personal_agent module:function reference.')
+            factory = getattr(importlib.import_module(module), name, None)
+            if not callable(factory): raise DeliveryError('worker factory is not callable.')
+            configured = factory(role=role, root=self.root)
+            if not callable(configured): raise DeliveryError('worker factory must return a bounded callable.')
+            workers = {**workers, role: configured}
+        github = self.handoff_github_factory(repository, authorized_goals=goals)
+        return StateHandoffLoop(github, path, executor=workers.get('implementer'), reviewer=workers.get('reviewer'),
+                                worker_id='delivery-cli').tick(role)
+
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command',choices=('status','run','reconcile','install-schedule','uninstall-schedule'))
+    parser.add_argument('command',choices=('status','run','reconcile','handoff','install-schedule','uninstall-schedule'))
     parser.add_argument('--once',action='store_true');parser.add_argument('--dry-run',action='store_true');parser.add_argument('--scheduled',action='store_true')
     parser.add_argument('--root',default=str(Path.cwd()));parser.add_argument('--state')
+    parser.add_argument('--role',choices=('implementer','reviewer'))
+    parser.add_argument('--worker-factory')
     args=parser.parse_args(argv);controller=DeliveryController(args.root,args.state)
     if args.command=='status':result=controller.status()
     elif args.command=='run':result=controller.run_once(args.dry_run,args.scheduled)
     elif args.command=='reconcile':result=controller.reconcile(args.dry_run)
+    elif args.command=='handoff':
+        if not args.role: parser.error('handoff requires --role implementer or reviewer')
+        result=controller.handoff_tick(args.role,args.state,args.worker_factory)
     elif args.command=='install-schedule':result=controller.install_schedule()
     else:result=controller.uninstall_schedule()
     print(json.dumps(result,ensure_ascii=False,sort_keys=True))

@@ -17,6 +17,7 @@ Drive #308/#310 and PR #311 are preserved optional connector work, not predecess
 | Work unit | Issue | Branch | Status |
 | --- | --- | --- | --- |
 | CI-01: GitHub Actions validation audit | [#303](https://github.com/Jongtae/personal-agentos/issues/303) | `codex/actions-ci-audit` | complete (PR #304 merged; required `validate` passed) |
+| AUTO-01: state-driven GitHub handoff loop | [#321](https://github.com/Jongtae/personal-agentos/issues/321) | `codex/321-state-handoff-loop` | complete (PR #322 merged; fixture-backed queue/receipt recovery only—no live scheduler or GitHub worker operation is claimed) |
 | DRIVE-TG-01: Telegram-to-browser Drive OAuth contract | [#306](https://github.com/Jongtae/personal-agentos/issues/306) | `codex/306-drive-telegram-web-oauth` | complete on merge of PR #307; mock-validated only—no provider login, credential, token, Drive, or external operating connection is claimed. |
 | SCN-D-01: first live-use scenario contract | [#301](https://github.com/Jongtae/personal-agentos/issues/301) | `codex/scn-01-live-use-scenarios` | complete design; SCN-I-01 remains reserved until a separately goal-ready implementation issue is activated. |
 | STRUCT-01-WU-01: 구조 확정과 이동 명세 | [#285](https://github.com/Jongtae/personal-agentos/issues/285) | `codex/struct-01-repo-structure` | complete |
