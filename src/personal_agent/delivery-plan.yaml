@@ -473,7 +473,7 @@
       "depends_on": ["DRIVE-TG-01"],
       "contract": "drive-local-operating-test-contract.en.md",
       "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests"],
-      "summary": "Preserved optional Drive operating work. It is not a prerequisite for the file-and-folder personal workspace core path."
+      "summary": "Closed/deferred optional Drive operating work. Merged connector boundaries remain historical code, but no live provider operation is claimed or selected."
     },
     {
       "id": "FILE-WS-A-01",
@@ -613,7 +613,7 @@
       "authority": "Complete after the merged FILE-WS-C-01 evidence audit. This program does not authorize a successor, external activation, credential/OAuth configuration, personal-folder permission expansion beyond dedicated test folders, external recipient transmission, or automatic merge.",
       "non_goals": ["sync engine", "central authentication", "OCR", "audio transcription", "video analysis", "advanced large-library search", "cloud-only import", "delegated material bundles", "destructive migration"],
       "evidence_classes": ["documentation and plan evidence", "mock-model evidence", "local-file integration evidence", "external operating observation"],
-      "drive_handling": "#308/#310/open PR #311 are preserved optional connector work, not core-path predecessors. #312 is optional connector architecture work; #313 is an independent informational/policy-site workstream."
+      "drive_handling": "#308/#310/#312 are closed/deferred optional Drive work; merged PR #311 preserves bounded connector code without a live provider claim. #313 is an independent informational/policy-site workstream."
     }
   },
   "next_goal": {
