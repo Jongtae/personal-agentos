@@ -54,3 +54,21 @@ support contact, effective date, or unverified runtime behavior to resolve it.
 site checks and obtain CI for the resulting commit. Public HTTPS deployment,
 operator/legal confirmation, owned-domain verification, Google registration,
 and live local OAuth observation remain separate unperformed actions.
+
+## Re-review: `76979fb7d16537380ac9f57f7186ec7d334a5032`
+
+The new English and Korean privacy text and its four-test focused regression
+do explicitly distinguish local deletion from provider permission revocation.
+However, **P1 remains unresolved**: the text directs users to the local
+runtime's “documented removal or reset controls,” but the current repository
+does not document or implement such controls. Source and documentation search
+found local capability-token revocation and the optional Drive disconnect
+contract, not a documented local-state/managed-workspace removal interface.
+The regression proves the wording is present; it does not establish that the
+claimed controls exist.
+
+Validation re-run: `python3 -m pytest -q tests/test_public_site.py` — 4
+passed; `git diff --check` — passed. A resolution needs either an
+implementation-accurate deletion route already supported by the product, or
+wording that does not claim an unavailable documented control. This review
+still makes no deployment or external-runtime claim.
