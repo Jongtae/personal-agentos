@@ -1,0 +1,12 @@
+:root { color-scheme: light dark; font-family: system-ui, sans-serif; line-height: 1.55; }
+body { margin: 0; color: #172033; background: #f6f8fc; }
+header, main, footer { max-width: 52rem; margin: auto; padding: 1.25rem; }
+header { display: flex; gap: 1rem; justify-content: space-between; align-items: center; }
+nav { display: flex; gap: .8rem; flex-wrap: wrap; }
+a { color: #0859bd; }
+main { background: white; border-radius: .75rem; margin-bottom: 1rem; }
+h1 { font-size: clamp(2rem, 7vw, 3.5rem); line-height: 1.05; }
+h2 { margin-top: 2rem; }
+.notice { border-left: .3rem solid #c58300; background: #fff7df; padding: .8rem 1rem; }
+.language { border-top: 1px solid #d8dce5; margin-top: 2rem; padding-top: 1rem; }
+@media (prefers-color-scheme: dark) { body { background: #101522; color: #e9edf7; } main { background: #1a2233; } a { color: #83bcff; } .notice { background: #3b2e0a; } }
