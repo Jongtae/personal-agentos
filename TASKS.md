@@ -2,11 +2,22 @@
 
 Active work is executed only from a goal-ready issue and active delivery-plan entry under the [Goal Execution Contract](docs/goal-execution-contract.en.md). Status tables are trackers, not authority to activate reserved work.
 
+## Completed — File-and-folder personal workspace program
+
+| Work unit | Issue | Status |
+| --- | --- | --- |
+| FILE-WS-A-01: product criteria and plan alignment | [#318](https://github.com/Jongtae/personal-agentos/issues/318) | Complete (PR #317 merged). |
+| FILE-WS-B-01: first integrated file experience | [#315](https://github.com/Jongtae/personal-agentos/issues/315) | Complete (PR #320 merged). |
+| FILE-WS-C-01: validation, review, and closeout | [#316](https://github.com/Jongtae/personal-agentos/issues/316) | Complete after the merged #320 evidence audit, independent reviews, required CI, and this closeout record. |
+
+Drive #308/#310 and PR #311 are preserved optional connector work, not predecessors of FILE-WS. #312 remains optional connector architecture work; #313 remains a separate product/policy-site workstream and is not a local-file prerequisite.
+
 ## Completed repository maintenance
 
 | Work unit | Issue | Branch | Status |
 | --- | --- | --- | --- |
 | CI-01: GitHub Actions validation audit | [#303](https://github.com/Jongtae/personal-agentos/issues/303) | `codex/actions-ci-audit` | complete (PR #304 merged; required `validate` passed) |
+| AUTO-01: state-driven GitHub handoff loop | [#321](https://github.com/Jongtae/personal-agentos/issues/321) | `codex/321-state-handoff-loop` | complete (PR #322 merged; fixture-backed queue/receipt recovery only—no live scheduler or GitHub worker operation is claimed) |
 | DRIVE-TG-01: Telegram-to-browser Drive OAuth contract | [#306](https://github.com/Jongtae/personal-agentos/issues/306) | `codex/306-drive-telegram-web-oauth` | complete on merge of PR #307; mock-validated only—no provider login, credential, token, Drive, or external operating connection is claimed. |
 | SCN-D-01: first live-use scenario contract | [#301](https://github.com/Jongtae/personal-agentos/issues/301) | `codex/scn-01-live-use-scenarios` | complete design; SCN-I-01 remains reserved until a separately goal-ready implementation issue is activated. |
 | STRUCT-01-WU-01: 구조 확정과 이동 명세 | [#285](https://github.com/Jongtae/personal-agentos/issues/285) | `codex/struct-01-repo-structure` | complete |

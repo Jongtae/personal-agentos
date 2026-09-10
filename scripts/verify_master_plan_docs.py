@@ -24,6 +24,7 @@ PAIRS = (
     ("op-02-operating-readiness-remediation-contract.ko.md", "op-02-operating-readiness-remediation-contract.en.md"),
     ("scn-d01-first-live-use-scenarios-contract.ko.md", "scn-d01-first-live-use-scenarios-contract.en.md"),
     ("drive-telegram-web-oauth-contract.ko.md", "drive-telegram-web-oauth-contract.en.md"),
+    ("file-workspace-first-experience-contract.ko.md", "file-workspace-first-experience-contract.en.md"),
 )
 PHASE_IDS = ("D-01", "I-01", "D-02", "I-02", "D-03", "I-03", "D-04", "I-04", "D-05", "I-05", "D-06", "I-06")
 
@@ -125,6 +126,18 @@ def main():
         raise SystemExit("MP1 phase parity failure")
     plan=json.loads((ROOT / "delivery-plan.yaml").read_text(encoding="utf-8"))
     verify_traceability(plan)
+    workspace_contracts = ((DOCS / "file-workspace-first-experience-contract.ko.md").read_text(encoding="utf-8"),
+                           (DOCS / "file-workspace-first-experience-contract.en.md").read_text(encoding="utf-8"))
+    for contract in workspace_contracts:
+        if ("FILE-WS-A-01" not in contract or "FILE-WS-B-01" not in contract or
+                "FILE-WS-C-01" not in contract or "FILE-UX-" in contract):
+            raise SystemExit("file-workspace contract substep identifiers do not match the delivery plan")
+    workspace_program = plan.get("programs", {}).get("FILE-WORKSPACE-01", {})
+    workspace_design = plan["iterations"][next(index for index, item in enumerate(plan["iterations"])
+                                                if item["id"] == "FILE-WS-A-01")]
+    if (not isinstance(workspace_program.get("issue"), int) or
+            workspace_program["issue"] == workspace_design.get("issue")):
+        raise SystemExit("file-workspace program and active substep require distinct issue records")
     print("Master Plan bilingual documents verified")
 
 

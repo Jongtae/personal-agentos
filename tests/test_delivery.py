@@ -1,10 +1,12 @@
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from types import SimpleNamespace
 
 from personal_agent.delivery import DeliveryController, DeliveryError, DeliveryPlan, StateStore
+from personal_agent.handoff import Candidate, Issue
 
 
 class Runner:
@@ -56,15 +58,79 @@ class DeliveryTests(unittest.TestCase):
         plan['next_goal']={'id':'TOP','status':'active'}
         (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
 
-    def test_completed_drive_goal_does_not_revive_reserved_scenario_implementation(self):
+    def test_completed_file_workspace_program_does_not_select_a_successor(self):
         controller=self.controller()
-        self.assertEqual(controller.plan.next_goal()['status'], 'active')
-        self.assertEqual(controller.plan.next_goal()['id'], 'DRIVE-LOCAL-OP-01')
-        self.assertEqual(controller.plan.select({})['id'], 'DRIVE-LOCAL-OP-01')
+        self.assertEqual(controller.plan.next_goal()['status'], 'complete')
+        self.assertEqual(controller.plan.next_goal()['id'], 'FILE-WS-C-01')
+        self.assertIsNone(controller.plan.select({}))
+        self.assertIsNone(controller.plan.data['programs']['FILE-WORKSPACE-01']['active_substep'])
+        self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['status'], 'complete')
+        self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['issue'], 314)
+        self.assertEqual(controller.plan.items['FILE-WS-A-01']['issue'], 318)
+        self.assertEqual(controller.plan.items['FILE-WS-B-01']['depends_on'], ['FILE-WS-A-01'])
+        self.assertEqual(controller.plan.items['FILE-WS-C-01']['depends_on'], ['FILE-WS-B-01'])
         self.assertIn('TOP-03', controller.plan.documented_completed())
         self.assertIn('SCN-D-01', controller.plan.documented_completed())
         self.assertIn('DRIVE-TG-01', controller.plan.documented_completed())
+        self.assertIn('FILE-WS-C-01', controller.plan.documented_completed())
+        self.assertNotIn('DRIVE-LOCAL-OP-01', controller.plan.documented_completed())
         self.assertNotIn('SCN-I-01', controller.plan.documented_completed())
+
+    def test_file_workspace_contract_uses_the_canonical_plan_substep_ids(self):
+        root=Path(__file__).parents[1]
+        for language in ('en', 'ko'):
+            contract=(root/'docs'/f'file-workspace-first-experience-contract.{language}.md').read_text()
+            self.assertIn('FILE-WS-A-01', contract)
+            self.assertIn('FILE-WS-B-01', contract)
+            self.assertIn('FILE-WS-C-01', contract)
+            self.assertNotIn('FILE-UX-', contract)
+
+    def test_handoff_entrypoint_dispatches_only_injected_bounded_worker(self):
+        self.activate_governance_goal()
+        active_issue=DeliveryPlan(self.root/'delivery-plan.yaml').select({})['issue']
+        class Boundary:
+            def __init__(self):
+                self.row=Issue(active_issue, {'agent:ready'}, authorized=True, dependencies_satisfied=True)
+                self.comments=[]; self.candidate_row=None
+            def issues(self): return [self.row]
+            def transition(self, number, old, new):
+                if self.row.queue_state()!=old:return False
+                self.row.labels={new};return True
+            def comment_exists(self, number, marker): return any(item[0]==marker for item in self.comments)
+            def comment(self, number, marker, text): self.comments.append((marker,text))
+            def claim_winner(self, number, marker): return marker==self.comments[0][0]
+            def candidate(self, number): return self.candidate_row
+            def execution_active(self, number, lease): return False
+        seen={}; boundary=Boundary()
+        def factory(repository, authorized_goals):
+            seen['repository']=repository;seen['goals']=authorized_goals;return boundary
+        calls=[]
+        def executor(issue, feedback):
+            calls.append((issue.number,feedback));boundary.candidate_row=Candidate(active_issue, 77, 'x'*40, 'main', 'success')
+            return boundary.candidate_row
+        controller=DeliveryController(self.root,self.state,Runner(),now=lambda:self.clock[0],
+            handoff_workers={'implementer':executor},handoff_github_factory=factory)
+        result=controller.handoff_tick('implementer',self.root/'handoff.json')
+        self.assertEqual(result['state'],'agent:review')
+        self.assertEqual(calls,[(active_issue,None)])
+        self.assertTrue(seen['goals'][active_issue]['authorized'])
+
+    def test_handoff_worker_factory_is_restricted_and_invoked(self):
+        calls=[]
+        class Module:
+            @staticmethod
+            def build(*, role, root):
+                calls.append((role,root))
+                return lambda issue, feedback: self.fail('no eligible issue should execute')
+        class Empty:
+            def issues(self): return []
+        controller=DeliveryController(self.root,self.state,Runner(),now=lambda:self.clock[0],
+            handoff_github_factory=lambda *_args,**_kwargs: Empty())
+        with patch('personal_agent.delivery.importlib.import_module',return_value=Module):
+            self.assertEqual(controller.handoff_tick('implementer',self.root/'factory.json','personal_agent.worker:build')['action'],'idle')
+        self.assertEqual(calls,[('implementer',self.root.resolve())])
+        with self.assertRaisesRegex(DeliveryError,'personal_agent'):
+            controller.handoff_tick('implementer',self.root/'bad.json','os:system')
 
     def test_top_goal_stays_selectable_after_its_inventory_substep_closes(self):
         self.activate_top_fixture()

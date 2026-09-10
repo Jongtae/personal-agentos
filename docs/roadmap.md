@@ -4,6 +4,14 @@ Use the [Goal Execution Contract](goal-execution-contract.en.md) with this track
 
 AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gateway. The Mac hosts the owner-controlled runtime; AgentOS owns personal state, assistants, permissions, tools, task lifecycle, and evidence; Codex or Claude Code performs bounded engine turns.
 
+## Completed — File-and-folder personal workspace
+
+Owner-authorized [#314](https://github.com/Jongtae/personal-agentos/issues/314) completed its finite A → B → C program. AgentOS now treats owner files and folders as the material foundation and conversation/work as the experience: preserve originals, search and use approved material, save ordinary-file results, and reuse them after restart. A merged in PR #317; B merged in [PR #320](https://github.com/Jongtae/personal-agentos/pull/320); and C records the current requirement-to-evidence audit, two independent review artifacts, and the latest required CI. This completion is limited to automated deterministic-model and temporary local-file evidence; it does not claim external model, Telegram, Drive, scheduler, or personal-folder operation.
+
+Connected reference folders are read-only by default; managed-workspace writes are scoped. Originals, derived material, drafts, final records, rebuildable indexes, and durable task/approval/evidence/recovery/auth state remain distinct. External AI, messenger, and agent transmission is separately controlled. This program does not implement OCR, transcription, video analysis, advanced large-library search, cloud-only import, material-bundle delegation, cloud sync, or destructive migration.
+
+Drive #308/#310 and open PR #311 are preserved optional connector work rather than first-flow predecessors; no completion or discard is claimed. #312 remains the optional Drive architecture work. #313 remains a separate informational/policy-site track, not a prerequisite for local file functionality.
+
 ## First milestone closeout — 2026-09-08
 
 Owner-authorized [#282](https://github.com/Jongtae/personal-agentos/issues/282) consolidates the development baseline through merged PR #283 (`0025148e7ab30bd27c4b1ca761b3ba9702b0e0f8`, required validate `34213401518` success) in the [Korean report](first-milestone-report.ko.md). TOP remains development-complete, and #279 retains the legacy prototype as historical. OP-03 #280/#281 remains unfinished and preserved. Actual provider login, Telegram/OAuth activation, and operating deployment remain separate.
@@ -11,6 +19,10 @@ Owner-authorized [#282](https://github.com/Jongtae/personal-agentos/issues/282) 
 ## Completed — GitHub Actions validation audit
 
 [#303](https://github.com/Jongtae/personal-agentos/issues/303) audited all tracked workflows and found one required `validate` workflow. Merged [PR #304](https://github.com/Jongtae/personal-agentos/pull/304) retained its pull-request and `main` triggers while removing its redundant `unittest discover` invocation: the preceding full `pytest` suite already collects those tests. Required `validate` run `34222145626` passed. This is CI-only maintenance and changes no runtime, credential, provider, connection, or operating-deployment boundary.
+
+## Completed — state-driven GitHub handoff loop
+
+[#321](https://github.com/Jongtae/personal-agentos/issues/321) merged [PR #322](https://github.com/Jongtae/personal-agentos/pull/322), which adds a bounded, state-driven implementation/review handoff loop. It derives authority from the active delivery-plan item, protects claims and receipts through interrupted CI/review cycles, fails closed for unknown required checks and invalid worker factories, and preserves an owner merge decision. Required `validate` run `34474165551` passed. This is fixture-backed repository automation only: no recurring scheduler registration, live GitHub worker operation, credential change, automatic merge, or external deployment is claimed.
 
 ## Complete on merge — Telegram Drive web OAuth contract
 

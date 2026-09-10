@@ -2,7 +2,7 @@
 
 ## Product priority
 
-AgentOS is a local-first personal-agent runtime. AgentOS owns the personal state, assistant policy, tool boundary, work queue, approvals, evidence, and recovery; a connected Codex or Claude Code process is a bounded execution engine, not the owner of that state.
+AgentOS is a local-first personal agent whose material foundation is owner files and folders and whose experience is conversation and work. AgentOS owns the personal state, assistant policy, tool boundary, work queue, approvals, evidence, recovery, and managed workspace; a connected Codex or Claude Code process is a bounded execution engine, not the owner of that state.
 
 Every active Hub v2 task must advance one or more outcomes:
 
@@ -11,8 +11,18 @@ Every active Hub v2 task must advance one or more outcomes:
 - owner-controlled memory, context, tools, and approvals
 - transparent execution evidence and recoverable failures
 - lower setup and operating burden without broad host access
+- preserve owner originals while creating reusable ordinary-file results that later conversations can find
 
 Do not expand Kubernetes, appliance, task-card polish, or UI work unless it directly advances these outcomes.
+
+File-workspace changes must preserve the following product boundary: connected
+reference folders are read-only by default; managed-workspace writes stay inside
+explicit owner scope; originals, derived material, drafts, and final records
+remain distinguishable; rebuildable indexes stay separate from durable
+task/approval/evidence/recovery/auth state. A folder grant never implies broad
+home-directory access, arbitrary shell execution, overwrite/delete/bulk-move,
+or external transmission. Drive and other connectors are optional capabilities,
+not a prerequisite for core local file work; websites are not OAuth/data relays.
 
 ## Required lifecycle
 
@@ -31,7 +41,7 @@ to `main` or `master`.
 
 The active delivery order is `delivery-plan.yaml`. Historical v1/P7 plans are archived rather than deleted. An iteration cannot advance until its predecessor is complete or its explicitly recorded external blocker is resolved.
 
-Every active iteration must also satisfy the bilingual [Goal Execution Contract](docs/goal-execution-contract.en.md): establish its goal-ready record before activation, preserve declared authority and non-goals, and close only with current evidence. Vision and reserved proposals never activate implementation work by themselves.
+Every active iteration must also satisfy the bilingual [Goal Execution Contract](docs/goal-execution-contract.en.md): establish its goal-ready record before activation, preserve declared authority and non-goals, and close only with current evidence. Vision and reserved proposals never activate implementation work by themselves. For file-workspace work, the bilingual [first-experience contract](docs/file-workspace-first-experience-contract.en.md) must be reviewed before implementation; a PR review must verify provenance, grant containment, original preservation, index/durable-state separation, and explicit external-send boundaries.
 
 ## Autonomous goal execution
 
