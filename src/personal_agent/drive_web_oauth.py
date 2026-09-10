@@ -24,6 +24,7 @@ STATUS_KEY = "drive_web_oauth_status"
 SELECTED_FILES_KEY = "drive_web_oauth_selected_files"
 PICKER_GRANT_KEY = "drive_web_oauth_picker_grant"
 FILES_ENDPOINT = "https://www.googleapis.com/drive/v3/files"
+PICKER_GRANT_LOCK = threading.Lock()
 
 
 class DriveWebOAuthError(ValueError):
@@ -107,7 +108,9 @@ class DriveWebOAuthHandoff:
         self.store, self.client_id = store, client_id
         self.redirect_uri, self.handoff_url = redirect_uri, handoff_url.rstrip("/")
         self.now, self.ttl_seconds = now, ttl_seconds
-        self._picker_grant_lock = threading.Lock()
+        # A store can be reconstructed by another handler instance in the
+        # same runtime; this lock must therefore not be instance-local.
+        self._picker_grant_lock = PICKER_GRANT_LOCK
 
     def begin(self, telegram_owner_id, pending_job_id=None):
         if not isinstance(telegram_owner_id, int) or telegram_owner_id <= 0:
@@ -232,6 +235,8 @@ class DriveWebOAuthHandoff:
 
     def mark_reauthentication_required(self):
         """Invalidate a rejected remote token before offering another link."""
+        self.store.secret(TOKEN_KEY, {})
+        self.store.put(SELECTED_FILES_KEY, {})
         self._finish("reauth-required")
 
     def picker_grant_active(self, grant):

@@ -1,4 +1,5 @@
 import tempfile
+import threading
 import unittest
 from urllib.parse import parse_qs, urlparse
 
@@ -152,6 +153,18 @@ class DriveWebOAuthTests(unittest.TestCase):
         with self.assertRaises(DriveWebOAuthError):
             self.flow.select_files_for_grant(grant,[{"id":"other"}])
 
+    def test_picker_grant_is_single_use_across_handoff_instances(self):
+        self.connect(); grant=self.flow.create_picker_grant(42)
+        other=DriveWebOAuthHandoff(self.encrypted_store, "web-client", "https://connect.example.test/oauth/callback", "https://connect.example.test", now=lambda: self.clock[0])
+        start=threading.Barrier(2); outcomes=[]
+        def consume(flow, name):
+            start.wait()
+            try: flow.select_files_for_grant(grant,[{"id":name}]); outcomes.append('ok')
+            except DriveWebOAuthError: outcomes.append('rejected')
+        first=threading.Thread(target=consume,args=(self.flow,'first'));second=threading.Thread(target=consume,args=(other,'second'))
+        first.start();second.start();first.join();second.join()
+        self.assertEqual(sorted(outcomes),['ok','rejected'])
+
     def test_google_native_file_is_exported_and_selection_keeps_connection_active(self):
         self.connect()
         self.flow.select_files(42, [{"id": "doc", "mimeType": "application/vnd.google-apps.document"}])
@@ -165,6 +178,12 @@ class DriveWebOAuthTests(unittest.TestCase):
         with self.assertRaisesRegex(DriveWebOAuthError, "expired"):
             self.flow.select_files(42, [{"id": "picked"}])
         self.assertEqual(self.flow.status()["state"], "reauth-required")
+
+    def test_reauthentication_clears_selected_files_and_token(self):
+        self.connect(); self.flow.select_files(42,[{"id":"picked"}])
+        self.flow.mark_reauthentication_required()
+        with self.assertRaises(DriveWebOAuthError):
+            self.flow.read_selected(42,"picked",lambda *_: "must not run")
 
 
 if __name__ == "__main__":
