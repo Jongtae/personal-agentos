@@ -20,6 +20,10 @@ Owner-authorized [#282](https://github.com/Jongtae/personal-agentos/issues/282) 
 
 [#303](https://github.com/Jongtae/personal-agentos/issues/303) audited all tracked workflows and found one required `validate` workflow. Merged [PR #304](https://github.com/Jongtae/personal-agentos/pull/304) retained its pull-request and `main` triggers while removing its redundant `unittest discover` invocation: the preceding full `pytest` suite already collects those tests. Required `validate` run `34222145626` passed. This is CI-only maintenance and changes no runtime, credential, provider, connection, or operating-deployment boundary.
 
+## Completed — state-driven GitHub handoff loop
+
+[#321](https://github.com/Jongtae/personal-agentos/issues/321) merged [PR #322](https://github.com/Jongtae/personal-agentos/pull/322), which adds a bounded, state-driven implementation/review handoff loop. It derives authority from the active delivery-plan item, protects claims and receipts through interrupted CI/review cycles, fails closed for unknown required checks and invalid worker factories, and preserves an owner merge decision. Required `validate` run `34474165551` passed. This is fixture-backed repository automation only: no recurring scheduler registration, live GitHub worker operation, credential change, automatic merge, or external deployment is claimed.
+
 ## Complete on merge — Telegram Drive web OAuth contract
 
 Owner-authorized [DRIVE-TG-01 / #306](https://github.com/Jongtae/personal-agentos/issues/306) delivers a mock-validated Telegram-to-browser Google Drive OAuth handoff: owner binding, signed and expiring state, PKCE, encrypted owner-local token storage, explicit file selection, native Google Workspace export handling, redacted recovery messages, and Drive-request job pause/resume. It is not a live connection: no provider login, credential entry, token exchange, Drive access, or external operating deployment is claimed. A separately goal-ready operating iteration is required for local live testing.
