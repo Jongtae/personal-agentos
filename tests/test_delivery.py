@@ -1,6 +1,7 @@
 import json
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -109,6 +110,23 @@ class DeliveryTests(unittest.TestCase):
         self.assertEqual(result['state'],'agent:review')
         self.assertEqual(calls,[(318,None)])
         self.assertTrue(seen['goals'][318]['authorized'])
+
+    def test_handoff_worker_factory_is_restricted_and_invoked(self):
+        calls=[]
+        class Module:
+            @staticmethod
+            def build(*, role, root):
+                calls.append((role,root))
+                return lambda issue, feedback: self.fail('no eligible issue should execute')
+        class Empty:
+            def issues(self): return []
+        controller=DeliveryController(self.root,self.state,Runner(),now=lambda:self.clock[0],
+            handoff_github_factory=lambda *_args,**_kwargs: Empty())
+        with patch('personal_agent.delivery.importlib.import_module',return_value=Module):
+            self.assertEqual(controller.handoff_tick('implementer',self.root/'factory.json','personal_agent.worker:build')['action'],'idle')
+        self.assertEqual(calls,[('implementer',self.root.resolve())])
+        with self.assertRaisesRegex(DeliveryError,'personal_agent'):
+            controller.handoff_tick('implementer',self.root/'bad.json','os:system')
 
     def test_top_goal_stays_selectable_after_its_inventory_substep_closes(self):
         self.activate_top_fixture()

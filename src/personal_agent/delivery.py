@@ -483,7 +483,6 @@ class DeliveryController:
         item = self.plan.select(self.state_store.read())
         goals = ({int(item['issue']): {'authorized': True, 'dependencies_satisfied': True}}
                  if item and item.get('issue') else {})
-        github = self.handoff_github_factory(repository, authorized_goals=goals)
         workers = self.handoff_workers
         if worker_factory:
             module, sep, name = worker_factory.partition(':')
@@ -494,6 +493,7 @@ class DeliveryController:
             configured = factory(role=role, root=self.root)
             if not callable(configured): raise DeliveryError('worker factory must return a bounded callable.')
             workers = {**workers, role: configured}
+        github = self.handoff_github_factory(repository, authorized_goals=goals)
         return StateHandoffLoop(github, path, executor=workers.get('implementer'), reviewer=workers.get('reviewer'),
                                 worker_id='delivery-cli').tick(role)
 
