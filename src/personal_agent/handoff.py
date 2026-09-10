@@ -49,7 +49,13 @@ class Candidate:
     evidence: str = ""
 
     def key(self):
-        return hashlib.sha256(json.dumps(asdict(self), sort_keys=True).encode()).hexdigest()[:20]
+        # This is the immutable identity which both the local executor and the
+        # GitHub adapter can reconstruct.  CI and local evidence deliberately
+        # are not part of it: CI changes while a run is pending and evidence is
+        # not published in a receipt.
+        return hashlib.sha256(json.dumps({
+            "issue": self.issue, "pr": self.pr, "head": self.head, "base": self.base,
+        }, sort_keys=True).encode()).hexdigest()[:20]
 
 
 class HandoffState:
@@ -109,11 +115,13 @@ class StateHandoffLoop:
     def _marker(role, issue, identity):
         return f"agentos-handoff:{role}:{issue}:{identity}"
 
-    def _receipt(self, issue, old, new, role, identity, text, state):
+    def _receipt(self, issue, old, new, role, identity, text, state, candidate=None):
         marker = self._marker(role, issue, identity)
         if marker in state.get("receipts", []):
             return {"action": "already-receipted", "issue": issue}
         pending = {"issue": issue, "old": old, "new": new, "marker": marker, "text": text}
+        if candidate is not None:
+            pending["candidate_key"] = candidate.key()
         state["pending"] = pending; self.state.write(state)
         return self._flush(state)
 
@@ -128,8 +136,24 @@ class StateHandoffLoop:
                 # A timed-out write may have succeeded.  Re-read before retrying.
                 if not self.github.comment_exists(pending["issue"], marker):
                     return {"action": "receipt-write-unknown", "issue": pending["issue"]}
+        # A review disposition is valid only for the exact head which was
+        # reviewed.  A timeout may leave a comment durable while the PR moves;
+        # discard that stale pending disposition rather than replaying it.
+        candidate_key = pending.get("candidate_key")
+        if candidate_key and pending["old"] == "agent:review":
+            current = self.github.candidate(pending["issue"])
+            if not current or current.key() != candidate_key:
+                state.pop("pending", None)
+                if current:
+                    state["candidate"] = asdict(current)
+                self.state.write(state)
+                return {"action": "receipt-candidate-stale", "issue": pending["issue"]}
         if not self.github.transition(pending["issue"], pending["old"], pending["new"]):
-            return {"action": "transition-needs-recheck", "issue": pending["issue"]}
+            # A transition can have succeeded remotely before its response was
+            # lost.  Reconcile the authoritative queue before retrying.
+            now = next((row for row in self.github.issues() if row.number == pending["issue"]), None)
+            if not now or now.queue_state() != pending["new"]:
+                return {"action": "transition-needs-recheck", "issue": pending["issue"]}
         state.setdefault("receipts", []).append(marker)
         state.pop("pending", None); self.state.write(state)
         return {"action": "transitioned", "issue": pending["issue"], "state": pending["new"]}
@@ -137,7 +161,9 @@ class StateHandoffLoop:
     def _claim(self, issue, state):
         nonce = hashlib.sha256(f"{issue.number}:{self.worker_id}:{self.now()}".encode()).hexdigest()[:16]
         attempt = issue.queue_state().removeprefix("agent:")
-        marker = f"agentos-handoff:claim:{issue.number}:{attempt}:{self.worker_id}:{nonce}"
+        raw = state.get("candidate")
+        cycle = Candidate(**raw).key() if raw and raw.get("issue") == issue.number else "initial"
+        marker = f"agentos-handoff:claim:{issue.number}:{attempt}:{cycle}:{self.worker_id}:{nonce}"
         try:
             self.github.comment(issue.number, marker, "Bounded implementer lease claim.")
         except TimeoutError:
@@ -162,17 +188,33 @@ class StateHandoffLoop:
         if self.executor is None:
             return {"action": "dispatch-required", "issue": issue.number}
         lease = state.get("lease")
+        retained_lease = bool(lease and lease.get("issue") == issue.number)
         if not lease or lease.get("issue") != issue.number:
             lease = self._claim(issue, state)
             if not lease: return {"action": "claim-raced", "issue": issue.number}
-        candidate = self.executor(issue, state.get("feedback"))
+        raw = state.get("candidate")
+        if retained_lease and raw and raw.get("issue") == issue.number:
+            # Do not re-run an executor merely because asynchronous CI has not
+            # finished.  Its retained lease owns the bounded candidate while
+            # the adapter refreshes the current check state.
+            candidate = Candidate(**raw)
+            refresh = getattr(self.github, "refresh_candidate", None)
+            current = refresh(issue.number, candidate) if refresh else self.github.candidate(issue.number)
+            if not current or current.key() != candidate.key():
+                return {"action": "candidate-needs-recovery", "issue": issue.number}
+            candidate = Candidate(**{**asdict(candidate), "ci": current.ci,
+                                     "draft": current.draft,
+                                     "required_checks_known": current.required_checks_known})
+        else:
+            candidate = self.executor(issue, state.get("feedback"))
         if not isinstance(candidate, Candidate) or candidate.issue != issue.number:
             return {"action": "executor-no-candidate", "issue": issue.number}
-        state["candidate"] = asdict(candidate); state.pop("lease", None); self.state.write(state)
+        state["candidate"] = asdict(candidate); self.state.write(state)
         if candidate.ci != "success":
             return {"action": "awaiting-ci", "issue": issue.number, "ci": candidate.ci}
+        state.pop("lease", None); self.state.write(state)
         return self._receipt(issue.number, "agent:working", "agent:review", "implementation", candidate.key(),
-                             f"Implementation receipt: PR #{candidate.pr}, head `{candidate.head}`, CI `{candidate.ci}`.", state)
+                             f"Implementation receipt: PR #{candidate.pr}, head `{candidate.head}`, CI `{candidate.ci}`.", state, candidate)
 
     def _review(self, issue, state):
         raw = state.get("candidate")
@@ -192,10 +234,10 @@ class StateHandoffLoop:
         digest = hashlib.sha256("\n".join(findings).encode()).hexdigest()[:20]
         if findings:
             state["feedback"] = {"digest": digest, "findings": findings}; self.state.write(state)
-            return self._receipt(issue.number, "agent:review", "agent:rework", "review", digest,
-                                 "Review receipt: repair required — " + "; ".join(findings), state)
+            return self._receipt(issue.number, "agent:review", "agent:rework", "review", candidate.key() + ":" + digest,
+                                 "Review receipt: repair required — " + "; ".join(findings), state, candidate)
         return self._receipt(issue.number, "agent:review", "agent:approved", "review", candidate.key(),
-                             f"Review receipt: PR #{candidate.pr}, head `{candidate.head}` satisfies current fixture evidence; owner merge decision remains.", state)
+                             f"Review receipt: PR #{candidate.pr}, head `{candidate.head}` satisfies current fixture evidence; owner merge decision remains.", state, candidate)
 
     def tick(self, role):
         if role not in {"implementer", "reviewer"}: raise HandoffError("role must be implementer or reviewer")
@@ -295,12 +337,33 @@ class GithubCliBoundary:
         viewer = self._viewer_login()
         claims = [row for row in self._comments(number)
                   if row.get("user", {}).get("login") == viewer and "agentos-handoff:claim:" in (row.get("body") or "")]
-        prefix = ":".join(marker.split(":")[:4]) + ":"
+        # The fifth component is the immutable candidate cycle.  A completed
+        # rework claim for an older head must not own a later repair cycle.
+        prefix = ":".join(marker.split(":")[:5]) + ":"
         claims = [row for row in claims if prefix in (row.get("body") or "")]
         # GitHub returns comments in creation order.  The earliest claim for
         # this exact ready/rework attempt owns it; a prior completed attempt
         # cannot block a later repair.
         return bool(claims) and marker in (claims[0].get("body") or "")
+
+    def _candidate_from_pr(self, number, pr, receipt_ci="success"):
+        row = self._json("pr", "view", pr, "--repo", self.repository,
+                         "--json", "number,headRefOid,baseRefName,isDraft")
+        # Rollups contain optional checks and mixed CheckRun/StatusContext
+        # representations, so they cannot establish required CI.  Ask gh for
+        # the required set; unknown, missing, or pending requirements fail
+        # closed until a later tick can resolve them.
+        required = self.runner(["gh", "pr", "checks", str(pr), "--repo", self.repository,
+                                "--required", "--json", "name,state"])
+        try:
+            required_checks = json.loads(required.stdout)
+            known = isinstance(required_checks, list)
+        except (TypeError, ValueError):
+            required_checks, known = [], False
+        success = known and required.returncode == 0 and all(
+            isinstance(check, dict) and check.get("state") == "SUCCESS" for check in required_checks)
+        return Candidate(number, int(row["number"]), row["headRefOid"], row["baseRefName"],
+                         "success" if success and receipt_ci == "success" else "pending", bool(row["isDraft"]), known)
 
     def candidate(self, number):
         viewer = self._viewer_login()
@@ -308,13 +371,12 @@ class GithubCliBoundary:
         pattern = __import__("re").compile(r"Implementation receipt: PR #(\d+), head `([0-9a-f]{40})`, CI `([^`]+)`")
         matches = [pattern.search(r.get("body") or "") for r in comments]; matches = [m for m in matches if m]
         if not matches: return None
-        pr, head, ci = matches[-1].groups()
-        row = self._json("pr", "view", pr, "--repo", self.repository,
-                         "--json", "number,headRefOid,baseRefName,isDraft,statusCheckRollup")
-        checks = row.get("statusCheckRollup") or []
-        success = bool(checks) and all(x.get("conclusion") == "SUCCESS" for x in checks if x.get("__typename") == "CheckRun")
-        return Candidate(number, int(row["number"]), row["headRefOid"], row["baseRefName"],
-                         "success" if success and ci == "success" else "pending", bool(row["isDraft"]), bool(checks))
+        pr, _head, ci = matches[-1].groups()
+        return self._candidate_from_pr(number, pr, ci)
+
+    def refresh_candidate(self, number, previous):
+        """Poll a retained working candidate before its receipt exists."""
+        return self._candidate_from_pr(number, str(previous.pr), "success")
 
     def execution_active(self, number, lease):
         # GitHub labels cannot establish liveness.  An expired local lease is

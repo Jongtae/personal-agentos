@@ -21,7 +21,7 @@ class FakeGithub:
         self.comments.append((number, marker, text))
         if self.timeout_once: self.timeout_once = False; raise TimeoutError()
     def claim_winner(self, number, marker):
-        prefix = ":".join(marker.split(":")[:4]) + ":"
+        prefix = ":".join(marker.split(":")[:5]) + ":"
         claims = [value for issue, value, _ in self.comments if issue == number and prefix in value]
         return bool(claims) and claims[0] == marker
     def candidate(self, number): return self.candidates.get(number)
@@ -81,6 +81,31 @@ class HandoffTests(unittest.TestCase):
         row.labels = {"agent:review"}
         self.assertEqual(loop.tick("reviewer")["action"], "candidate-not-reviewable")
 
+    def test_pending_ci_is_polled_to_success_or_failure_without_rerunning_executor(self):
+        row = goal(202); gh = FakeGithub([row]); runs = []
+        def executor(issue, feedback):
+            runs.append(issue.number)
+            candidate = Candidate(issue.number, 2, "p" * 40, "main", "pending")
+            gh.candidates[issue.number] = candidate
+            return candidate
+        loop = StateHandoffLoop(gh, self.state, executor)
+        self.assertEqual(loop.tick("implementer")["action"], "awaiting-ci")
+        gh.candidates[202] = Candidate(202, 2, "p" * 40, "main", "success")
+        self.assertEqual(loop.tick("implementer")["state"], "agent:review")
+        self.assertEqual(runs, [202])
+
+        row2 = goal(203); gh2 = FakeGithub([row2]); failed_runs = []
+        def pending(issue, feedback):
+            failed_runs.append(issue.number)
+            candidate = Candidate(issue.number, 3, "q" * 40, "main", "pending")
+            gh2.candidates[issue.number] = candidate
+            return candidate
+        second = StateHandoffLoop(gh2, Path(self.temp.name) / "failure.json", pending)
+        second.tick("implementer")
+        gh2.candidates[203] = Candidate(203, 3, "q" * 40, "main", "failure")
+        self.assertEqual(second.tick("implementer")["action"], "awaiting-ci")
+        self.assertEqual(failed_runs, [203])
+
     def test_dispatch_only_tick_never_claims_or_strands_ready_issue(self):
         row = goal(250); gh = FakeGithub([row])
         result = StateHandoffLoop(gh, self.state).tick("implementer")
@@ -108,7 +133,7 @@ class HandoffTests(unittest.TestCase):
         self.assertEqual(runs, [300]); self.assertEqual(len(gh.comments), 2)
 
     def test_existing_cross_writer_claim_loses_without_executor_or_label_write(self):
-        row = goal(350); gh = FakeGithub([row]); gh.comment(350, "agentos-handoff:claim:350:ready:other:nonce", "other lease")
+        row = goal(350); gh = FakeGithub([row]); gh.comment(350, "agentos-handoff:claim:350:ready:initial:other:nonce", "other lease")
         loop = StateHandoffLoop(gh, self.state, lambda *_: self.fail("losing writer executed"), worker_id="mine")
         self.assertEqual(loop.tick("implementer")["action"], "claim-raced")
         self.assertEqual(row.queue_state(), "agent:ready")
@@ -142,6 +167,55 @@ class HandoffTests(unittest.TestCase):
         loop.state.write({"candidate": first.__dict__})
         self.assertEqual(loop.tick("reviewer")["action"], "stale-review-rejected")
         self.assertEqual(row.queue_state(), "agent:review")
+
+    def test_receipt_recovery_rechecks_head_and_reconciles_lost_transition_response(self):
+        row = goal(503, "agent:review"); gh = FakeGithub([row])
+        old = Candidate(503, 5, "i" * 40, "main", "success"); gh.candidates[503] = old
+        loop = StateHandoffLoop(gh, self.state, reviewer=lambda *_: [])
+        loop.state.write({"candidate": old.__dict__})
+        original = gh.transition
+        def delayed(number, before, after):
+            original(number, before, after)
+            return False
+        gh.transition = delayed
+        self.assertEqual(loop.tick("reviewer")["state"], "agent:approved")
+        self.assertEqual(row.queue_state(), "agent:approved")
+
+        stale = goal(504, "agent:review"); stale_gh = FakeGithub([stale])
+        before = Candidate(504, 5, "j" * 40, "main", "success"); stale_gh.candidates[504] = before
+        stale_loop = StateHandoffLoop(stale_gh, Path(self.temp.name) / "stale.json", reviewer=lambda *_: [])
+        stale_loop.state.write({"candidate": before.__dict__})
+        stale_gh.transition = lambda *_: False
+        self.assertEqual(stale_loop.tick("reviewer")["action"], "transition-needs-recheck")
+        stale_gh.candidates[504] = Candidate(504, 5, "k" * 40, "main", "success")
+        self.assertEqual(stale_loop.tick("reviewer")["action"], "receipt-candidate-stale")
+        self.assertEqual(stale.queue_state(), "agent:review")
+
+    def test_same_finding_on_new_head_is_a_new_rework_cycle(self):
+        row = goal(505, "agent:review"); gh = FakeGithub([row])
+        first = Candidate(505, 5, "l" * 40, "main", "success"); gh.candidates[505] = first
+        loop = StateHandoffLoop(gh, self.state, executor=lambda issue, _: Candidate(505, 5, "m" * 40, "main", "success"), reviewer=lambda *_: ["same finding"])
+        loop.state.write({"candidate": first.__dict__})
+        self.assertEqual(loop.tick("reviewer")["state"], "agent:rework")
+        gh.candidates[505] = Candidate(505, 5, "m" * 40, "main", "success")
+        self.assertEqual(loop.tick("implementer")["state"], "agent:review")
+        self.assertEqual(loop.tick("reviewer")["state"], "agent:rework")
+        claims = [marker for _, marker, _ in gh.comments if ":claim:505:rework:" in marker]
+        self.assertEqual(len(claims), 1)
+        receipts = [marker for _, marker, _ in gh.comments if marker.startswith("agentos-handoff:review:505:")]
+        self.assertEqual(len(receipts), 2)
+
+    def test_cli_required_check_status_context_fails_closed(self):
+        comments = [{"body": "Implementation receipt: PR #9, head `" + "a" * 40 + "`, CI `success`", "user": {"login": "owner"}}]
+        def runner(args):
+            if args[1:3] == ["api", "user"]: return SimpleNamespace(returncode=0, stdout='{"login":"owner"}', stderr="")
+            if args[1:3] == ["api", "repos/example/repo/issues/601/comments?per_page=100"]: return SimpleNamespace(returncode=0, stdout=json.dumps(comments), stderr="")
+            if args[1:3] == ["pr", "view"]: return SimpleNamespace(returncode=0, stdout=json.dumps({"number": 9, "headRefOid": "a" * 40, "baseRefName": "main", "isDraft": False}), stderr="")
+            if args[1:3] == ["pr", "checks"]: return SimpleNamespace(returncode=8, stdout=json.dumps([{"name": "required-status", "state": "PENDING"}]), stderr="")
+            self.fail(args)
+        candidate = GithubCliBoundary("example/repo", runner).candidate(601)
+        self.assertEqual(candidate.ci, "pending")
+        self.assertTrue(candidate.required_checks_known)
 
 
 if __name__ == "__main__": unittest.main()
