@@ -34,3 +34,10 @@ def test_pages_deployment_is_manual_until_operator_details_are_confirmed():
     assert "workflow_dispatch:" in workflow
     assert "push:" not in workflow
     assert "path: site" in workflow
+
+
+def test_privacy_page_explains_separate_local_deletion_and_provider_revocation():
+    privacy = (SITE / "privacy.html").read_text(encoding="utf-8")
+    assert "Delete local data and revoke access" in privacy
+    assert "provider revocation are separate actions" in privacy
+    assert "로컬 삭제와 제공자 권한 철회는 서로 다른 작업" in privacy
