@@ -72,3 +72,18 @@ passed; `git diff --check` — passed. A resolution needs either an
 implementation-accurate deletion route already supported by the product, or
 wording that does not claim an unavailable documented control. This review
 still makes no deployment or external-runtime claim.
+
+## Final P1 re-review: `f7d964c6695401864ec2509b895040c10a722ece`
+
+**P1 resolved.** The privacy page now accurately directs an owner to use the
+operating system's file-management tools to remove the relevant local
+application data and managed-workspace material for that installation. It does
+not claim a nonexistent AgentOS removal/reset control, explicitly preserves
+connected reference-folder originals, and states that provider revocation is a
+separate action in the provider's account permissions/security controls. The
+Korean wording carries the same boundary. This is user guidance, not a claim
+that a runtime deletion feature, Pages deployment, or provider operation was
+observed.
+
+Validation: `python3 -m pytest -q tests/test_public_site.py` — 4 passed;
+`git diff --check` — passed.
