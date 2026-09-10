@@ -61,9 +61,9 @@ class DeliveryTests(unittest.TestCase):
     def test_owner_activated_file_workspace_goal_replaces_drive_core_selector(self):
         controller=self.controller()
         self.assertEqual(controller.plan.next_goal()['status'], 'active')
-        self.assertEqual(controller.plan.next_goal()['id'], 'FILE-WS-A-01')
-        self.assertEqual(controller.plan.select({})['id'], 'FILE-WS-A-01')
-        self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['active_substep'], 'FILE-WS-A-01')
+        self.assertEqual(controller.plan.next_goal()['id'], 'FILE-WS-C-01')
+        self.assertEqual(controller.plan.select({})['id'], 'FILE-WS-C-01')
+        self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['active_substep'], 'FILE-WS-C-01')
         self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['issue'], 314)
         self.assertEqual(controller.plan.items['FILE-WS-A-01']['issue'], 318)
         self.assertEqual(controller.plan.items['FILE-WS-B-01']['depends_on'], ['FILE-WS-A-01'])
@@ -84,9 +84,10 @@ class DeliveryTests(unittest.TestCase):
             self.assertNotIn('FILE-UX-', contract)
 
     def test_handoff_entrypoint_dispatches_only_injected_bounded_worker(self):
+        active_issue=DeliveryPlan(self.root/'delivery-plan.yaml').select({})['issue']
         class Boundary:
             def __init__(self):
-                self.row=Issue(318, {'agent:ready'}, authorized=True, dependencies_satisfied=True)
+                self.row=Issue(active_issue, {'agent:ready'}, authorized=True, dependencies_satisfied=True)
                 self.comments=[]; self.candidate_row=None
             def issues(self): return [self.row]
             def transition(self, number, old, new):
@@ -102,14 +103,14 @@ class DeliveryTests(unittest.TestCase):
             seen['repository']=repository;seen['goals']=authorized_goals;return boundary
         calls=[]
         def executor(issue, feedback):
-            calls.append((issue.number,feedback));boundary.candidate_row=Candidate(318, 77, 'x'*40, 'main', 'success')
+            calls.append((issue.number,feedback));boundary.candidate_row=Candidate(active_issue, 77, 'x'*40, 'main', 'success')
             return boundary.candidate_row
         controller=DeliveryController(self.root,self.state,Runner(),now=lambda:self.clock[0],
             handoff_workers={'implementer':executor},handoff_github_factory=factory)
         result=controller.handoff_tick('implementer',self.root/'handoff.json')
         self.assertEqual(result['state'],'agent:review')
-        self.assertEqual(calls,[(318,None)])
-        self.assertTrue(seen['goals'][318]['authorized'])
+        self.assertEqual(calls,[(active_issue,None)])
+        self.assertTrue(seen['goals'][active_issue]['authorized'])
 
     def test_handoff_worker_factory_is_restricted_and_invoked(self):
         calls=[]

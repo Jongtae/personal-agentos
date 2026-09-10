@@ -13,7 +13,7 @@ from .manifests import validate
 FORMAT = "agentos-owner-state-v1"
 ROOT = "agentos-owner-state"
 DB_RELATIVE = "private/quickstart.db"
-_RESET_CONFIG = ("telegram", "telegram_status", "model", "model_test", "subscription_engine", "document_sharing", "tool_run", "file_roots")
+_RESET_CONFIG = ("telegram", "telegram_status", "model", "model_test", "subscription_engine", "document_sharing", "tool_run", "file_roots", "file_workspace", "file_workspace_document_jobs")
 
 def _sha256(path):
     digest = hashlib.sha256()
@@ -29,6 +29,12 @@ def _portable_db(source, target):
         if not {"auth", "sessions", "config"} <= tables: raise ValueError("AgentOS owner database has an unsupported schema.")
         copy.execute("DELETE FROM auth");copy.execute("DELETE FROM sessions")
         copy.executemany("DELETE FROM config WHERE key=?", ((key,) for key in _RESET_CONFIG))
+        # Grants and result paths are valid only in the original runtime. Keep
+        # durable result IDs/provenance as owner work evidence, but detach each
+        # path so a restored runtime must reconnect folders before it can read
+        # or write anything at the old location.
+        if "file_workspace_results" in tables:
+            copy.execute("UPDATE file_workspace_results SET path=NULL, workspace_id=NULL, state='detached'")
         # A portable restore is a new runtime boundary. Work which had not
         # reached a terminal state before export must require a new owner
         # request after restore; preserving it as queued/running would replay

@@ -103,7 +103,7 @@ async function refresh(){
  $('tool-status').textContent=currentTool?({running:'실행 중',succeeded:'실행 완료',failed:'실행 실패'}[currentTool.status]+' · '+currentTool.tool+' · 내 AgentOS에서 실행'):'';
  $('tool-history').replaceChildren();for(const e of state.tool_events||[]){const trace=e.trace||{};const attempt=trace.attempt?' · '+trace.attempt+'회차':'';const error=trace.error?' · '+trace.error:'';$('tool-history').append(element('div',new Date(e.created*1000).toLocaleTimeString()+' · '+e.tool+' · '+({running:'실행 중',succeeded:'완료',failed:'실패'}[e.status]||e.status)+attempt+error));}
  $('runtime-badge').textContent=home.state==='working'?'작업 중':home.state==='attention'?'확인 필요':'준비됨';
- if(!modelLoaded){if(model.provider){$('provider').value=displayProvider(model);$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;$('root-paths').value=(settings.file_roots||[]).map(r=>r.path).join('\n');modelLoaded=true;}showDocumentBoundary(settings.document_boundary);showContextInbox(settings.context_inbox);
+ if(!modelLoaded){if(model.provider){$('provider').value=displayProvider(model);$('endpoint').value=model.endpoint;$('model-name').value=model.model;}$('endpoint-help').textContent=providers[$('provider').value].help;$('root-paths').value=(settings.file_roots||[]).map(r=>r.path).join('\n');$('file-reference-paths').value=(settings.file_workspace?.references||[]).map(r=>r.path).join('\n');$('file-workspace-path').value=settings.file_workspace?.workspace||'';modelLoaded=true;}showDocumentBoundary(settings.document_boundary);showContextInbox(settings.context_inbox);
  const tested=settings.model_test;
  $('model-label').textContent=home.model_connected?'AI 연결됨':'메모 준비됨';
  $('key-hint').textContent=settings.has_api_key?'키가 저장되어 있습니다. 빈칸으로 저장하면 같은 연결의 키를 유지합니다.':'키는 대화 기록과 분리된 개인 설정 파일에 저장합니다.';
@@ -174,3 +174,4 @@ $('load-free-models').onclick=()=>busy($('load-free-models'),async()=>{
 });
 
 $('roots-form').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{await api('/api/files/roots',{paths:$('root-paths').value.split('\n').map(p=>p.trim()).filter(Boolean)});$('roots-feedback').textContent='폴더를 연결했습니다. 대화창에서 파일을 찾아 달라고 요청하세요.';}catch(e){error('roots-feedback',e);}});};
+$('file-workspace-form').onsubmit=async e=>{e.preventDefault();await busy(e.submitter,async()=>{try{await api('/api/file-workspace',{references:$('file-reference-paths').value.split('\n').map(p=>p.trim()).filter(Boolean),workspace:$('file-workspace-path').value.trim()});$('file-workspace-feedback').textContent='파일 작업공간을 연결했습니다. “자료를 요약해 파일로 저장해줘”라고 요청해 보세요.';modelLoaded=false;await refresh();}catch(e){error('file-workspace-feedback',e);}});};

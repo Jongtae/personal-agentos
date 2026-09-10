@@ -246,6 +246,7 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 if path=='/api/openrouter/models':return self.reply(200,service.free_models())
                 if path=='/api/ollama/models':return self.reply(200,service.local_models())
                 if path=='/api/files/roots':return self.reply(200,service.save_roots(body))
+                if path=='/api/file-workspace':return self.reply(200,service.configure_file_workspace(body))
                 if path=='/api/context-inbox/config':return self.reply(200,service.context_inbox().configure(body))
                 if path=='/api/context-inbox/capture':return self.reply(200,service.context_inbox().capture(body))
                 if path=='/api/context-inbox/delete':return self.reply(200,service.context_inbox().delete(body.get('id')))

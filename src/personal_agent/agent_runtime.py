@@ -27,11 +27,12 @@ DEFINITIONS=[
 ]
 
 class Capabilities:
- def __init__(self,store,adapter,config,key,job_id,record,readonly=False,network=None,document_access=True,packages=None,allowed_tools=None):
+ def __init__(self,store,adapter,config,key,job_id,record,readonly=False,network=None,document_access=True,packages=None,allowed_tools=None,document_context=False):
   self.store,self.adapter,self.config,self.key=store,adapter,config,key
   self.job_id,self.record,self.readonly=job_id,record,readonly
   self.network=network or LocalTools()
   self.document_access=document_access
+  self.document_context=document_context
   self.packages=runtime_packages([]) if packages is None else packages
   self.tools={tool['id']:tool for package in self.packages for tool in package['tools']}
   self.roles={role['id']:{**role,'package_id':package['id']} for package in self.packages for role in package['roles']}
@@ -93,7 +94,7 @@ class Capabilities:
   if not tool or name not in self.allowed_tools:raise ValueError('활성 패키지에 선언되지 않은 도구입니다.')
   name=tool['host_action']
   if name=='web_search':
-   if self.evidence:raise ValueError('연결 문서에서 읽은 내용은 웹 검색어로 전송할 수 없습니다. 문서와 무관한 공개 검색어로 새 요청을 보내 주세요.')
+   if self.evidence or self.document_context:raise ValueError('연결 문서에서 읽은 내용은 웹 검색어로 전송할 수 없습니다. 문서와 무관한 공개 검색어로 새 요청을 보내 주세요.')
    return self.network.execute({'tool':name,**args})
   if name=='weather':return self.network.execute({'tool':name,**args})
   if name=='list_roots':return {'roots':[{'id':r['id'],'name':Path(r['path']).name} for r in self.roots()]}
