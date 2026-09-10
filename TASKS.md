@@ -123,7 +123,7 @@ The [UX v1.1 epic](https://github.com/Jongtae/personal-agentos/issues/149) recor
 
 ## Historical: Telegram Conversation UX v1.2
 
-[UX-06 / #162](https://github.com/Jongtae/personal-agentos/issues/162) is delivered historical work. It makes the paired Telegram chat a deliberate assistant conversation: a concise acknowledgement, progress only when needed, one readable terminal answer, owner-requested detail, and private owner-bound actions with truthful recovery.
+[UX-06 / #162](https://github.com/Jongtae/personal-agentos/issues/162) is delivered historical work. It makes the paired Telegram chat a deliberate assistant conversation: a concise acknowledgement, progress only when needed, one readable terminal answer, optional detail, and private owner-bound actions with truthful recovery.
 
 ### UX-06 — Telegram conversation bubbles
 
