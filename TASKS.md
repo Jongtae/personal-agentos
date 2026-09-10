@@ -6,8 +6,8 @@ Active work is executed only from a goal-ready issue and active delivery-plan en
 
 | Work unit | Issue | Status |
 | --- | --- | --- |
-| FILE-WS-A-01: product criteria and plan alignment | [#318](https://github.com/Jongtae/personal-agentos/issues/318) | Active A substep of owner-authorized program #314. Define the bilingual file-workspace contract and align criteria/plan; create the alignment PR only. |
-| FILE-WS-B-01: first integrated file experience | [#315](https://github.com/Jongtae/personal-agentos/issues/315) | Planned; depends on merged A contract. Do not activate in the present run. |
+| FILE-WS-A-01: product criteria and plan alignment | [#318](https://github.com/Jongtae/personal-agentos/issues/318) | Complete on PR #317 merge; #314 remains active. |
+| FILE-WS-B-01: first integrated file experience | [#315](https://github.com/Jongtae/personal-agentos/issues/315) | Active after merged A contract; implement only this first-flow iteration. |
 | FILE-WS-C-01: validation, review, and closeout | [#316](https://github.com/Jongtae/personal-agentos/issues/316) | Planned; depends on B. |
 
 Drive #308/#310 and PR #311 are preserved optional connector work, not predecessors of FILE-WS. #312 remains optional connector architecture work; #313 remains a separate product/policy-site workstream and is not a local-file prerequisite.

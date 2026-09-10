@@ -1,5 +1,6 @@
 import json
 import tempfile
+from pathlib import Path
 import threading
 import time
 import unittest
@@ -282,6 +283,20 @@ class QuickstartTests(unittest.TestCase):
         self.service.run_one()
         self.assertTrue(any('금요일' in m.get('content','') for m in self.calls[-1][1]['messages'] if m['role']=='user'))
         self.assertEqual(len(QuickStore(self.temp.name).notes()),1)
+
+    def test_conversation_summary_saves_real_workspace_markdown(self):
+        reference=Path(self.temp.name)/'reference'; workspace=Path(self.temp.name)/'workspace';reference.mkdir();workspace.mkdir()
+        original=reference/'meeting.md';original.write_text('Aurora launch decision: ship October 12.',encoding='utf-8');before=original.read_bytes()
+        state=self.service.configure_file_workspace({'references':[str(reference)],'workspace':str(workspace)})
+        self.model('compatible','http://127.0.0.1:11434/v1');self.assertTrue(self.service.test_model()['ok'])
+        request=self.store.enqueue('/workspace-summary '+state['references'][0]['id']+' meeting.md Launch notes','workspace-summary')
+        self.assertTrue(self.service.run_one())
+        job=self.store.job(request);self.assertEqual(job['status'],'succeeded')
+        created=list(workspace.glob('*.md'));self.assertEqual(len(created),1)
+        self.assertIn('Compatible response',created[0].read_text(encoding='utf-8'));self.assertIn('meeting.md',created[0].read_text(encoding='utf-8'))
+        self.assertEqual(original.read_bytes(),before)
+        self.assertEqual(request,self.store.enqueue('/workspace-summary '+state['references'][0]['id']+' meeting.md Launch notes','workspace-summary'))
+        self.assertEqual(len(list(workspace.glob('*.md'))),1)
 
     def test_idempotent_requests_and_interrupted_recovery(self):
         task=self.store.enqueue('hello','same')

@@ -607,17 +607,17 @@
       "issue": 314,
       "status": "active",
       "ordered_substeps": ["FILE-WS-A-01", "FILE-WS-B-01", "FILE-WS-C-01"],
-      "active_substep": "FILE-WS-A-01",
-      "authority": "Repository issues, codex branches, product/design/execution guidance, tests, and PRs for the listed substeps only. No external activation, credential/OAuth configuration, personal-folder permission expansion, external recipient transmission, or automatic merge in A.",
+      "active_substep": "FILE-WS-B-01",
+      "authority": "Repository issues, codex branches, implementation, tests, and PRs for FILE-WS-B-01 only. No external activation, credential/OAuth configuration, personal-folder permission expansion beyond dedicated test folders, external recipient transmission, or automatic merge.",
       "non_goals": ["sync engine", "central authentication", "OCR", "audio transcription", "video analysis", "advanced large-library search", "cloud-only import", "delegated material bundles", "destructive migration"],
       "evidence_classes": ["documentation and plan evidence", "mock-model evidence", "local-file integration evidence", "external operating observation"],
       "drive_handling": "#308/#310/open PR #311 are preserved optional connector work, not core-path predecessors. #312 is optional connector architecture work; #313 is an independent informational/policy-site workstream."
     }
   },
   "next_goal": {
-    "id": "FILE-WS-A-01",
+    "id": "FILE-WS-B-01",
     "status": "active",
-    "action": "Owner activated top-level program #314 and its A substep only: align product criteria and the delivery plan, define the bilingual file-workspace contract, preserve current Drive work as optional, and create a reviewable alignment PR. Do not start FILE-WS-B-01 implementation, new external activation, personal-folder permission expansion, or automatic merge.",
-    "source": "https://github.com/Jongtae/personal-agentos/issues/318"
+    "action": "Owner activated FILE-WS-B-01 after FILE-WS-A-01/#318 merged: implement the scoped local TXT/MD reference-folder to managed-workspace conversation flow with provenance, refresh, restart reuse, and deterministic safety tests. Do not activate FILE-WS-C-01, external capabilities, or automatic merge.",
+    "source": "https://github.com/Jongtae/personal-agentos/issues/315"
   }
 }
