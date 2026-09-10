@@ -4,6 +4,10 @@ Use the [Goal Execution Contract](goal-execution-contract.en.md) with this track
 
 AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gateway. The Mac hosts the owner-controlled runtime; AgentOS owns personal state, assistants, permissions, tools, task lifecycle, and evidence; Codex or Claude Code performs bounded engine turns.
 
+## Active — Product information and policy site
+
+[#313](https://github.com/Jongtae/personal-agentos/issues/313) is an independent information/policy-site workstream, not a local-file or Drive/OAuth prerequisite. [PR #327](https://github.com/Jongtae/personal-agentos/pull/327) merged bilingual static product, install, privacy, and terms pages plus a manually dispatched Pages workflow. The site has no OAuth callback, token broker, Drive proxy, forms, analytics, credential handling, or runtime connection requirement. GitHub Pages is not configured: the read-only Pages API returned 404, so no HTTPS URL or publication is claimed. Public release remains active pending operator confirmation of legal identity, support contact, effective date, and hosting/domain decision, followed by separately authorized Pages activation and deployment observation.
+
 ## Completed — File-and-folder personal workspace
 
 Owner-authorized [#314](https://github.com/Jongtae/personal-agentos/issues/314) completed its finite A → B → C program. AgentOS now treats owner files and folders as the material foundation and conversation/work as the experience: preserve originals, search and use approved material, save ordinary-file results, and reuse them after restart. A merged in PR #317; B merged in [PR #320](https://github.com/Jongtae/personal-agentos/pull/320); and C records the current requirement-to-evidence audit, two independent review artifacts, and the latest required CI. This completion is limited to automated deterministic-model and temporary local-file evidence; it does not claim external model, Telegram, Drive, scheduler, or personal-folder operation.

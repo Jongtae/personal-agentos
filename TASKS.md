@@ -2,6 +2,12 @@
 
 Active work is executed only from a goal-ready issue and active delivery-plan entry under the [Goal Execution Contract](docs/goal-execution-contract.en.md). Status tables are trackers, not authority to activate reserved work.
 
+## Active — Product information and policy site
+
+| Work unit | Issue | Status |
+| --- | --- | --- |
+| SITE-01: static product, installation, privacy, and terms site | [#313](https://github.com/Jongtae/personal-agentos/issues/313) | Active. PR #327 merged the static bilingual pages and manual-only Pages workflow with automated boundary checks. GitHub Pages is not configured (read-only API returned 404), and no public URL, domain, Google registration, legal operator identity, support contact, or effective date is claimed. |
+
 ## Completed — File-and-folder personal workspace program
 
 | Work unit | Issue | Status |
