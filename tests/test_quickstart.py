@@ -143,6 +143,7 @@ class QuickstartTests(unittest.TestCase):
             'AGENTOS_DRIVE_CLIENT_SECRET':'never-return-this',
         })
         self.assertEqual(configured.drive_web_oauth.redirect_uri,'http://localhost:9123/oauth/google/callback')
+        self.assertTrue(configured.drive_web_oauth.begin(42)['button']['url'].startswith('https://agentos.localhost:9124/'))
         self.assertNotIn('never-return-this',json.dumps(configured.settings()))
 
     def test_owner_only_drive_secret_file_configures_without_environment_secrets(self):
@@ -189,6 +190,15 @@ class QuickstartTests(unittest.TestCase):
         finally:
             server.shutdown();thread.join();server.server_close()
 
+    def test_loopback_alias_is_accepted_for_the_tls_drive_handoff(self):
+        server=ThreadingHTTPServer(('127.0.0.1',0),make_handler(self.service));thread=threading.Thread(target=server.serve_forever);thread.start()
+        try:
+            url='http://127.0.0.1:'+str(server.server_port)
+            with build_opener().open(Request(url+'/api/status',headers={'Host':'agentos.localhost:'+str(server.server_port)}),timeout=3) as response:
+                self.assertIn('claimed',json.load(response))
+        finally:
+            server.shutdown();thread.join();server.server_close()
+
     def test_local_picker_page_uses_one_time_grant_without_server_oauth_token(self):
         key=Fernet.generate_key()
         drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(self.store,key),'web-client',
@@ -203,9 +213,12 @@ class QuickstartTests(unittest.TestCase):
             url='http://127.0.0.1:'+str(server.server_port)
             with build_opener().open(url+'/google-drive-picker?grant='+grant,timeout=3) as response:
                 page=response.read().decode()
+                csp=response.headers['Content-Security-Policy']
             self.assertIn('restricted-browser-key',page)
             self.assertNotIn('server-only-token',page)
             self.assertIn("/api/drive/picker-selection",page)
+            self.assertIn("'unsafe-inline'",csp)
+            self.assertIn('<script nonce="',page)
         finally:
             server.shutdown();thread.join();server.server_close()
 

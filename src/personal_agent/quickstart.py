@@ -1,12 +1,15 @@
 """Launch a local personal agent and its browser setup, using only Python."""
 import argparse
+import datetime
 import fcntl
 import getpass
+import ipaddress
 import json
 import os
 from pathlib import Path
 import signal
 import secrets
+import ssl
 import stat
 import sys
 import threading
@@ -25,6 +28,10 @@ from .capabilities import CapabilityRegistry
 from .isolated_engine_gateway import IsolatedEngineGateway
 from .drive_web_oauth import DriveWebOAuthHandoff, EncryptedDriveSecretStore, DriveWebOAuthError
 from cryptography.fernet import Fernet
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import NameOID
 
 WEB=Path(__file__).parent/'web'
 ISOLATED_MCP_PATH='/internal/isolated-engine/mcp'
@@ -60,7 +67,41 @@ def local_drive_secret_values(store, environ):
     return {key:value.get(key,'') for key in ('client_id','client_secret','encryption_key','picker_api_key')}
 
 
-def picker_page(config, grant):
+def localhost_tls_context(store):
+    """Create a private, local-only TLS identity for Telegram browser links.
+
+    Telegram validates inline keyboard URLs and rejects ``http://localhost``.
+    This certificate gives the local entry point an HTTPS URL; it is never a
+    public endpoint and contains no OAuth credential.  A browser may ask the
+    owner to trust the first self-signed localhost visit.
+    """
+    cert_path=store.private/'drive-localhost-cert.pem'
+    key_path=store.private/'drive-localhost-key.pem'
+    regenerate=not cert_path.exists() or not key_path.exists()
+    if not regenerate:
+        try:
+            names=x509.load_pem_x509_certificate(cert_path.read_bytes()).extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+            regenerate='agentos.localhost' not in names.get_values_for_type(x509.DNSName)
+        except (ValueError, x509.ExtensionNotFound, OSError):
+            regenerate=True
+    if regenerate:
+        key=rsa.generate_private_key(public_exponent=65537,key_size=2048)
+        subject=x509.Name([x509.NameAttribute(NameOID.COMMON_NAME,'localhost')])
+        certificate=(x509.CertificateBuilder().subject_name(subject).issuer_name(subject)
+            .public_key(key.public_key()).serial_number(x509.random_serial_number())
+            .not_valid_before(datetime.datetime.now(datetime.timezone.utc)-datetime.timedelta(minutes=1))
+            .not_valid_after(datetime.datetime.now(datetime.timezone.utc)+datetime.timedelta(days=30))
+            .add_extension(x509.SubjectAlternativeName([x509.DNSName('localhost'),x509.DNSName('agentos.localhost'),x509.IPAddress(ipaddress.ip_address('127.0.0.1'))]),critical=False)
+            .sign(key,hashes.SHA256()))
+        cert_path.write_bytes(certificate.public_bytes(serialization.Encoding.PEM))
+        key_path.write_bytes(key.private_bytes(serialization.Encoding.PEM,serialization.PrivateFormat.TraditionalOpenSSL,serialization.NoEncryption()))
+        cert_path.chmod(0o600); key_path.chmod(0o600)
+    context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(cert_path,key_path)
+    return context
+
+
+def picker_page(config, grant, nonce):
     """Return the local, no-store page that hosts the Google Picker.
 
     Only the OAuth client id and a referrer-restricted Picker developer key
@@ -71,13 +112,17 @@ def picker_page(config, grant):
     safe_grant=json.dumps(grant).replace('<','\\u003c')
     return f'''<!doctype html><html lang="ko"><meta charset="utf-8">
 <meta name="referrer" content="no-referrer"><title>Google Drive 파일 선택</title>
-<main><h1>Google Drive 파일 선택</h1><p id="status">Google Drive Picker를 여는 중입니다.</p><button id="retry" hidden>다시 열기</button></main>
+<main><h1>Google Drive 파일 선택</h1><p id="status">Google Drive Picker를 준비하고 있습니다.</p><button id="retry" disabled>파일 선택 열기</button></main>
 <script src="https://apis.google.com/js/api.js"></script><script src="https://accounts.google.com/gsi/client"></script>
-<script>
+<script nonce="{nonce}">
 const pickerConfig={safe_config}; const selectionGrant={safe_grant};
 const status=document.getElementById('status'), retry=document.getElementById('retry');
 let pickerReady=false;
-function fail(message) {{ status.textContent=message; retry.hidden=false; }}
+function fail(message) {{ status.textContent=message; retry.hidden=false; retry.disabled=false; retry.textContent='다시 열기'; }}
+window.addEventListener('error',event=>{{
+  const source=event.target && event.target.src ? new URL(event.target.src).hostname : '';
+  fail('Google Picker 초기화 오류: '+(event.message|| (source ? source+' 스크립트를 불러오지 못했습니다.' : '브라우저에서 스크립트를 차단했습니다.')).slice(0,160));
+}},true);
 function sendSelection(documents) {{
   const files=documents.map(d=>({{id:d.id,name:d.name||'',mime_type:d.mimeType||''}}));
   fetch('/api/drive/picker-selection',{{method:'POST',headers:{{'Content-Type':'application/json'}},
@@ -87,7 +132,7 @@ function sendSelection(documents) {{
     }}).catch(()=>fail('파일 선택을 저장하지 못했습니다. Telegram에서 새 연결을 요청하세요.'));
 }}
 function openPicker() {{
-  retry.hidden=true;
+  retry.disabled=true;
   if(!pickerReady || !window.google || !google.accounts) return fail('Google Picker를 불러오지 못했습니다.');
   const tokenClient=google.accounts.oauth2.initTokenClient({{client_id:pickerConfig.client_id,
     scope:'https://www.googleapis.com/auth/drive.file', callback:token=>{{
@@ -97,9 +142,12 @@ function openPicker() {{
         .setCallback(data=>{{if(data.action===google.picker.Action.PICKED) sendSelection(data.docs||[]);
           else if(data.action===google.picker.Action.CANCEL) status.textContent='파일 선택을 취소했습니다. Telegram에서 새 연결을 요청하세요.';}})
         .build(); picker.setVisible(true);
-    }}); tokenClient.requestAccessToken({{prompt:''}});
+    }}}}); tokenClient.requestAccessToken({{prompt:''}});
 }}
-gapi.load('picker',()=>{{pickerReady=true; openPicker();}}); retry.addEventListener('click',openPicker);
+gapi.load('picker',{{callback:()=>{{pickerReady=true; status.textContent='준비되었습니다. 아래 버튼을 눌러 파일을 선택하세요.'; retry.disabled=false;}},
+  onerror:()=>fail('Google Picker를 불러오지 못했습니다. API 및 브라우저 설정을 확인하세요.'),
+  timeout:7000, ontimeout:()=>fail('Google Picker 로딩 시간이 초과되었습니다. 다시 열어 보세요.')}});
+retry.addEventListener('click',openPicker);
 </script></html>'''.encode()
 
 
@@ -125,10 +173,12 @@ def configured_service(store, environ=None):
         key=secret_values.get('encryption_key') or environ.get('AGENTOS_DRIVE_ENCRYPTION_KEY','')
         client_secret=secret_values.get('client_secret') or environ.get('AGENTOS_DRIVE_CLIENT_SECRET','')
         port=environ.get('AGENTOS_DRIVE_LOCAL_PORT','8787')
+        handoff_port=environ.get('AGENTOS_DRIVE_HANDOFF_PORT',str(int(port)+1))
         if client_id and key and client_secret:
-            base=f'http://localhost:{port}'
+            callback_base=f'http://localhost:{port}'
+            handoff_base=f'https://agentos.localhost:{handoff_port}'
             drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(store,key),client_id,
-                base+'/oauth/google/callback',base,allow_localhost=True,local_only=True)
+                callback_base+'/oauth/google/callback',handoff_base,allow_localhost=True,local_only=True)
             def drive_exchange(payload):
                 body=urlencode({**payload,'client_secret':client_secret,'grant_type':'authorization_code'}).encode()
                 with urlopen(Request('https://oauth2.googleapis.com/token',body,{'Content-Type':'application/x-www-form-urlencoded'}),timeout=15) as response:
@@ -195,7 +245,7 @@ def make_handler(service, public_hosts=(), public_access_token=''):
 
         def valid_host(self):
             if self.server.server_address[0] not in ('127.0.0.1', '::1'):return True
-            allowed={f'127.0.0.1:{self.server.server_port}',f'localhost:{self.server.server_port}',f'[::1]:{self.server.server_port}'}
+            allowed={f'127.0.0.1:{self.server.server_port}',f'localhost:{self.server.server_port}',f'agentos.localhost:{self.server.server_port}',f'[::1]:{self.server.server_port}'}
             if self.headers.get('Host','').lower() in allowed | public_hosts:return True
             self.reply(403,{'error':'로컬 주소로 AgentOS를 열어 주세요.'})
             return False
@@ -247,8 +297,9 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 grant=parse_qs(parts.query).get('grant',[''])[0]
                 if not (getattr(service,'drive_picker_config',None) and service.drive_web_oauth.picker_grant_active(grant)):
                     return self.reply(400,b'Google Drive file-selection link is invalid or expired. Return to Telegram and request a new link.','text/plain; charset=utf-8')
-                csp="default-src 'self'; script-src 'self' https://apis.google.com https://accounts.google.com; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://accounts.google.com https://www.googleapis.com; frame-src https://accounts.google.com https://docs.google.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
-                return self.reply(200,picker_page(service.drive_picker_config,grant),'text/html; charset=utf-8',csp=csp)
+                nonce=secrets.token_urlsafe(18)
+                csp="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://accounts.google.com https://*.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.google.com https://*.googleapis.com https://*.gstatic.com; frame-src https://*.google.com https://*.googleapis.com https://*.gstatic.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+                return self.reply(200,picker_page(service.drive_picker_config,grant,nonce),'text/html; charset=utf-8',csp=csp)
             if path in ('/','/app.js','/style.css'):
                 filename={'/':'index.html','/app.js':'app.js','/style.css':'style.css'}[path]
                 mime={'/':'text/html; charset=utf-8','/app.js':'text/javascript; charset=utf-8','/style.css':'text/css; charset=utf-8'}[path]
@@ -457,6 +508,7 @@ def main():
     parser.add_argument('action',nargs='?',choices=['start'],default='start')
     parser.add_argument('--host',default='127.0.0.1')
     parser.add_argument('--port',type=int,default=8787)
+    parser.add_argument('--drive-handoff-port',type=int,default=None,help='Local HTTPS entry port for Telegram Drive buttons (default: port + 1).')
     parser.add_argument('--data',default=os.environ.get('AGENTOS_DATA',str(Path.home()/'.local/share/agentos')))
     parser.add_argument('--no-browser',action='store_true')
     parser.add_argument('--public-tunnel-host',action='append',default=[],help='Allow one exact HTTPS tunnel host for mobile access.')
@@ -467,14 +519,26 @@ def main():
     instance_lock=(store.private/'instance.lock').open('a')
     try:fcntl.flock(instance_lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     except BlockingIOError:parser.exit(1,'이 데이터 폴더의 AgentOS가 이미 실행 중입니다.\n')
-    env=dict(os.environ);env['AGENTOS_DRIVE_LOCAL_PORT']=str(args.port)
+    handoff_port=args.drive_handoff_port or args.port+1
+    if handoff_port==args.port:parser.exit(2,'Drive handoff port must differ from the HTTP callback port.\n')
+    env=dict(os.environ);env['AGENTOS_DRIVE_LOCAL_PORT']=str(args.port);env['AGENTOS_DRIVE_HANDOFF_PORT']=str(handoff_port)
     service=configured_service(store,env)
     public_hosts=args.public_tunnel_host
     public_token=args.public_access_token
     if public_hosts and not public_token:public_token=secrets.token_urlsafe(24)
     try:server=ThreadingHTTPServer((args.host,args.port),make_handler(service,public_hosts,public_token))
     except OSError as exc:parser.exit(1,f'시작할 수 없습니다: {exc}\n다른 포트는 --port로 지정하세요.\n')
+    handoff_server=None
+    if service.drive_web_oauth:
+        try:
+            handoff_server=ThreadingHTTPServer((args.host,handoff_port),make_handler(service))
+            handoff_server.socket=localhost_tls_context(store).wrap_socket(handoff_server.socket,server_side=True)
+        except (OSError, ValueError, ssl.SSLError) as exc:
+            server.server_close()
+            parser.exit(1,f'Google Drive local HTTPS handoff could not start: {exc}\n')
     service.start()
+    if handoff_server:
+        threading.Thread(target=handoff_server.serve_forever,daemon=True).start()
     url=f'http://127.0.0.1:{server.server_port}/'
     if not store.claimed():url+='#setup='+store.bootstrap.read_text()
     store.write_private(store.private/'setup-link.txt',url)
@@ -486,12 +550,14 @@ def main():
     def shutdown(signum,frame):
         service.stop.set()
         threading.Thread(target=server.shutdown,daemon=True).start()
+        if handoff_server:threading.Thread(target=handoff_server.shutdown,daemon=True).start()
     signal.signal(signal.SIGINT,shutdown)
     signal.signal(signal.SIGTERM,shutdown)
     try:server.serve_forever()
     finally:
         service.stop.set()
         server.server_close()
+        if handoff_server:handoff_server.server_close()
         for thread in service.threads:thread.join(timeout=2)
 
 

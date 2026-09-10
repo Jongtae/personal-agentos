@@ -10,7 +10,7 @@ import hmac
 import json
 import secrets
 import time
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, urlsplit
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -88,9 +88,17 @@ class DriveWebOAuthHandoff:
                  allow_localhost=False, local_only=False):
         if not all(isinstance(value, str) and value for value in (client_id, redirect_uri, handoff_url)):
             raise ValueError("Web OAuth client, callback, and HTTPS handoff URL are required.")
-        local_urls = all(url.startswith("http://localhost") for url in (handoff_url, redirect_uri))
+        callback, handoff = urlsplit(redirect_uri), urlsplit(handoff_url)
+        local_callback = callback.scheme == "http" and callback.hostname == "localhost"
+        # ``agentos.localhost`` is a browser-reserved loopback name.  Unlike
+        # bare ``localhost``, Telegram accepts it as an inline-button URL.
+        local_handoff = handoff.scheme in ("http", "https") and handoff.hostname in ("localhost", "agentos.localhost")
+        local_urls = local_callback and local_handoff
         if local_only and not local_urls:
-            raise ValueError("Local-only Drive OAuth requires localhost callback and handoff URLs.")
+            raise ValueError("Local-only Drive OAuth requires a localhost callback and handoff URL.")
+        # Telegram rejects an inline keyboard button with an HTTP localhost
+        # URL.  The local handoff may therefore be HTTPS while Google's
+        # loopback callback remains the explicitly allowed HTTP URL.
         if (not handoff_url.startswith("https://") or not redirect_uri.startswith("https://")) and not (allow_localhost and local_urls):
             raise ValueError("Web OAuth handoff and callback URLs must use HTTPS.")
         if not getattr(store, "encrypted_secrets", False):
