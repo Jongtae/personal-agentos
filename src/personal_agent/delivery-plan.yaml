@@ -508,6 +508,15 @@
       "depends_on": ["FILE-WS-B-01"],
       "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests", "python3 -m unittest discover -s tests -q"],
       "summary": "Planned requirement-to-evidence audit, independent review, and integration/CI closeout for the first file-based experience."
+    },
+    {
+      "id": "SITE-01",
+      "milestone": "Product Information and Policy Site",
+      "issue": 313,
+      "kind": "documentation",
+      "activation_status": "owner-activated-goal-ready",
+      "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests"],
+      "summary": "Prepare a static product, installation, privacy, and terms site without an OAuth callback, token relay, analytics, or runtime dependency. Public Pages deployment remains an explicit operator-controlled step."
     }
   ],
   "milestones": {
@@ -552,6 +561,9 @@
     },
     "File and Folder Personal Workspace": {
       "title": "File and Folder Personal Workspace"
+    },
+    "Product Information and Policy Site": {
+      "title": "Product Information and Policy Site"
     }
   },
   "completion_claims": {
@@ -617,9 +629,9 @@
     }
   },
   "next_goal": {
-    "id": "FILE-WS-C-01",
-    "status": "complete",
-    "action": "FILE-WORKSPACE-01 is complete. Do not activate a successor without a separate owner-authorized goal.",
-    "source": "https://github.com/Jongtae/personal-agentos/issues/316"
+    "id": "SITE-01",
+    "status": "active",
+    "action": "Owner authorized SITE-01 #313. Prepare and validate the static site; do not publish, configure a domain, or register Google URLs without confirmed operator information and a separately authorized deployment action.",
+    "source": "https://github.com/Jongtae/personal-agentos/issues/313"
   }
 }
