@@ -2,13 +2,13 @@
 
 Active work is executed only from a goal-ready issue and active delivery-plan entry under the [Goal Execution Contract](docs/goal-execution-contract.en.md). Status tables are trackers, not authority to activate reserved work.
 
-## Active — File-and-folder personal workspace program
+## Completed — File-and-folder personal workspace program
 
 | Work unit | Issue | Status |
 | --- | --- | --- |
-| FILE-WS-A-01: product criteria and plan alignment | [#318](https://github.com/Jongtae/personal-agentos/issues/318) | Complete on PR #317 merge; #314 remains active. |
-| FILE-WS-B-01: first integrated file experience | [#315](https://github.com/Jongtae/personal-agentos/issues/315) | Implemented on the review PR; retain issue open until merge. |
-| FILE-WS-C-01: validation, review, and closeout | [#316](https://github.com/Jongtae/personal-agentos/issues/316) | Active: independent review, current evidence audit, and implementation PR submission only. |
+| FILE-WS-A-01: product criteria and plan alignment | [#318](https://github.com/Jongtae/personal-agentos/issues/318) | Complete (PR #317 merged). |
+| FILE-WS-B-01: first integrated file experience | [#315](https://github.com/Jongtae/personal-agentos/issues/315) | Complete (PR #320 merged). |
+| FILE-WS-C-01: validation, review, and closeout | [#316](https://github.com/Jongtae/personal-agentos/issues/316) | Complete after the merged #320 evidence audit, independent reviews, required CI, and this closeout record. |
 
 Drive #308/#310 and PR #311 are preserved optional connector work, not predecessors of FILE-WS. #312 remains optional connector architecture work; #313 remains a separate product/policy-site workstream and is not a local-file prerequisite.
 

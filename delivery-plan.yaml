@@ -601,16 +601,16 @@
       "V1-05"
     ],
     "reason": "v1.0.4 delivered the runtime and release baseline. Version 5 tracks the approved DM-first consumer experience.",
-    "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01","I-MP2-01","D-MP2-02","I-MP2-02","D-MP2-03","I-MP2-03","STAB-01","OP-01","OP-02","GOV-01","TOP-00","TOP-01","TOP-02","TOP-03","SCN-D-01","DRIVE-TG-01","FILE-WS-A-01","FILE-WS-B-01"],
+    "documented_completed_iterations": ["UX-01","UX-02","UX-03","UX-03a","UX-04","UX-05","UX-06","MP1-D-01","MP1-I-01","MP1-D-02","MP1-I-02","MP1-D-03","MP1-I-03","MP1-D-04","MP1-I-04","MP1-D-05","MP1-I-05","MP1-D-06","MP1-I-06","MP1-R-01","MP1-R-02","MP1-R-03","MP1-R-04","MP1-R-05","D-MP2-01","I-MP2-01","D-MP2-02","I-MP2-02","D-MP2-03","I-MP2-03","STAB-01","OP-01","OP-02","GOV-01","TOP-00","TOP-01","TOP-02","TOP-03","SCN-D-01","DRIVE-TG-01","FILE-WS-A-01","FILE-WS-B-01","FILE-WS-C-01"],
     "reconcile_state_when_active": ["UX-05", "I-MP2-01"]
   },
   "programs": {
     "FILE-WORKSPACE-01": {
       "issue": 314,
-      "status": "active",
+      "status": "complete",
       "ordered_substeps": ["FILE-WS-A-01", "FILE-WS-B-01", "FILE-WS-C-01"],
-      "active_substep": "FILE-WS-C-01",
-      "authority": "Repository issues, codex branches, validation, independent review, and PRs for FILE-WS-C-01 only. No external activation, credential/OAuth configuration, personal-folder permission expansion beyond dedicated test folders, external recipient transmission, or automatic merge.",
+      "active_substep": null,
+      "authority": "Complete after the merged FILE-WS-C-01 evidence audit. This program does not authorize a successor, external activation, credential/OAuth configuration, personal-folder permission expansion beyond dedicated test folders, external recipient transmission, or automatic merge.",
       "non_goals": ["sync engine", "central authentication", "OCR", "audio transcription", "video analysis", "advanced large-library search", "cloud-only import", "delegated material bundles", "destructive migration"],
       "evidence_classes": ["documentation and plan evidence", "mock-model evidence", "local-file integration evidence", "external operating observation"],
       "drive_handling": "#308/#310/open PR #311 are preserved optional connector work, not core-path predecessors. #312 is optional connector architecture work; #313 is an independent informational/policy-site workstream."
@@ -618,8 +618,8 @@
   },
   "next_goal": {
     "id": "FILE-WS-C-01",
-    "status": "active",
-    "action": "Owner delegated FILE-WS-C-01 after FILE-WS-B-01 implementation: perform the required evidence audit, independent review, regression validation, and implementation PR submission. Do not activate a successor, external capabilities, or automatic merge.",
+    "status": "complete",
+    "action": "FILE-WORKSPACE-01 is complete. Do not activate a successor without a separate owner-authorized goal.",
     "source": "https://github.com/Jongtae/personal-agentos/issues/316"
   }
 }

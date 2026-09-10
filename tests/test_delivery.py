@@ -58,12 +58,13 @@ class DeliveryTests(unittest.TestCase):
         plan['next_goal']={'id':'TOP','status':'active'}
         (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
 
-    def test_owner_activated_file_workspace_goal_replaces_drive_core_selector(self):
+    def test_completed_file_workspace_program_does_not_select_a_successor(self):
         controller=self.controller()
-        self.assertEqual(controller.plan.next_goal()['status'], 'active')
+        self.assertEqual(controller.plan.next_goal()['status'], 'complete')
         self.assertEqual(controller.plan.next_goal()['id'], 'FILE-WS-C-01')
-        self.assertEqual(controller.plan.select({})['id'], 'FILE-WS-C-01')
-        self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['active_substep'], 'FILE-WS-C-01')
+        self.assertIsNone(controller.plan.select({}))
+        self.assertIsNone(controller.plan.data['programs']['FILE-WORKSPACE-01']['active_substep'])
+        self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['status'], 'complete')
         self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['issue'], 314)
         self.assertEqual(controller.plan.items['FILE-WS-A-01']['issue'], 318)
         self.assertEqual(controller.plan.items['FILE-WS-B-01']['depends_on'], ['FILE-WS-A-01'])
@@ -71,6 +72,7 @@ class DeliveryTests(unittest.TestCase):
         self.assertIn('TOP-03', controller.plan.documented_completed())
         self.assertIn('SCN-D-01', controller.plan.documented_completed())
         self.assertIn('DRIVE-TG-01', controller.plan.documented_completed())
+        self.assertIn('FILE-WS-C-01', controller.plan.documented_completed())
         self.assertNotIn('DRIVE-LOCAL-OP-01', controller.plan.documented_completed())
         self.assertNotIn('SCN-I-01', controller.plan.documented_completed())
 
@@ -84,6 +86,7 @@ class DeliveryTests(unittest.TestCase):
             self.assertNotIn('FILE-UX-', contract)
 
     def test_handoff_entrypoint_dispatches_only_injected_bounded_worker(self):
+        self.activate_governance_goal()
         active_issue=DeliveryPlan(self.root/'delivery-plan.yaml').select({})['issue']
         class Boundary:
             def __init__(self):
