@@ -2,43 +2,155 @@
 from pathlib import Path
 import hashlib, json, os, time, uuid
 
+
 class FileWorkspace:
+    """Owner-granted TXT/MD references and a separately writable workspace."""
+
     def __init__(self, store): self.store=store
+
     def configure(self, references, workspace):
+        if not isinstance(references,list) or not references: raise ValueError('하나 이상의 참고 폴더를 연결하세요.')
         refs=[]
         for value in references:
-            path=Path(value).resolve()
-            if not path.is_dir(): raise ValueError('참고 폴더를 찾을 수 없습니다.')
-            refs.append({'id':str(uuid.uuid4()),'path':str(path)})
-        target=Path(workspace).resolve()
-        if not target.is_dir(): raise ValueError('관리 작업공간을 찾을 수 없습니다.')
+            supplied=Path(value); path=supplied.resolve()
+            if not path.is_dir() or supplied.is_symlink() or self._broad_or_private(path): raise ValueError('전체 홈이나 시스템 루트 대신 작업용 하위 폴더를 선택하세요.')
+            stat=path.stat(); refs.append({'id':hashlib.sha256(f'{stat.st_dev}:{stat.st_ino}'.encode()).hexdigest()[:24],'path':str(path)})
+        supplied=Path(workspace); target=supplied.resolve()
+        if not target.is_dir() or supplied.is_symlink() or self._broad_or_private(target): raise ValueError('전체 홈이나 시스템 루트 대신 작업용 하위 폴더를 선택하세요.')
+        if any(target==Path(ref['path']) or target.is_relative_to(ref['path']) or Path(ref['path']).is_relative_to(target) for ref in refs): raise ValueError('참고 폴더와 관리 작업공간은 겹치지 않게 연결하세요.')
         self.store.put('file_workspace',{'references':refs,'workspace':str(target)})
+        self.store.put('document_sharing',{})
         return self.status()
+
     def status(self): return self.store.config('file_workspace',{'references':[],'workspace':None})
+
+    def _broad_or_private(self, path):
+        return (path in (Path('/'),Path.home(),self.store.root)
+                or path.is_relative_to(self.store.private) or self.store.private.is_relative_to(path))
+
+    @staticmethod
+    def _safe_relative(value):
+        path=Path(value)
+        if path.is_absolute() or '..' in path.parts or any(part.startswith('.') for part in path.parts): raise ValueError('허용하지 않은 파일 경로입니다.')
+        return path
+
     def _reference(self, ref_id, relative):
-        root=next((x for x in self.status()['references'] if x['id']==ref_id),None)
+        root=next((item for item in self.status()['references'] if item['id']==ref_id),None)
         if not root: raise ValueError('허용된 참고 폴더가 아닙니다.')
-        path=Path(relative)
-        if path.is_absolute() or '..' in path.parts: raise ValueError('허용하지 않은 파일 경로입니다.')
-        resolved=(Path(root['path'])/path).resolve()
-        if not resolved.is_relative_to(Path(root['path'])) or resolved.is_symlink() or resolved.suffix.lower() not in ('.txt','.md') or not resolved.is_file(): raise ValueError('참고 폴더 밖 또는 지원하지 않는 파일입니다.')
+        base=Path(root['path']); path=self._safe_relative(relative); candidate=base/path
+        if any(part.is_symlink() for part in (base, *candidate.parents) if part.exists()): raise ValueError('심볼릭 링크를 통한 참고 자료 접근은 허용하지 않습니다.')
+        resolved=candidate.resolve()
+        if (not resolved.is_relative_to(base) or resolved.suffix.lower() not in ('.txt','.md') or not resolved.is_file() or candidate.is_symlink()): raise ValueError('참고 폴더 밖 또는 지원하지 않는 파일입니다.')
         return resolved
+
     def read(self, ref_id, relative):
         path=self._reference(ref_id,relative); content=path.read_text(encoding='utf-8')
-        return {'reference_id':ref_id,'path':relative,'version':hashlib.sha256(content.encode()).hexdigest(),'content':content}
-    def save(self, request_id, title, content, sources):
-        state=self.status(); root=Path(state.get('workspace') or '')
-        if not root.is_dir(): raise ValueError('관리 작업공간을 먼저 연결하세요.')
-        if not request_id or not content.strip(): raise ValueError('저장 요청과 내용이 필요합니다.')
+        stat=path.stat()
+        return {'reference_id':ref_id,'source_id':hashlib.sha256(f'{stat.st_dev}:{stat.st_ino}'.encode()).hexdigest()[:24],
+                'path':str(Path(relative)),'version':hashlib.sha256(content.encode()).hexdigest(),'content':content}
+
+    def find_reference(self, query):
+        if not isinstance(query,str) or not 2<=len(query.strip())<=160: raise ValueError('두 글자 이상의 자료 검색어를 입력하세요.')
+        needle=query.casefold().strip(); matches=[]
+        for root in self.status()['references']:
+            base=Path(root['path'])
+            for parent,dirs,names in os.walk(base,followlinks=False):
+                dirs[:]=[name for name in dirs if not name.startswith('.') and not (Path(parent)/name).is_symlink()]
+                for name in names:
+                    if name.startswith('.') or Path(name).suffix.lower() not in ('.txt','.md'): continue
+                    relative=str((Path(parent)/name).relative_to(base))
+                    try: source=self.read(root['id'],relative)
+                    except (OSError,UnicodeError,ValueError): continue
+                    if needle in (relative+'\n'+source['content']).casefold(): matches.append(source)
+                    if len(matches)>1: break
+                if len(matches)>1: break
+            if len(matches)>1: break
+        if not matches: raise ValueError('연결한 참고 폴더에서 일치하는 TXT/MD 자료를 찾지 못했습니다.')
+        if len(matches)>1: raise ValueError('일치하는 자료가 여러 개입니다. 더 구체적인 검색어로 다시 요청하세요.')
+        return matches[0]
+
+    @staticmethod
+    def _ensure_results_table(db):
+        db.execute('CREATE TABLE IF NOT EXISTS file_workspace_results(id TEXT PRIMARY KEY, request_id TEXT UNIQUE, path TEXT UNIQUE, content_hash TEXT, sources TEXT, created REAL, state TEXT NOT NULL DEFAULT "current")')
+        if 'state' not in {row['name'] for row in db.execute('PRAGMA table_info(file_workspace_results)')}: db.execute('ALTER TABLE file_workspace_results ADD COLUMN state TEXT NOT NULL DEFAULT "current"')
+
+    def _result_path(self, relative):
+        root=Path(self.status().get('workspace') or '')
+        if not root.is_dir() or root.is_symlink(): raise ValueError('관리 작업공간을 먼저 연결하세요.')
+        candidate=root/self._safe_relative(relative)
+        if candidate.is_symlink() or not candidate.resolve().is_relative_to(root): raise ValueError('관리 작업공간 밖의 결과에는 접근할 수 없습니다.')
+        return candidate
+
+    def recover(self):
+        """Finalize only a verified publication, and discard unpublised reservations."""
         with self.store.db() as db:
-            db.execute('CREATE TABLE IF NOT EXISTS file_workspace_results(id TEXT PRIMARY KEY, request_id TEXT UNIQUE, path TEXT UNIQUE, content_hash TEXT, sources TEXT, created REAL)')
+            self._ensure_results_table(db)
+            pending=[dict(row) for row in db.execute("SELECT * FROM file_workspace_results WHERE state='pending'")]
+        for record in pending:
+            try:
+                published=self._result_path(record['path'])
+                complete=published.is_file() and hashlib.sha256(published.read_bytes()).hexdigest()==record['content_hash']
+            except (OSError,ValueError): complete=False
+            with self.store.db() as db:
+                if complete: db.execute("UPDATE file_workspace_results SET state='current' WHERE id=? AND state='pending'",(record['id'],))
+                else: db.execute("DELETE FROM file_workspace_results WHERE id=? AND state='pending'",(record['id'],))
+
+    def _mark_current(self, record):
+        with self.store.db() as db: db.execute("UPDATE file_workspace_results SET state='current' WHERE id=? AND state='pending'",(record['id'],))
+
+    def save(self, request_id, title, content, sources):
+        if not request_id or not content.strip(): raise ValueError('저장 요청과 내용이 필요합니다.')
+        if not isinstance(sources,list) or not sources: raise ValueError('원본 출처가 필요합니다.')
+        self.recover()
+        safe=''.join(char if char.isalnum() or char in ' -_' else '-' for char in title).strip()[:80] or 'result'
+        body=content.rstrip()+'\n\n---\nSources:\n'+''.join(f'- {source["path"]} @ {source["version"]}\n' for source in sources)
+        with self.store.db() as db:
+            self._ensure_results_table(db); db.execute('BEGIN IMMEDIATE')
             old=db.execute('SELECT * FROM file_workspace_results WHERE request_id=?',(request_id,)).fetchone()
             if old:return dict(old)
-            safe=''.join(c if c.isalnum() or c in ' -_' else '-' for c in title).strip()[:80] or 'result'
-            target=root/(safe+'.md'); suffix=1
-            while target.exists(): suffix+=1;target=root/(safe+f'-{suffix}.md')
-            body=content.rstrip()+'\n\n---\nSources:\n'+''.join(f'- {s["path"]} @ {s["version"]}\n' for s in sources)
-            temp=target.with_name(target.name+'.tmp-'+uuid.uuid4().hex); temp.write_text(body,encoding='utf-8'); os.replace(temp,target)
-            record={'id':str(uuid.uuid4()),'request_id':request_id,'path':target.name,'content_hash':hashlib.sha256(body.encode()).hexdigest(),'sources':json.dumps(sources),'created':time.time()}
-            db.execute('INSERT INTO file_workspace_results VALUES (:id,:request_id,:path,:content_hash,:sources,:created)',record)
-            return record
+            suffix=1
+            while True:
+                target=self._result_path(safe+'.md' if suffix==1 else safe+f'-{suffix}.md')
+                if target.exists() or db.execute('SELECT 1 FROM file_workspace_results WHERE path=?',(target.name,)).fetchone(): suffix+=1; continue
+                record={'id':str(uuid.uuid4()),'request_id':request_id,'path':target.name,'content_hash':hashlib.sha256(body.encode()).hexdigest(),'sources':json.dumps(sources),'created':time.time(),'state':'pending'}
+                db.execute('INSERT INTO file_workspace_results VALUES (:id,:request_id,:path,:content_hash,:sources,:created,:state)',record)
+                break
+        temporary=target.with_name(target.name+'.tmp-'+uuid.uuid4().hex); published=False
+        try:
+            temporary.write_text(body,encoding='utf-8')
+            while True:
+                try:
+                    os.link(temporary,target); published=True; temporary.unlink(); break
+                except FileExistsError:
+                    temporary.unlink(missing_ok=True)
+                    with self.store.db() as db: db.execute("DELETE FROM file_workspace_results WHERE id=? AND state='pending'",(record['id'],))
+                    return self.save(request_id,title,content,sources)
+            self._mark_current(record)
+            return {**record,'state':'current'}
+        except Exception:
+            temporary.unlink(missing_ok=True)
+            if published: target.unlink(missing_ok=True)
+            with self.store.db() as db: db.execute("DELETE FROM file_workspace_results WHERE id=? AND state='pending'",(record['id'],))
+            raise
+
+    def _fresh(self, record):
+        try: sources=json.loads(record['sources'])
+        except (TypeError,json.JSONDecodeError): return False
+        try:return bool(sources) and all(self.read(source['reference_id'],source['path'])['version']==source['version'] for source in sources)
+        except (KeyError,ValueError,OSError,UnicodeError): return False
+
+    def search(self, query):
+        if not isinstance(query,str) or not 2<=len(query.strip())<=160: raise ValueError('두 글자 이상의 결과 검색어를 입력하세요.')
+        self.recover()
+        needle=query.casefold().strip()
+        with self.store.db() as db:
+            self._ensure_results_table(db); records=[dict(row) for row in db.execute('SELECT * FROM file_workspace_results ORDER BY created DESC LIMIT 100')]
+        results=[]
+        for record in records:
+            fresh=self._fresh(record)
+            with self.store.db() as db: db.execute('UPDATE file_workspace_results SET state=? WHERE id=?',('current' if fresh else 'stale',record['id']))
+            if not fresh: continue
+            try: content=self._result_path(record['path']).read_text(encoding='utf-8')
+            except (OSError,UnicodeError,ValueError): continue
+            if needle in (record['path']+'\n'+content).casefold(): results.append({'id':record['id'],'path':record['path'],'content':content,'sources':json.loads(record['sources'])})
+        return results

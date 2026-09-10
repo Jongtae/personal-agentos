@@ -59,9 +59,9 @@ class DeliveryTests(unittest.TestCase):
     def test_owner_activated_file_workspace_goal_replaces_drive_core_selector(self):
         controller=self.controller()
         self.assertEqual(controller.plan.next_goal()['status'], 'active')
-        self.assertEqual(controller.plan.next_goal()['id'], 'FILE-WS-A-01')
-        self.assertEqual(controller.plan.select({})['id'], 'FILE-WS-A-01')
-        self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['active_substep'], 'FILE-WS-A-01')
+        self.assertEqual(controller.plan.next_goal()['id'], 'FILE-WS-B-01')
+        self.assertEqual(controller.plan.select({})['id'], 'FILE-WS-B-01')
+        self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['active_substep'], 'FILE-WS-B-01')
         self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['issue'], 314)
         self.assertEqual(controller.plan.items['FILE-WS-A-01']['issue'], 318)
         self.assertEqual(controller.plan.items['FILE-WS-B-01']['depends_on'], ['FILE-WS-A-01'])
