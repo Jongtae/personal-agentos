@@ -64,7 +64,10 @@ def local_drive_secret_values(store, environ):
         raise ValueError('Drive secret file must be an owner-only regular JSON file outside AgentOS data.')
     if not isinstance(value,dict):
         raise ValueError('Drive secret file must contain a JSON object.')
-    return {key:value.get(key,'') for key in ('client_id','client_secret','encryption_key','picker_api_key')}
+    values={key:value.get(key,'') for key in ('client_id','client_secret','encryption_key','picker_api_key')}
+    if not all(isinstance(item,str) and item for item in values.values()):
+        raise ValueError('Drive secret file must contain every required local Drive value.')
+    return values
 
 
 def localhost_tls_context(store):
@@ -169,12 +172,14 @@ def configured_service(store, environ=None):
     picker_config=None
     if environ.get('AGENTOS_DRIVE_LOCAL_ONLY')=='1':
         secret_values=local_drive_secret_values(store,environ)
-        client_id=secret_values.get('client_id') or environ.get('AGENTOS_DRIVE_CLIENT_ID','')
-        key=secret_values.get('encryption_key') or environ.get('AGENTOS_DRIVE_ENCRYPTION_KEY','')
-        client_secret=secret_values.get('client_secret') or environ.get('AGENTOS_DRIVE_CLIENT_SECRET','')
+        from_secret_file=bool(environ.get('AGENTOS_DRIVE_SECRET_FILE'))
+        client_id=secret_values.get('client_id') if from_secret_file else environ.get('AGENTOS_DRIVE_CLIENT_ID','')
+        key=secret_values.get('encryption_key') if from_secret_file else environ.get('AGENTOS_DRIVE_ENCRYPTION_KEY','')
+        client_secret=secret_values.get('client_secret') if from_secret_file else environ.get('AGENTOS_DRIVE_CLIENT_SECRET','')
+        picker_key=secret_values.get('picker_api_key') if from_secret_file else environ.get('AGENTOS_DRIVE_PICKER_API_KEY','')
         port=environ.get('AGENTOS_DRIVE_LOCAL_PORT','8787')
         handoff_port=environ.get('AGENTOS_DRIVE_HANDOFF_PORT',str(int(port)+1))
-        if client_id and key and client_secret:
+        if client_id and key and client_secret and picker_key:
             callback_base=f'http://localhost:{port}'
             handoff_base=f'https://agentos.localhost:{handoff_port}'
             drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(store,key),client_id,
@@ -185,15 +190,16 @@ def configured_service(store, environ=None):
                     return json.loads(response.read())
             def drive_read(url, body, headers):
                 # This is the sole owner-local transport for selected Drive
-                # bytes.  Callers keep the body in memory only.
+                # bytes. Reject oversized responses before retaining them.
                 with urlopen(Request(url, body, headers), timeout=20) as response:
-                    return response.read()
-            picker_key=secret_values.get('picker_api_key') or environ.get('AGENTOS_DRIVE_PICKER_API_KEY','')
-            if picker_key:
-                # Google Picker requires a browser-visible, referrer-restricted
-                # developer key.  It is not included in status/settings APIs.
-                picker_config={'client_id':client_id,'developer_key':picker_key,
-                               'app_id':client_id.split('-',1)[0]}
+                    result=response.read(1_000_001)
+                if len(result)>1_000_000:
+                    raise DriveWebOAuthError('Selected Google Drive file exceeds the local 1 MB text limit.')
+                return result
+            # Google Picker requires a browser-visible, referrer-restricted
+            # developer key. It is not included in status/settings APIs.
+            picker_config={'client_id':client_id,'developer_key':picker_key,
+                           'app_id':client_id.split('-',1)[0]}
     service=AgentService(store,subscription_engines=isolated_engines,
                          isolated_engine_adapter=isolated_engine,drive_web_oauth=drive)
     service.drive_token_exchange=drive_exchange
@@ -298,7 +304,7 @@ def make_handler(service, public_hosts=(), public_access_token=''):
                 if not (getattr(service,'drive_picker_config',None) and service.drive_web_oauth.picker_grant_active(grant)):
                     return self.reply(400,b'Google Drive file-selection link is invalid or expired. Return to Telegram and request a new link.','text/plain; charset=utf-8')
                 nonce=secrets.token_urlsafe(18)
-                csp="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://accounts.google.com https://*.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.google.com https://*.googleapis.com https://*.gstatic.com; frame-src https://*.google.com https://*.googleapis.com https://*.gstatic.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+                csp=f"default-src 'self'; script-src 'self' 'nonce-{nonce}' 'unsafe-eval' https://apis.google.com https://accounts.google.com https://*.gstatic.com; style-src 'self' 'unsafe-inline' https://accounts.google.com https://*.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.google.com https://*.googleapis.com https://*.gstatic.com; frame-src https://*.google.com https://*.googleapis.com https://*.gstatic.com; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
                 return self.reply(200,picker_page(service.drive_picker_config,grant,nonce),'text/html; charset=utf-8',csp=csp)
             if path in ('/','/app.js','/style.css'):
                 filename={'/':'index.html','/app.js':'app.js','/style.css':'style.css'}[path]

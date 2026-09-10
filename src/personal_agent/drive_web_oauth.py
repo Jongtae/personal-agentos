@@ -9,6 +9,7 @@ import hashlib
 import hmac
 import json
 import secrets
+import threading
 import time
 from urllib.parse import quote, urlencode, urlsplit
 
@@ -106,6 +107,7 @@ class DriveWebOAuthHandoff:
         self.store, self.client_id = store, client_id
         self.redirect_uri, self.handoff_url = redirect_uri, handoff_url.rstrip("/")
         self.now, self.ttl_seconds = now, ttl_seconds
+        self._picker_grant_lock = threading.Lock()
 
     def begin(self, telegram_owner_id, pending_job_id=None):
         if not isinstance(telegram_owner_id, int) or telegram_owner_id <= 0:
@@ -212,20 +214,25 @@ class DriveWebOAuthHandoff:
         return value["grant"]
 
     def select_files_for_grant(self, grant, files):
-        value = self.store.secret(PICKER_GRANT_KEY)
-        if (not isinstance(grant, str) or not isinstance(value, dict)
-                or value.get("used") or not secrets.compare_digest(grant, str(value.get("grant", "")))):
-            raise DriveWebOAuthError("Google Drive file-selection link is invalid or already used.")
-        if self.now() >= value.get("expires_at", 0):
+        with self._picker_grant_lock:
+            value = self.store.secret(PICKER_GRANT_KEY)
+            if (not isinstance(grant, str) or not isinstance(value, dict)
+                    or value.get("used") or not secrets.compare_digest(grant, str(value.get("grant", "")))):
+                raise DriveWebOAuthError("Google Drive file-selection link is invalid or already used.")
+            if self.now() >= value.get("expires_at", 0):
+                self.store.secret(PICKER_GRANT_KEY, {"used": True})
+                raise DriveWebOAuthError("Google Drive file-selection link expired; request a new link.")
+            owner = value.get("owner")
+            if not isinstance(owner, int):
+                raise DriveWebOAuthError("Google Drive file-selection link is invalid.")
+            # Consume before accepting metadata while holding the local server
+            # lock, so concurrent browser tabs cannot replace the selection.
             self.store.secret(PICKER_GRANT_KEY, {"used": True})
-            raise DriveWebOAuthError("Google Drive file-selection link expired; request a new link.")
-        owner = value.get("owner")
-        if not isinstance(owner, int):
-            raise DriveWebOAuthError("Google Drive file-selection link is invalid.")
-        # Consume before accepting the metadata so a second browser tab cannot
-        # replace a deliberate Picker selection.
-        self.store.secret(PICKER_GRANT_KEY, {"used": True})
-        return owner, self.select_files(owner, files)
+            return owner, self.select_files(owner, files)
+
+    def mark_reauthentication_required(self):
+        """Invalidate a rejected remote token before offering another link."""
+        self._finish("reauth-required")
 
     def picker_grant_active(self, grant):
         value = self.store.secret(PICKER_GRANT_KEY)

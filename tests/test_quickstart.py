@@ -145,11 +145,22 @@ class QuickstartTests(unittest.TestCase):
         configured=configured_service(self.store, {
             'AGENTOS_DRIVE_LOCAL_ONLY':'1', 'AGENTOS_DRIVE_CLIENT_ID':'client',
             'AGENTOS_DRIVE_ENCRYPTION_KEY':Fernet.generate_key().decode(), 'AGENTOS_DRIVE_LOCAL_PORT':'9123',
-            'AGENTOS_DRIVE_CLIENT_SECRET':'never-return-this',
+            'AGENTOS_DRIVE_CLIENT_SECRET':'never-return-this', 'AGENTOS_DRIVE_PICKER_API_KEY':'restricted-key',
         })
         self.assertEqual(configured.drive_web_oauth.redirect_uri,'http://localhost:9123/oauth/google/callback')
         self.assertTrue(configured.drive_web_oauth.begin(42)['button']['url'].startswith('https://agentos.localhost:9124/'))
         self.assertNotIn('never-return-this',json.dumps(configured.settings()))
+
+    def test_local_drive_requires_a_complete_picker_configuration(self):
+        env={'AGENTOS_DRIVE_LOCAL_ONLY':'1','AGENTOS_DRIVE_CLIENT_ID':'client',
+             'AGENTOS_DRIVE_ENCRYPTION_KEY':Fernet.generate_key().decode(),
+             'AGENTOS_DRIVE_CLIENT_SECRET':'secret'}
+        self.assertIsNone(configured_service(self.store,env).drive_web_oauth)
+        with tempfile.TemporaryDirectory() as external:
+            path=Path(external)/'drive.json'
+            path.write_text(json.dumps({'client_id':'client'}));path.chmod(0o600)
+            with self.assertRaisesRegex(ValueError,'every required'):
+                configured_service(self.store,{**env,'AGENTOS_DRIVE_SECRET_FILE':str(path)})
 
     def test_owner_only_drive_secret_file_configures_without_environment_secrets(self):
         with tempfile.TemporaryDirectory() as external:
@@ -222,7 +233,8 @@ class QuickstartTests(unittest.TestCase):
             self.assertIn('restricted-browser-key',page)
             self.assertNotIn('server-only-token',page)
             self.assertIn("/api/drive/picker-selection",page)
-            self.assertIn("'unsafe-inline'",csp)
+            self.assertIn("'nonce-",csp)
+            self.assertNotIn("script-src 'self' 'unsafe-inline'",csp)
             self.assertIn('<script nonce="',page)
         finally:
             server.shutdown();thread.join();server.server_close()
@@ -255,6 +267,21 @@ class QuickstartTests(unittest.TestCase):
         self.assertNotIn('private selected Drive plan body',json.dumps(self.store.recent_tool_events()))
         model_call=next(body for url,body,_headers in self.calls if url.endswith('/api/chat'))
         self.assertIn('private selected Drive plan body',str(model_call))
+
+    def test_rejected_drive_read_requires_reauthentication(self):
+        key=Fernet.generate_key()
+        drive=DriveWebOAuthHandoff(EncryptedDriveSecretStore(self.store,key),'client',
+            'http://localhost:8787/oauth/google/callback','http://localhost:8787',allow_localhost=True,local_only=True)
+        offer=drive.begin(123); state=parse_qs(urlsplit(offer['button']['url']).query)['state'][0]
+        drive.complete({'state':state,'code':'code'},123,lambda _:{'access_token':'server-token','scope':'https://www.googleapis.com/auth/drive.file'})
+        drive.select_files(123,[{'id':'picked','name':'plan.txt'}])
+        service=AgentService(self.store,ModelAdapter(self.transport),self.transport,drive_web_oauth=drive)
+        def rejected(_url,_body,_headers):
+            raise HTTPError('https://www.googleapis.com/drive/v3/files/picked',401,'rejected',None,None)
+        service.drive_read=rejected
+        with self.assertRaisesRegex(ValueError,'다시 연결'):
+            service.selected_drive_context(123)
+        self.assertEqual(drive.status()['state'],'reauth-required')
 
     def test_workspace_is_opt_in_and_saved_results_survive_restart(self):
         workspace=self.service.create_workspace({'title':'UX 개선','purpose':'대화 경험 정리'})
