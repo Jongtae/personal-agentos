@@ -206,7 +206,13 @@ class StateHandoffLoop:
                                      "draft": current.draft,
                                      "required_checks_known": current.required_checks_known})
         else:
-            candidate = self.executor(issue, state.get("feedback"))
+            # A rework worker may run on another host. Prefer the bounded
+            # reviewer receipt read from GitHub; local state is only a cache.
+            feedback = state.get("feedback")
+            remote_feedback = getattr(self.github, "feedback", None)
+            if remote_feedback:
+                feedback = remote_feedback(issue.number, Candidate(**raw)) if raw else remote_feedback(issue.number, None)
+            candidate = self.executor(issue, feedback)
         if not isinstance(candidate, Candidate) or candidate.issue != issue.number:
             return {"action": "executor-no-candidate", "issue": issue.number}
         state["candidate"] = asdict(candidate); self.state.write(state)
@@ -218,9 +224,12 @@ class StateHandoffLoop:
 
     def _review(self, issue, state):
         raw = state.get("candidate")
-        if not raw or raw.get("issue") != issue.number:
+        # Reviewer state is intentionally independent from the implementer's
+        # local recovery file. GitHub receipt is the role handoff boundary.
+        candidate = Candidate(**raw) if raw and raw.get("issue") == issue.number else self.github.candidate(issue.number)
+        if not candidate:
             return {"action": "missing-candidate-association", "issue": issue.number}
-        candidate = Candidate(**raw)
+        state["candidate"] = asdict(candidate); self.state.write(state)
         current = self.github.candidate(issue.number)
         if (not current or current.key() != candidate.key() or candidate.draft or candidate.ci != "success"
                 or not candidate.required_checks_known):
@@ -235,7 +244,7 @@ class StateHandoffLoop:
         if findings:
             state["feedback"] = {"digest": digest, "findings": findings}; self.state.write(state)
             return self._receipt(issue.number, "agent:review", "agent:rework", "review", candidate.key() + ":" + digest,
-                                 "Review receipt: repair required — " + "; ".join(findings), state, candidate)
+                                 f"Review receipt: PR #{candidate.pr}, head `{candidate.head}`, repair required — " + "; ".join(findings), state, candidate)
         return self._receipt(issue.number, "agent:review", "agent:approved", "review", candidate.key(),
                              f"Review receipt: PR #{candidate.pr}, head `{candidate.head}` satisfies current fixture evidence; owner merge decision remains.", state, candidate)
 
@@ -272,9 +281,16 @@ class GithubCliBoundary:
     merges, or closes an issue.  An existing heartbeat can run a one-shot
     dispatch and hand the selected bounded issue to its configured executor.
     """
-    def __init__(self, repository, runner=None):
+    def __init__(self, repository, runner=None, authorized_goals=None, owner_login=None,
+                 implementer_logins=None, reviewer_logins=None):
         self.repository, self.runner = repository, runner or self._run
         self._viewer = None
+        # This map is supplied by the owner-maintained delivery plan / local
+        # controller, not copied from an issue body.
+        self.authorized_goals = authorized_goals or {}
+        self.owner_login = owner_login
+        self.implementer_logins = set(implementer_logins or ())
+        self.reviewer_logins = set(reviewer_logins or ())
 
     @staticmethod
     def _run(args):
@@ -297,17 +313,18 @@ class GithubCliBoundary:
 
     def issues(self):
         rows = self._json("issue", "list", "--repo", self.repository, "--state", "open", "--limit", "100",
-                          "--json", "number,body,state,labels")
+                          "--json", "number,body,state,labels,author")
         result = []
         for row in rows:
             body = row.get("body") or ""
-            # A queue label alone is insufficient: only a goal-ready issue
-            # with an explicit authority boundary is admitted.
-            authorized = ("## Executable goal" in body and "## Allowed authority" in body
-                          and "<!-- agentos:owner-authorized -->" in body
-                          and "<!-- agentos:dependencies-satisfied -->" in body)
+            authority = self.authorized_goals.get(int(row["number"]), {})
+            author = (row.get("author") or {}).get("login")
+            # Markers describe a record but never confer authority. Admission
+            # requires an externally supplied exact goal/dependency record.
+            authorized = bool(authority.get("authorized")) and (not self.owner_login or author == self.owner_login)
+            dependencies = bool(authority.get("dependencies_satisfied"))
             result.append(Issue(int(row["number"]), {x["name"] for x in row.get("labels", [])}, body,
-                                row.get("state", "OPEN"), authorized, authorized))
+                                row.get("state", "OPEN"), authorized, dependencies))
         return result
 
     def transition(self, number, old, new):
@@ -365,14 +382,31 @@ class GithubCliBoundary:
         return Candidate(number, int(row["number"]), row["headRefOid"], row["baseRefName"],
                          "success" if success and receipt_ci == "success" else "pending", bool(row["isDraft"]), known)
 
-    def candidate(self, number):
+    def _allowed_comments(self, number, roles):
         viewer = self._viewer_login()
-        comments = [r for r in self._comments(number) if r.get("user", {}).get("login") == viewer]
+        allowed = set(roles) or {viewer}
+        return [r for r in self._comments(number) if r.get("user", {}).get("login") in allowed]
+
+    def candidate(self, number):
+        comments = self._allowed_comments(number, self.implementer_logins)
         pattern = __import__("re").compile(r"Implementation receipt: PR #(\d+), head `([0-9a-f]{40})`, CI `([^`]+)`")
         matches = [pattern.search(r.get("body") or "") for r in comments]; matches = [m for m in matches if m]
         if not matches: return None
-        pr, _head, ci = matches[-1].groups()
-        return self._candidate_from_pr(number, pr, ci)
+        pr, head, ci = matches[-1].groups()
+        candidate = self._candidate_from_pr(number, pr, ci)
+        # A receipt for an older pushed head cannot authorise review of a
+        # newer PR head.
+        return candidate if candidate.head == head else None
+
+    def feedback(self, number, candidate):
+        comments = self._allowed_comments(number, self.reviewer_logins)
+        pattern = __import__("re").compile(r"Review receipt: PR #(\d+), head `([0-9a-f]{40})`, repair required — (.+)")
+        matches = [pattern.search(r.get("body") or "") for r in comments]; matches = [m for m in matches if m]
+        if not matches: return None
+        pr, head, findings = matches[-1].groups()
+        if candidate and (int(pr) != candidate.pr or head != candidate.head): return None
+        return {"digest": hashlib.sha256(findings.encode()).hexdigest()[:20],
+                "findings": [item.strip() for item in findings.split(";") if item.strip()]}
 
     def refresh_candidate(self, number, previous):
         """Poll a retained working candidate before its receipt exists."""

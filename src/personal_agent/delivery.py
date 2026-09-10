@@ -135,8 +135,10 @@ def classify_failure(text):
 
 
 class DeliveryController:
-    def __init__(self, root=None, state_path=None, runner=None, now=None):
+    def __init__(self, root=None, state_path=None, runner=None, now=None, handoff_workers=None, handoff_github_factory=None):
         self.root=Path(root or Path.cwd()).resolve()
+        self.handoff_workers=handoff_workers or {}
+        self.handoff_github_factory=handoff_github_factory or GithubCliBoundary
         configured_plan=self.root/'delivery-plan.yaml'
         packaged_plan=Path(__file__).with_name('delivery-plan.yaml')
         self.plan=DeliveryPlan(configured_plan if configured_plan.exists() else packaged_plan)
@@ -475,7 +477,14 @@ class DeliveryController:
         repository = self.plan.data.get('repository')
         if not repository: raise DeliveryError('delivery plan has no repository.')
         path = Path(state_path) if state_path else self.state_store.path.with_name('handoff-state.json')
-        return StateHandoffLoop(GithubCliBoundary(repository), path, worker_id='delivery-cli').tick(role)
+        goals = {int(item['issue']): {'authorized': True, 'dependencies_satisfied': all(
+            dep in self.plan.documented_completed() for dep in item.get('depends_on', []))}
+            for item in self.plan.items.values()
+            if item.get('activation_status') == 'owner-activated-goal-ready' and item.get('issue')}
+        github = self.handoff_github_factory(repository, authorized_goals=goals)
+        workers = self.handoff_workers
+        return StateHandoffLoop(github, path, executor=workers.get('implementer'), reviewer=workers.get('reviewer'),
+                                worker_id='delivery-cli').tick(role)
 
 
 def main(argv=None):
