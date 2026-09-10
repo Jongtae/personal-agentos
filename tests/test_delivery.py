@@ -58,11 +58,11 @@ class DeliveryTests(unittest.TestCase):
         plan['next_goal']={'id':'TOP','status':'active'}
         (self.root/'delivery-plan.yaml').write_text(json.dumps(plan))
 
-    def test_completed_file_workspace_program_does_not_select_a_successor(self):
+    def test_completed_file_workspace_program_stays_complete_when_a_separate_goal_is_active(self):
         controller=self.controller()
-        self.assertEqual(controller.plan.next_goal()['status'], 'complete')
-        self.assertEqual(controller.plan.next_goal()['id'], 'FILE-WS-C-01')
-        self.assertIsNone(controller.plan.select({}))
+        self.assertEqual(controller.plan.next_goal()['status'], 'active')
+        self.assertEqual(controller.plan.next_goal()['id'], 'SITE-01')
+        self.assertEqual(controller.plan.select({})['id'], 'SITE-01')
         self.assertIsNone(controller.plan.data['programs']['FILE-WORKSPACE-01']['active_substep'])
         self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['status'], 'complete')
         self.assertEqual(controller.plan.data['programs']['FILE-WORKSPACE-01']['issue'], 314)
