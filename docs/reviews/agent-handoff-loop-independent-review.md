@@ -189,3 +189,83 @@ handoff path. Passing 30 focused and full suites are strong regression
 evidence for the fixtures, but do not negate these authority and integration
 failures. No schedule creation, automatic merge, or live operating claim was
 observed.
+
+## Latest R5/R6 re-review (`e68a4bf`)
+
+Reviewed the current PR head `e68a4bfa35c838c72269126970c6d95ae5e9a4c8`.
+GitHub's required `validate` check is successful at review time. Per the
+reported local evidence, an initial isolated-engine HTTP 400 occurred during
+one full-suite attempt; the exact affected test was then rerun successfully.
+This is recorded as a transient observed test event, not as proof of an
+operating deployment.
+
+### R5 — resolved in source; exclusion regression is not explicit
+
+`handoff_tick()` now obtains exactly one item from
+`DeliveryPlan.select(self.state_store.read())` and supplies only that issue to
+`authorized_goals`. This removes the prior authorization of historical and
+future goal-ready records. The source therefore fixes the identified
+authority widening. The current focused tests do not explicitly construct a
+non-active goal-ready issue with an `agent:ready` label and assert that the
+entrypoint excludes it; adding that narrow regression assertion would make
+the active-goal guarantee directly reviewable.
+
+### R6 — source adds a CLI configuration route; production-entrypoint evidence remains incomplete
+
+`--worker-factory personal_agent.module:function` is now passed from `main()`
+to `handoff_tick()`, imports only a `personal_agent.*` factory, supplies the
+selected role and root, and requires the returned object to be callable. This
+is a real CLI configuration route, unlike the former constructor-only test
+seam. It does not create a schedule or merge capability.
+
+However, neither `tests/test_delivery.py` nor `tests/test_handoff.py` tests a
+valid `--worker-factory` path (or `handoff_tick(..., worker_factory=...)`).
+The present 30 focused tests exercise injected `handoff_workers`, not the new
+production argument parsing/import/factory invocation. No bundled bounded
+factory is identified by the reviewed diff, and role-login configuration for
+distinct GitHub identities remains external to this CLI flag. The command's
+actual configured-worker behavior is therefore unverified by automated
+evidence.
+
+### Disposition
+
+**R5 accepted in source. R6 needs one focused production-entrypoint regression
+test before this independent review can accept the R5/R6 repair as complete.**
+That test should prove that a valid permitted factory is invoked once with the
+requested role/root, its callable reaches `StateHandoffLoop`, and an invalid
+or non-callable return fails before an issue label changes. The prior green
+focused/full evidence and current green CI remain valid for their covered
+paths; they do not cover this latest CLI path.
+
+## Final R5/R6 current-head re-review (`6195322`)
+
+Reviewed current head `6195322341c7736b392f1bfc2c70d8151ccf4080` and GitHub
+Actions run `34473816543` (required `validate`: successful). The focused local
+re-run `PYTHONPATH=src python3 -m pytest -q tests/test_delivery.py
+tests/test_handoff.py` passed **31 tests**; the delivery unittest selection
+passed **16 tests**; `git diff --check` passed.
+
+R5 remains resolved: `handoff_tick()` derives `authorized_goals` from the
+single result of `DeliveryPlan.select()` rather than every goal-ready record.
+No historical or future plan entry is granted by that construction.
+
+R6 now has a production CLI route and an automated regression check.
+`--worker-factory` is parsed by `main()`, limited to a `personal_agent.*`
+module reference, called with the selected role/root, checked for a callable
+result before the GitHub boundary is constructed, and passed into the handoff
+loop. `test_handoff_worker_factory_is_restricted_and_invoked` proves a
+permitted factory is invoked with those arguments and a rejected `os:system`
+reference fails closed.
+
+The new fixture uses an empty issue list, so it does not itself invoke the
+returned callable against an eligible issue; existing injected-worker coverage
+exercises that loop wiring. This is a narrow coverage limitation, not a
+blocking source finding: the current construction assigns the returned
+callable to the selected role before constructing `StateHandoffLoop`.
+
+### Current conclusion
+
+**No remaining blocking R5/R6 finding.** The green CI and focused evidence
+cover the active-goal restriction and the newly added factory parsing/invocation
+path. As throughout this review, this is not evidence of a live GitHub worker,
+heartbeat, schedule, or automatic merge.
