@@ -151,24 +151,39 @@ class DeliveryController:
         """Reconcile retired control metadata with documented merged work."""
         state=dict(state)
         stale=False
+        retired_deferred=False
         history=self.plan.data.get('history',{})
         reconcile_when=history.get('reconcile_state_when_active',[]) if isinstance(history,dict) else []
         should_reconcile=(state.get('active') in reconcile_when or state.get('blocked') in reconcile_when
                           or state.get('last_validation') == 'migrated-documentation')
         documented=self.plan.documented_completed() if should_reconcile else set()
+        deferred={ident for ident,item in self.plan.items.items()
+                  if item.get('activation_status') == 'owner-deferred'}
         completed=set(state.get('completed',[])) if isinstance(state.get('completed'),list) else set()
         if not documented <= completed:
             state['completed']=sorted(completed | documented)
             stale=True
         for key in ('active','blocked'):
             value=state.get(key)
-            if value and (value not in self.plan.items or value in documented):
+            if value and (value not in self.plan.items or value in documented or value in deferred):
+                retired_deferred=retired_deferred or value in deferred
                 state.pop(key,None)
+                stale=True
+        issues=state.get('issues')
+        if isinstance(issues,dict):
+            retained={key:value for key,value in issues.items() if key not in deferred}
+            if retained != issues:
+                retired_deferred=True
+                if retained:state['issues']=retained
+                else:state.pop('issues',None)
                 stale=True
         if stale and not state.get('active') and not state.get('blocked'):
             for key in ('milestone','issue','pr','release','next_retry_at','last_error','attempt_day','attempts_today'):
                 state.pop(key,None)
-            state.update(status='reconciled-documentation' if should_reconcile else 'ready-to-run',last_validation='migrated-documentation' if should_reconcile else 'migrated-plan',updated_at=self.now())
+            if retired_deferred:
+                state.update(status='retired-owner-deferred',last_validation='migrated-owner-deferred',updated_at=self.now())
+            else:
+                state.update(status='reconciled-documentation' if should_reconcile else 'ready-to-run',last_validation='migrated-documentation' if should_reconcile else 'migrated-plan',updated_at=self.now())
         return state
 
     def status(self):

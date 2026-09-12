@@ -89,6 +89,47 @@ class DeliveryTests(unittest.TestCase):
         (self.root/'delivery-plan.yaml').write_text(json.dumps(altered))
         self.assertIsNone(DeliveryPlan(self.root/'delivery-plan.yaml').select({}))
 
+    def test_deferred_site_active_state_is_retired_without_completion(self):
+        StateStore(self.state).write({
+            'active':'SITE-01', 'status':'running', 'milestone':'Product Information and Policy Site',
+            'issue':313, 'issues':{'SITE-01':313}, 'last_error':'stale site work',
+            'next_retry_at':self.clock[0] + 60,
+        })
+        result=self.controller().status()
+        self.assertIsNone(result['active'])
+        self.assertEqual(result['status'], 'retired-owner-deferred')
+        self.assertNotIn('SITE-01', result.get('completed', []))
+        self.assertNotIn('issues', result)
+        persisted=StateStore(self.state).read()
+        self.assertEqual(persisted['status'], 'retired-owner-deferred')
+        self.assertNotIn('active', persisted)
+        self.assertNotIn('last_error', persisted)
+
+    def test_deferred_site_blocked_state_is_retired_without_completion(self):
+        StateStore(self.state).write({
+            'active':'SITE-01', 'blocked':'SITE-01', 'status':'blocked-validation-failed',
+            'milestone':'Product Information and Policy Site', 'issue':313,
+            'issues':{'SITE-01':313}, 'last_error':'site retry',
+            'next_retry_at':self.clock[0] + 60,
+        })
+        result=self.controller().status()
+        self.assertIsNone(result['active'])
+        self.assertNotIn('blocked', result)
+        self.assertEqual(result['status'], 'retired-owner-deferred')
+        self.assertNotIn('issues', result)
+        self.assertNotIn('last_error', result)
+
+    def test_deferred_site_retirement_preserves_another_active_goal_metadata(self):
+        StateStore(self.state).write({
+            'active':'GOV-01', 'status':'running', 'milestone':'Autonomous Goal Governance Alignment',
+            'issue':168, 'issues':{'SITE-01':313, 'GOV-01':168}, 'last_error':'governance detail',
+        })
+        migrated=self.controller()._migrate_stale_state(StateStore(self.state).read())
+        self.assertEqual(migrated['active'], 'GOV-01')
+        self.assertEqual(migrated['issues'], {'GOV-01':168})
+        self.assertEqual(migrated['issue'], 168)
+        self.assertEqual(migrated['last_error'], 'governance detail')
+
     def test_file_workspace_contract_uses_the_canonical_plan_substep_ids(self):
         root=Path(__file__).parents[1]
         contract=(root/'docs'/'file-workspace-first-experience-contract.en.md').read_text()
