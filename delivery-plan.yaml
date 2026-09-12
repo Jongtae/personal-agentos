@@ -514,9 +514,9 @@
       "milestone": "Product Information and Policy Site",
       "issue": 313,
       "kind": "documentation",
-      "activation_status": "owner-activated-goal-ready",
+      "activation_status": "owner-deferred",
       "tests": ["python3 scripts/verify_master_plan_docs.py", "cmp -s delivery-plan.yaml src/personal_agent/delivery-plan.yaml", "python3 -m pytest -q tests"],
-      "summary": "Prepare a static product, installation, privacy, and terms site without an OAuth callback, token relay, analytics, or runtime dependency. Public Pages deployment remains an explicit operator-controlled step."
+      "summary": "Source and manual-only Pages workflow prepared in PR #327; remaining publication deferred by owner in #313 (not planned). Preserve all site artifacts. Public deployment, operator details, domain and Google verification are not complete and require a new explicit owner decision."
     }
   ],
   "milestones": {
@@ -625,13 +625,13 @@
       "authority": "Complete after the merged FILE-WS-C-01 evidence audit. This program does not authorize a successor, external activation, credential/OAuth configuration, personal-folder permission expansion beyond dedicated test folders, external recipient transmission, or automatic merge.",
       "non_goals": ["sync engine", "central authentication", "OCR", "audio transcription", "video analysis", "advanced large-library search", "cloud-only import", "delegated material bundles", "destructive migration"],
       "evidence_classes": ["documentation and plan evidence", "mock-model evidence", "local-file integration evidence", "external operating observation"],
-      "drive_handling": "#308/#310/#312 are closed/deferred optional Drive work; merged PR #311 preserves bounded connector code without a live provider claim. #313 is an independent informational/policy-site workstream."
+      "drive_handling": "#308/#310/#312 are closed/deferred optional Drive work; merged PR #311 preserves bounded connector code without a live provider claim. #313 is closed as not planned: site source is preserved and remaining publication is owner-deferred, not a prerequisite for local file work."
     }
   },
   "next_goal": {
-    "id": "SITE-01",
-    "status": "active",
-    "action": "Owner authorized SITE-01 #313. Prepare and validate the static site; do not publish, configure a domain, or register Google URLs without confirmed operator information and a separately authorized deployment action.",
+    "id": null,
+    "status": "requires-explicit-owner-approval",
+    "action": "No active successor. SITE-01 #313 publication is owner-deferred to prioritize file-and-folder personal work. Preserve the site and manual workflow; do not resume publication or select another goal without a new explicit owner decision.",
     "source": "https://github.com/Jongtae/personal-agentos/issues/313"
   }
 }

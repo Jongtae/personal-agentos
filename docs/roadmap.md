@@ -4,9 +4,9 @@ Use the [Goal Execution Contract](goal-execution-contract.en.md) with this track
 
 AgentOS Hub v2 is a local-first personal-agent runtime, not a generic model gateway. The Mac hosts the owner-controlled runtime; AgentOS owns personal state, assistants, permissions, tools, task lifecycle, and evidence; Codex or Claude Code performs bounded engine turns.
 
-## Active — Product information and policy site
+## Deferred — Product information and policy site
 
-[#313](https://github.com/Jongtae/personal-agentos/issues/313) is an independent information/policy-site workstream, not a local-file or Drive/OAuth prerequisite. [PR #327](https://github.com/Jongtae/personal-agentos/pull/327) merged bilingual static product, install, privacy, and terms pages plus a manually dispatched Pages workflow. The site has no OAuth callback, token broker, Drive proxy, forms, analytics, credential handling, or runtime connection requirement. GitHub Pages is not configured: the read-only Pages API returned 404, so no HTTPS URL or publication is claimed. Public release remains active pending operator confirmation of legal identity, support contact, effective date, and hosting/domain decision, followed by separately authorized Pages activation and deployment observation.
+[#313](https://github.com/Jongtae/personal-agentos/issues/313) is closed as not planned by explicit owner priority decision. [PR #327](https://github.com/Jongtae/personal-agentos/pull/327) prepared bilingual static product, install, privacy, and terms pages plus a manually dispatched Pages workflow; these artifacts remain preserved and unchanged. Remaining public deployment is deferred, not completed, and is not a prerequisite for local-file work or optional Drive/OAuth development. The earlier publication-blocker observation in PR #328 remains historical evidence, not a live deployment claim. Reconsider publication only after a new explicit owner decision and current confirmation of operator identity, support contact, policy effective date, hosting/domain choice, and any required Google verification. No Pages dispatch, domain/DNS change, Google registration, or successor activation is authorized by this closeout.
 
 ## Completed — File-and-folder personal workspace
 
@@ -14,7 +14,7 @@ Owner-authorized [#314](https://github.com/Jongtae/personal-agentos/issues/314) 
 
 Connected reference folders are read-only by default; managed-workspace writes are scoped. Originals, derived material, drafts, final records, rebuildable indexes, and durable task/approval/evidence/recovery/auth state remain distinct. External AI, messenger, and agent transmission is separately controlled. This program does not implement OCR, transcription, video analysis, advanced large-library search, cloud-only import, material-bundle delegation, cloud sync, or destructive migration.
 
-Drive #308/#310/#312 are closed/deferred optional connector work rather than first-flow predecessors. Merged PR #311 preserves a bounded local Drive Picker implementation, but no live Google OAuth, Drive, Telegram, credential, or operating observation is claimed. #313 remains a separate informational/policy-site track, not a prerequisite for local file functionality.
+Drive #308/#310/#312 are closed/deferred optional connector work rather than first-flow predecessors. Merged PR #311 preserves a bounded local Drive Picker implementation, but no live Google OAuth, Drive, Telegram, credential, or operating observation is claimed. #313's remaining informational/policy-site publication is owner-deferred and does not block local file functionality.
 
 ## First milestone closeout — 2026-09-08
 
